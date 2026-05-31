@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiet Focus</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+/* ═══════════════════════════════════════
+   TOKENS — exact from your app
+═══════════════════════════════════════ */
+:root {
+  --bg:         #07080a;
+  --panel:      #0c0e11;
+  --panel-2:    #12151a;
+  --line:       rgba(255,255,255,0.08);
+  --line-2:     rgba(255,255,255,0.13);
+  --muted:      rgba(238,242,248,0.42);
+  --muted-2:    rgba(238,242,248,0.64);
+  --text:       #f6f7fb;
+  --accent:     #f6f7fb;
+  --accent-ink: #0a0b0d;
+  --success:    #94dab1;
+  --warning:    #ffcf70;
+  --danger:     rgba(255,100,100,0.85);
+  --mint-dim:   rgba(148,218,177,0.10);
+  --radius:     18px;
+  font-family: Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { min-height:100%; }
+
+body {
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 72% 16%,rgba(84,92,115,.18),transparent 27rem),
+    radial-gradient(circle at 16% 78%,rgba(55,64,81,.14),transparent 25rem),
+    var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+
+button,input,textarea { color:inherit; font:inherit; }
+button { border:0; cursor:pointer; }
+button:focus-visible,input:focus-visible { outline:2px solid rgba(255,255,255,.64); outline-offset:2px; }
+button:disabled { cursor:not-allowed; opacity:.42; }
+
+.sr-only {
+  border:0; clip:rect(0 0 0 0); clip-path:inset(50%);
+  height:1px; margin:-1px; overflow:hidden;
+  position:absolute; white-space:nowrap; width:1px;
+}
+
+/* ═══════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════ */
+#auth-screen {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.auth-card {
+  background:var(--panel);
+  border:1px solid var(--line-2);
+  border-radius:28px;
+  padding:40px 36px;
+  width:100%;
+  max-width:400px;
+  box-shadow:0 32px 80px rgba(0,0,0,.5);
+}
+
+.auth-logo {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:32px;
+}
+
+.auth-logo-icon {
+  width:36px; height:36px;
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.auth-logo-name {
+  font-size:17px;
+  font-weight:540;
+  letter-spacing:-0.03em;
+}
+
+.auth-logo-name span { color:var(--success); }
+
+.auth-tabs {
+  display:flex;
+  background:var(--panel-2);
+  border-radius:12px;
+  padding:4px;
+  gap:4px;
+  margin-bottom:28px;
+}
+
+.auth-tab {
+  flex:1;
+  padding:9px;
+  border-radius:9px;
+  font-size:13px;
+  font-weight:500;
+  background:transparent;
+  color:var(--muted-2);
+  transition:background .15s, color .15s;
+}
+
+.auth-tab.active {
+  background:var(--panel);
+  color:var(--text);
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+
+.auth-form { display:flex; flex-direction:column; gap:14px; }
+
+.auth-field { display:flex; flex-direction:column; gap:7px; }
+
+.auth-label {
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.auth-input {
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  border-radius:12px;
+  padding:13px 16px;
+  font-size:15px;
+  color:var(--text);
+  transition:border-color .15s;
+  outline:none;
+  width:100%;
+}
+
+.auth-input::placeholder { color:var(--muted); }
+.auth-input:focus { border-color:rgba(148,218,177,.45); }
+
+.auth-submit {
+  background:var(--accent);
+  color:var(--accent-ink);
+  border-radius:13px;
+  padding:14px;
+  font-size:15px;
+  font-weight:540;
+  margin-top:6px;
+  transition:opacity .15s, transform .12s;
+  width:100%;
+}
+.auth-submit:hover { opacity:.88; }
+.auth-submit:active { transform:scale(.985); }
+
+.auth-divider {
+  display:flex; align-items:center; gap:12px;
+  font-size:12px; color:var(--muted); margin:4px 0;
+}
+.auth-divider::before,.auth-divider::after {
+  content:''; flex:1; height:1px; background:var(--line);
+}
+
+.auth-google {
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  border-radius:13px;
+  padding:13px;
+  font-size:14px;
+  font-weight:500;
+  color:var(--muted-2);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  transition:background .15s, color .15s;
+  width:100%;
+}
+.auth-google:hover { background:rgba(255,255,255,.06); color:var(--text); }
+
+.auth-error {
+  background:rgba(255,80,80,.1);
+  border:1px solid rgba(255,80,80,.2);
+  border-radius:10px;
+  color:rgba(255,130,130,.9);
+  font-size:13px;
+  padding:11px 14px;
+  display:none;
+}
+
+.auth-success {
+  background:var(--mint-dim);
+  border:1px solid rgba(148,218,177,.2);
+  border-radius:10px;
+  color:var(--success);
+  font-size:13px;
+  padding:11px 14px;
+  display:none;
+}
+
+.auth-footer {
+  margin-top:24px;
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+  line-height:1.6;
+}
+
+/* ═══════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════ */
+#app-screen { display:none; }
+
+.showcase {
+  align-items:center;
+  display:flex;
+  gap:clamp(3rem,10vw,9rem);
+  justify-content:center;
+  min-height:100vh;
+  padding:28px;
+}
+
+/* Top user bar */
+.user-bar {
+  position:fixed;
+  top:0; left:0; right:0;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(7,8,10,.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
+}
+
+.ub-logo {
+  font-size:14px;
+  font-weight:540;
+  letter-spacing:-0.03em;
+  color:var(--text);
+}
+.ub-logo span { color:var(--success); }
+
+.ub-right { display:flex; align-items:center; gap:12px; }
+
+.ub-email {
+  font-size:12px;
+  color:var(--muted);
+  display:none;
+}
+
+.ub-avatar {
+  width:32px; height:32px;
+  border-radius:50%;
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px;
+  font-weight:600;
+  color:var(--success);
+}
+
+.ub-signout {
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  color:var(--muted);
+  transition:color .15s, border-color .15s;
+}
+.ub-signout:hover { color:var(--text); border-color:var(--line-2); }
+
+/* ═══════════════════════════════════════
+   INTRO SIDEBAR (your exact style)
+═══════════════════════════════════════ */
+.intro { max-width:374px; }
+.eyebrow {
+  color:var(--muted);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.16em;
+  margin-bottom:20px;
+  text-transform:uppercase;
+}
+.intro h1 {
+  font-size:clamp(42px,5.2vw,58px);
+  font-weight:560;
+  letter-spacing:-.065em;
+  line-height:1.02;
+  margin-bottom:20px;
+}
+.intro-copy {
+  color:var(--muted-2);
+  font-size:16px;
+  line-height:1.65;
+  margin-bottom:38px;
+}
+.feature-list { display:flex; flex-wrap:wrap; gap:9px; }
+.feature-list span {
+  border:1px solid var(--line);
+  border-radius:999px;
+  color:var(--muted-2);
+  font-size:12px;
+  padding:10px 14px;
+}
+
+/* user stats in sidebar */
+.user-stats {
+  margin-top:32px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+}
+.us-label {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+.us-row {
+  display:flex;
+  justify-content:space-between;
+}
+.us-item { text-align:center; }
+.us-num { font-size:22px; font-weight:480; display:block; }
+.us-lbl { font-size:10px; color:var(--muted); margin-top:3px; display:block; }
+
+/* ═══════════════════════════════════════
+   DEVICE (your exact style)
+═══════════════════════════════════════ */
+.device {
+  background:#050608;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:48px;
+  box-shadow:0 38px 90px rgba(0,0,0,.65), inset 0 1px rgba(255,255,255,.06);
+  flex:0 0 390px;
+  overflow:hidden;
+  padding:7px;
+}
+.device-edge {
+  background:var(--panel);
+  border-radius:40px;
+  display:flex;
+  flex-direction:column;
+  height:min(844px,calc(100dvh - 72px));
+  min-height:min(720px,calc(100dvh - 72px));
+  overflow:hidden;
+  position:relative;
+}
+.phone-header {
+  background:var(--panel);
+  flex-shrink:0;
+  height:60px;
+  padding-top:9px;
+  position:relative;
+}
+.island {
+  background:#050608;
+  border-radius:99px;
+  height:26px;
+  left:50%;
+  position:absolute;
+  top:9px;
+  transform:translateX(-50%);
+  width:108px;
+}
+.status-bar {
+  align-items:center;
+  color:rgba(238,242,248,.7);
+  display:flex;
+  font-size:12px;
+  font-weight:500;
+  justify-content:space-between;
+  padding:14px 28px 0;
+}
+.status-icons { display:flex; gap:7px; }
+.status-icons svg { fill:none; height:12px; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.6; width:20px; }
+.status-icons svg:last-child { width:24px; }
+.status-icons .battery-fill { fill:currentColor; stroke:none; }
+
+.app-surface {
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding:13px 22px 19px;
+  scrollbar-width:none;
+}
+.app-surface::-webkit-scrollbar { display:none; }
+
+.page { animation:enter 220ms ease; display:none; }
+.page.active { display:block; }
+
+@keyframes enter {
+  from { opacity:0; transform:translateY(5px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ═══════════════════════════════════════
+   HOME PAGE (your exact style)
+═══════════════════════════════════════ */
+.greeting { color:var(--muted); font-size:13px; letter-spacing:.02em; margin-top:10px; }
+.name-input {
+  background:transparent; border:0;
+  color:var(--text);
+  display:block;
+  font-size:31px; font-weight:520;
+  letter-spacing:-.05em; line-height:1.2;
+  margin:8px 0 5px; width:100%;
+}
+.tagline { color:var(--muted); font-size:13px; margin-bottom:24px; }
+.meta-label { color:var(--muted); font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+
+.streak-card {
+  align-items:center;
+  background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.025));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:17px;
+  padding:15px 14px;
+}
+.streak-copy { color:var(--muted-2); font-size:12px; margin-top:7px; }
+.streak-copy strong { color:var(--text); font-size:16px; margin-right:3px; }
+.streak-days { align-items:end; display:flex; gap:4px; }
+.day-bar { background:rgba(255,255,255,.1); border-radius:99px; height:18px; width:5px; }
+.day-bar.done { background:rgba(255,255,255,.7); }
+.day-bar.today { height:24px; }
+.day-bar.today.done { background:#fff; }
+
+.session-builder {
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:22px;
+  margin-bottom:22px;
+  padding:16px;
+}
+.task-input {
+  background:transparent; border:0;
+  border-bottom:1px solid var(--line);
+  color:var(--text); font-size:15px;
+  margin-top:12px; padding-bottom:14px; width:100%;
+}
+.task-input::placeholder { color:var(--muted); }
+
+.duration-picker { border:0; display:flex; gap:7px; margin:15px 0; }
+.duration {
+  background:rgba(255,255,255,.04);
+  border:1px solid transparent;
+  border-radius:11px;
+  color:var(--muted-2);
+  flex:1; font-size:12px; padding:10px 0;
+  transition:background 160ms ease,border 160ms ease,color 160ms ease;
+}
+.duration.selected {
+  background:rgba(255,255,255,.1);
+  border-color:rgba(255,255,255,.14);
+  color:var(--text);
+}
+
+.primary,.secondary {
+  border-radius:14px;
+  font-size:14px;
+  font-weight:520;
+  min-height:48px;
+  transition:opacity 150ms ease,transform 150ms ease;
+}
+.primary:active,.secondary:active { transform:scale(.985); }
+.primary { background:var(--accent); color:var(--accent-ink); }
+.secondary { background:rgba(255,255,255,.065); border:1px solid var(--line); color:var(--muted-2); }
+.start-button { width:100%; }
+
+.row-heading { align-items:center; display:flex; justify-content:space-between; margin-bottom:11px; }
+.text-button { background:transparent; color:var(--muted); font-size:12px; padding:4px; }
+.text-button:hover { color:var(--text); }
+.hidden { visibility:hidden; }
+
+.empty-state { border:1px dashed var(--line); border-radius:15px; color:var(--muted); font-size:12px; line-height:1.55; padding:15px; }
+.last-summary { align-items:center; background:rgba(255,255,255,.035); border-radius:15px; display:flex; justify-content:space-between; padding:14px; }
+.last-task { color:var(--text); font-size:13px; margin-bottom:5px; }
+.last-details { color:var(--muted); font-size:11px; }
+.last-score { color:var(--text); font-size:24px; font-weight:500; }
+
+.coach-note {
+  background:rgba(255,255,255,.032);
+  border-radius:var(--radius);
+  color:var(--muted-2);
+  font-size:13px; line-height:1.6;
+  margin-top:15px; padding:15px;
+}
+.coach-note .meta-label,.coach-live .meta-label,.recap-insight .meta-label { margin-bottom:8px; }
+
+/* cloud sync badge */
+.sync-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:11px;
+  color:var(--success);
+  background:rgba(148,218,177,.08);
+  border:1px solid rgba(148,218,177,.15);
+  border-radius:99px;
+  padding:4px 10px;
+  margin-top:10px;
+}
+
+/* ═══════════════════════════════════════
+   SESSION PAGE (your exact style)
+═══════════════════════════════════════ */
+.session-header { align-items:start; display:flex; justify-content:space-between; margin:9px 0 25px; }
+.session-task { color:var(--text); font-size:14px; margin-top:8px; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.timer-ring {
+  --progress:0deg;
+  align-items:center;
+  background:conic-gradient(#f6f7fb var(--progress),rgba(255,255,255,.065) var(--progress));
+  border-radius:50%;
+  display:flex;
+  height:240px; justify-content:center;
+  margin:0 auto 30px;
+  position:relative; width:240px;
+}
+.timer-ring::after {
+  background:var(--panel);
+  border-radius:50%;
+  content:"";
+  height:226px; position:absolute; width:226px;
+}
+.timer-center { position:relative; text-align:center; z-index:1; }
+.timer-number { font-size:56px; font-variant-numeric:tabular-nums; font-weight:450; letter-spacing:-.07em; }
+.timer-status { color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.13em; margin-top:7px; text-transform:uppercase; }
+
+.live-metrics,.recap-metrics { display:grid; gap:1px; grid-template-columns:repeat(3,1fr); }
+.live-metrics div,.recap-metrics div { border-right:1px solid var(--line); text-align:center; }
+.live-metrics div:last-child,.recap-metrics div:last-child { border-right:0; }
+.live-metrics strong,.recap-metrics strong { display:block; font-size:23px; font-weight:450; margin-bottom:5px; }
+.live-metrics span,.recap-metrics span { color:var(--muted); display:block; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+
+.coach-live {
+  background:rgba(255,255,255,.045);
+  border-radius:var(--radius);
+  color:var(--muted-2);
+  font-size:13px; line-height:1.55;
+  margin:30px 0 20px; min-height:76px; padding:15px;
+}
+.session-controls { display:grid; gap:8px; grid-template-columns:repeat(2,1fr); }
+.session-controls .primary { grid-column:span 2; }
+
+/* ═══════════════════════════════════════
+   RECAP PAGE (your exact style)
+═══════════════════════════════════════ */
+.recap-header { margin:10px 0 27px; }
+.score-row { align-items:baseline; display:flex; gap:7px; margin:10px 0 7px; }
+.score-row strong { font-size:63px; font-weight:450; letter-spacing:-.065em; line-height:1; }
+.score-row span { color:var(--muted); font-size:15px; }
+.recap-caption { color:var(--muted); font-size:13px; }
+.recap-insight { border-top:1px solid var(--line); color:var(--muted-2); font-size:13px; line-height:1.65; margin-top:28px; padding-top:21px; }
+.timeline { border-top:1px solid var(--line); margin-top:20px; padding-top:21px; }
+.timeline-item { color:var(--muted-2); display:flex; font-size:12px; gap:12px; line-height:1.45; margin-top:14px; }
+.timeline-time { color:var(--muted); flex:0 0 40px; font-variant-numeric:tabular-nums; }
+.timeline-dot { background:rgba(255,255,255,.7); border-radius:50%; flex:0 0 6px; height:6px; margin-top:5px; }
+.timeline-item[data-type="distraction"] .timeline-dot { background:var(--warning); }
+.timeline-item[data-type="refocus"] .timeline-dot,.timeline-item[data-type="complete"] .timeline-dot { background:var(--success); }
+.recap-actions { display:grid; gap:8px; margin-top:25px; }
+
+/* ═══════════════════════════════════════
+   HISTORY PAGE (new)
+═══════════════════════════════════════ */
+.history-header { margin:10px 0 20px; }
+.history-title { font-size:22px; font-weight:520; letter-spacing:-.04em; margin-bottom:6px; }
+.history-list { display:flex; flex-direction:column; gap:8px; }
+.history-item {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  cursor:pointer;
+  transition:background .15s;
+}
+.history-item:hover { background:rgba(255,255,255,.06); }
+.hi-task { font-size:13px; color:var(--text); margin-bottom:4px; }
+.hi-meta { font-size:11px; color:var(--muted); }
+.hi-score { font-size:22px; font-weight:480; }
+
+/* ═══════════════════════════════════════
+   TAB BAR (your exact style)
+═══════════════════════════════════════ */
+.tab-bar {
+  background:rgba(12,14,17,.97);
+  border-top:1px solid var(--line);
+  display:flex;
+  flex-shrink:0;
+  height:68px;
+  padding:8px 18px 7px;
+}
+.tab {
+  align-items:center; background:transparent;
+  color:rgba(238,242,248,.3);
+  display:flex; flex:1; flex-direction:column;
+  gap:4px; transition:color 150ms ease;
+}
+.tab.active { color:var(--text); }
+.tab svg { fill:none; height:21px; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.7; width:21px; }
+.tab span { font-size:10px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; }
+
+/* ═══════════════════════════════════════
+   TOAST (your exact style)
+═══════════════════════════════════════ */
+.toast {
+  background:#f6f7fb;
+  border-radius:999px;
+  bottom:80px;
+  box-shadow:0 12px 26px rgba(0,0,0,.45);
+  color:#0a0b0d;
+  font-size:12px;
+  left:50%;
+  opacity:0;
+  padding:11px 16px;
+  pointer-events:none;
+  position:absolute;
+  transform:translate(-50%,8px);
+  transition:opacity 160ms ease,transform 160ms ease;
+  white-space:nowrap;
+  z-index:4;
+}
+.toast.show { opacity:1; transform:translate(-50%,0); }
+
+/* ═══════════════════════════════════════
+   RESPONSIVE (your exact)
+═══════════════════════════════════════ */
+@media (max-height:760px) {
+  .app-surface { padding-bottom:12px; padding-top:7px; }
+  .session-header { margin:4px 0 13px; }
+  .timer-ring { height:182px; margin-bottom:15px; width:182px; }
+  .timer-ring::after { height:170px; width:170px; }
+  .timer-number { font-size:46px; }
+  .coach-live { line-height:1.45; margin:16px 0 12px; min-height:0; padding:12px 14px; }
+  .coach-live .meta-label { margin-bottom:5px; }
+  .primary,.secondary { min-height:43px; }
+}
+@media (max-width:850px) { .showcase { padding:18px; } .intro { display:none; } }
+@media (max-width:430px) {
+  body { background:var(--panel); }
+  .showcase { display:block; min-height:100dvh; padding:0; }
+  .device { border:0; border-radius:0; box-shadow:none; min-height:100dvh; padding:0; width:100%; }
+  .device-edge { border-radius:0; height:100dvh; min-height:0; }
+  .user-bar { display:none; }
+}
+
+/* loading spinner */
+.spinner {
+  width:20px; height:20px;
+  border:2px solid var(--line);
+  border-top-color:var(--success);
+  border-radius:50%;
+  animation:spin .6s linear infinite;
+  display:inline-block;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="#94dab1" stroke-width="1.6"/>
+          <line x1="9" y1="4.5" x2="9" y2="9" stroke="#94dab1" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="9" y1="9" x2="12" y2="11.2" stroke="#94dab1" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="auth-logo-name">Quiet <span>Focus</span></div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign in</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create account</button>
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+
+    <!-- SIGN IN FORM -->
+    <form class="auth-form" id="form-signin" onsubmit="handleSignIn(event)">
+      <div class="auth-field">
+        <label class="auth-label" for="si-email">Email</label>
+        <input class="auth-input" id="si-email" type="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="si-password">Password</label>
+        <input class="auth-input" id="si-password" type="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button class="auth-submit" type="submit" id="btn-signin">Sign in</button>
+      <div class="auth-divider">or</div>
+      <button class="auth-google" type="button" onclick="handleGoogleSignIn()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <p class="auth-footer">Focus sessions saved securely to your account.<br>No spam. Unsubscribe anytime.</p>
+    </form>
+
+    <!-- SIGN UP FORM -->
+    <form class="auth-form" id="form-signup" style="display:none" onsubmit="handleSignUp(event)">
+      <div class="auth-field">
+        <label class="auth-label" for="su-name">Your name</label>
+        <input class="auth-input" id="su-name" type="text" placeholder="What should we call you?" required maxlength="28" autocomplete="given-name">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="su-email">Email</label>
+        <input class="auth-input" id="su-email" type="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="su-password">Password</label>
+        <input class="auth-input" id="su-password" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+      </div>
+      <button class="auth-submit" type="submit" id="btn-signup">Create account</button>
+      <div class="auth-divider">or</div>
+      <button class="auth-google" type="button" onclick="handleGoogleSignIn()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <p class="auth-footer">Your sessions sync across devices.<br>Free forever, no card needed.</p>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════ -->
+<div id="app-screen">
+
+  <!-- top user bar -->
+  <div class="user-bar">
+    <div class="ub-logo">Quiet <span>Focus</span></div>
+    <div class="ub-right">
+      <span class="ub-email" id="ub-email"></span>
+      <div class="ub-avatar" id="ub-avatar">?</div>
+      <button class="ub-signout" onclick="handleSignOut()">Sign out</button>
+    </div>
+  </div>
+
+  <main class="showcase" style="padding-top:80px;">
+    <!-- sidebar -->
+    <section class="intro" aria-label="App introduction">
+      <p class="eyebrow">Quiet Focus</p>
+      <h1>Focus, with a calmer coach.</h1>
+      <p class="intro-copy">A distraction-aware focus timer that helps you return to the task without judgment.</p>
+      <div class="feature-list" aria-label="Features">
+        <span>Smart timer</span>
+        <span>Session recap</span>
+        <span>Cloud sync ☁️</span>
+      </div>
+      <div class="user-stats" id="user-stats" style="display:none">
+        <p class="us-label">Your progress</p>
+        <div class="us-row">
+          <div class="us-item">
+            <span class="us-num" id="us-sessions">0</span>
+            <span class="us-lbl">sessions</span>
+          </div>
+          <div class="us-item">
+            <span class="us-num" id="us-hours">0h</span>
+            <span class="us-lbl">focused</span>
+          </div>
+          <div class="us-item">
+            <span class="us-num" id="us-streak">0</span>
+            <span class="us-lbl">day streak</span>
+          </div>
+        </div>
+      </div>
+      <div class="sync-badge" id="sync-badge" style="display:none">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#94dab1" stroke-width="1.2"/></svg>
+        Syncing to cloud
+      </div>
+    </section>
+
+    <!-- phone -->
+    <section class="device" aria-label="Quiet Focus application">
+      <div class="device-edge">
+        <header class="phone-header">
+          <div class="island" aria-hidden="true"></div>
+          <div class="status-bar" aria-hidden="true">
+            <span id="clock">9:41</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 4.5C5.5.5 12.5.5 17 4.5M4 7c3-2.5 7-2.5 10 0M7 9.5c1.1-.8 2.9-.8 4 0"/></svg>
+              <svg viewBox="0 0 24 12"><rect x="1" y="1" width="19" height="10" rx="3"/><path d="M22 4v4"/><rect class="battery-fill" x="3" y="3" width="14" height="6" rx="1"/></svg>
+            </span>
+          </div>
+        </header>
+
+        <div class="app-surface">
+
+          <!-- HOME -->
+          <section class="page active" id="page-home" aria-label="Home">
+            <p class="greeting" id="greeting">Good morning</p>
+            <label class="sr-only" for="username">Your name</label>
+            <input class="name-input" id="username" type="text" maxlength="28" value="Your Name" autocomplete="nickname">
+            <p class="tagline" id="tagline">Plan one clear session for today.</p>
+
+            <div class="streak-card">
+              <div>
+                <p class="meta-label">Daily streak</p>
+                <p class="streak-copy"><strong id="streak-count">0</strong> days focused</p>
+              </div>
+              <div class="streak-days" id="streak-days" aria-label="Last seven days"></div>
+            </div>
+
+            <form class="session-builder" id="session-form">
+              <label class="meta-label" for="task-input">Focus on</label>
+              <input class="task-input" id="task-input" type="text" maxlength="64" placeholder="What needs your attention?" value="Deep work session">
+              <fieldset class="duration-picker">
+                <legend class="sr-only">Choose session duration</legend>
+                <button type="button" class="duration" data-duration="25">25 min</button>
+                <button type="button" class="duration selected" data-duration="45">45 min</button>
+                <button type="button" class="duration" data-duration="60">60 min</button>
+              </fieldset>
+              <button class="primary start-button" type="submit">Start focus session</button>
+            </form>
+
+            <section class="last-card" aria-label="Most recent session">
+              <div class="row-heading">
+                <p class="meta-label">Last session</p>
+                <button class="text-button hidden" type="button" id="clear-history">Clear</button>
+              </div>
+              <div id="last-session" class="empty-state">Your first completed session will appear here.</div>
+            </section>
+
+            <aside class="coach-note" id="home-coach">
+              <p class="meta-label">Coach</p>
+              <p>Start small. A clear task and one uninterrupted block is enough for today.</p>
+            </aside>
+          </section>
+
+          <!-- SESSION -->
+          <section class="page session-page" id="page-session" aria-label="Active focus session">
+            <header class="session-header">
+              <div>
+                <p class="meta-label">Focusing on</p>
+                <p class="session-task" id="session-task">Deep work session</p>
+              </div>
+              <button class="text-button" id="finish-session" type="button">Finish</button>
+            </header>
+            <div class="timer-ring" id="timer-ring">
+              <div class="timer-center">
+                <p class="timer-number" id="timer-display">45:00</p>
+                <p class="timer-status" id="timer-status">Remaining</p>
+              </div>
+            </div>
+            <div class="live-metrics" aria-label="Live session metrics">
+              <div><strong id="focused-metric">0</strong><span>focused min</span></div>
+              <div><strong id="distracted-metric">0</strong><span>distractions</span></div>
+              <div><strong id="breaks-metric">0</strong><span>breaks</span></div>
+            </div>
+            <aside class="coach-live">
+              <p class="meta-label">Coach</p>
+              <p id="coach-message">Your focus window is open. Keep the next action simple.</p>
+            </aside>
+            <div class="session-controls">
+              <button class="secondary" id="pause-button" type="button">Pause</button>
+              <button class="secondary" id="break-button" type="button">Take a break</button>
+              <button class="primary" id="distraction-button" type="button">I'm distracted</button>
+            </div>
+          </section>
+
+          <!-- RECAP -->
+          <section class="page recap-page" id="page-recap" aria-label="Session recap">
+            <header class="recap-header">
+              <p class="meta-label">Session complete</p>
+              <div class="score-row">
+                <strong id="final-score">100</strong><span>pts</span>
+              </div>
+              <p class="recap-caption" id="recap-caption">Nice work returning to what matters.</p>
+            </header>
+            <div class="recap-metrics" aria-label="Session summary">
+              <div><strong id="recap-focused">0m</strong><span>focused</span></div>
+              <div><strong id="recap-distractions">0</strong><span>distractions</span></div>
+              <div><strong id="recap-breaks">0</strong><span>breaks</span></div>
+            </div>
+            <aside class="recap-insight">
+              <p class="meta-label">Coach insight</p>
+              <p id="recap-insight">Consistency becomes easier one session at a time.</p>
+            </aside>
+            <section class="timeline" aria-label="Timeline">
+              <p class="meta-label">Timeline</p>
+              <div id="timeline"></div>
+            </section>
+            <div class="recap-actions">
+              <button class="primary" id="restart-button" type="button">Start another session</button>
+              <button class="secondary" id="done-button" type="button">Done</button>
+            </div>
+          </section>
+
+          <!-- HISTORY -->
+          <section class="page" id="page-history" aria-label="Session history">
+            <div class="history-header">
+              <p class="meta-label">Your sessions</p>
+              <p class="history-title">Session history</p>
+            </div>
+            <div class="history-list" id="history-list">
+              <div class="empty-state">Complete sessions to build your history.</div>
+            </div>
+          </section>
+
+        </div><!-- end app-surface -->
+
+        <nav class="tab-bar" aria-label="Primary navigation">
+          <button class="tab active" data-page="home" type="button" aria-current="page">
+            <svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>
+            <span>Home</span>
+          </button>
+          <button class="tab" data-page="session" type="button">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span>Focus</span>
+          </button>
+          <button class="tab" data-page="recap" type="button">
+            <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-8"/></svg>
+            <span>Recap</span>
+          </button>
+          <button class="tab" data-page="history" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>History</span>
+          </button>
+        </nav>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  SUPABASE INIT
+//  Replace with your actual keys from .env.local
+// ═══════════════════════════════════════
+const SUPABASE_URL = 'https://pyqnhbuzpagosqxsjvwg.supabase.co';     // ← paste from .env.local
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cW5oYnV6cGFnb3NxeHNqdndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTc1NzksImV4cCI6MjA5NTM3MzU3OX0.XorO-8qaHlgpDsPUqcOv6WDxP0op_hWAQ73rVHf28qo';
+ // ← paste from .env.local
+
+const { createClient } = window.supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════
+//  AUTH STATE
+// ═══════════════════════════════════════
+let currentUser = null;
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  currentUser = session?.user || null;
+  if (currentUser) {
+    await onUserSignedIn();
+  } else {
+    showAuthScreen();
+  }
+});
+
+async function onUserSignedIn() {
+  showAppScreen();
+  updateUserBar();
+  await loadProfileFromSupabase();
+  renderHome();
+}
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+function showAppScreen() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+}
+
+function updateUserBar() {
+  if (!currentUser) return;
+  const email = currentUser.email || '';
+  const name  = currentUser.user_metadata?.name || email.split('@')[0] || '?';
+  document.getElementById('ub-email').textContent = email;
+  document.getElementById('ub-avatar').textContent = name.charAt(0).toUpperCase();
+}
+
+// ─── AUTH FORMS ───────────────────────
+
+function switchAuthTab(tab) {
+  document.getElementById('form-signin').style.display  = tab === 'signin'  ? 'flex' : 'none';
+  document.getElementById('form-signup').style.display  = tab === 'signup'  ? 'flex' : 'none';
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  clearAuthMessages();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function clearAuthMessages() {
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+async function handleSignIn(e) {
+  e.preventDefault();
+  clearAuthMessages();
+  const btn = document.getElementById('btn-signin');
+  const email    = document.getElementById('si-email').value;
+  const password = document.getElementById('si-password').value;
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.textContent = 'Sign in';
+  btn.disabled = false;
+
+  if (error) {
+    showAuthError(error.message);
+  }
+  // onAuthStateChange handles the rest
+}
+
+async function handleSignUp(e) {
+  e.preventDefault();
+  clearAuthMessages();
+  const btn = document.getElementById('btn-signup');
+  const name     = document.getElementById('su-name').value;
+  const email    = document.getElementById('su-email').value;
+  const password = document.getElementById('su-password').value;
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  const { error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name }
+    }
+  });
+
+  btn.textContent = 'Create account';
+  btn.disabled = false;
+
+  if (error) {
+    showAuthError(error.message);
+  } else {
+    showAuthSuccess('Check your email to confirm your account, then sign in.');
+  }
+}
+
+async function handleGoogleSignIn() {
+  clearAuthMessages();
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href
+    }
+  });
+  if (error) showAuthError(error.message);
+}
+
+async function handleSignOut() {
+  await sb.auth.signOut();
+  profile = { ...defaults };
+  session = null;
+  clearInterval(timerId);
+  showAuthScreen();
+}
+
+// ═══════════════════════════════════════
+//  SUPABASE DATA — save / load sessions
+// ═══════════════════════════════════════
+async function saveSessionToSupabase(summary) {
+  if (!currentUser) return;
+  document.getElementById('sync-badge').style.display = 'flex';
+
+  const { error } = await sb.from('sessions').insert({
+    user_id:             currentUser.id,
+    task:                summary.task,
+    focus_minutes:       summary.focusMinutes,
+    distractions:        summary.distractions,
+    breaks:              summary.breaks,
+    refocuses:           summary.refocuses,
+    score:               summary.score,
+    completed_naturally: summary.completedNaturally,
+    events:              summary.events,
+    date:                summary.date
+  });
+
+  setTimeout(() => {
+    document.getElementById('sync-badge').style.display = 'none';
+  }, 2000);
+
+  if (error) console.warn('Save error:', error.message);
+  else await updateSidebarStats();
+}
+
+async function loadProfileFromSupabase() {
+  if (!currentUser) return;
+
+  const { data, error } = await sb
+    .from('sessions')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error || !data) return;
+
+  // map Supabase rows → your local history format
+  profile.history = data.map(row => ({
+    date:              row.date,
+    task:              row.task,
+    focusMinutes:      row.focus_minutes,
+    distractions:      row.distractions,
+    breaks:            row.breaks,
+    refocuses:         row.refocuses,
+    score:             row.score,
+    completedNaturally:row.completed_naturally,
+    events:            row.events || []
+  }));
+
+  // restore name from user metadata
+  const name = currentUser.user_metadata?.name;
+  if (name) {
+    profile.userName = name;
+    saveProfile();
+  }
+
+  await updateSidebarStats();
+}
+
+async function updateSidebarStats() {
+  if (!currentUser) return;
+
+  const { data } = await sb
+    .from('sessions')
+    .select('focus_minutes, date, score')
+    .eq('user_id', currentUser.id);
+
+  if (!data) return;
+
+  const totalSessions = data.length;
+  const totalMins     = data.reduce((s, r) => s + (r.focus_minutes || 0), 0);
+  const totalHours    = (totalMins / 60).toFixed(1);
+  const streak        = profile.streak || calculateStreak();
+
+  document.getElementById('us-sessions').textContent = totalSessions;
+  document.getElementById('us-hours').textContent    = totalHours + 'h';
+  document.getElementById('us-streak').textContent   = streak;
+  document.getElementById('user-stats').style.display = 'block';
+}
+
+// ═══════════════════════════════════════
+//  YOUR ORIGINAL APP LOGIC (unchanged)
+// ═══════════════════════════════════════
+const STORAGE_KEY   = 'quiet-focus-v1';
+const BREAK_SECONDS = 5 * 60;
+
+const defaults = {
+  userName:        'Your Name',
+  task:            'Deep work session',
+  durationMinutes: 45,
+  streak:          0,
+  history:         [],
+  activeSession:   null
+};
+
+let profile  = loadProfile();
+let session  = null;
+let timerId  = null;
+let toastId  = null;
+
+const $     = id => document.getElementById(id);
+const pages = Array.from(document.querySelectorAll('.page'));
+const tabs  = Array.from(document.querySelectorAll('.tab'));
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return { ...defaults, ...saved, history: saved?.history || [] };
+  } catch { return { ...defaults }; }
+}
+
+function saveProfile() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+}
+
+function persistSession() {
+  profile.activeSession = session && session.mode !== 'complete' ? session : null;
+  saveProfile();
+}
+
+function localDateKey(date = new Date()) {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function dateOffset(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return localDateKey(date);
+}
+
+function formatClock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function formatMinutes(seconds) { return Math.floor(seconds / 60); }
+
+function nowGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function updateClock() {
+  $('clock').textContent = new Intl.DateTimeFormat([],{hour:'numeric',minute:'2-digit'}).format(new Date());
+}
+
+function completedDates() { return new Set(profile.history.map(i => i.date)); }
+
+function calculateStreak() {
+  const dates = completedDates();
+  let cursor = dates.has(dateOffset(0)) ? 0 : -1, count = 0;
+  while (dates.has(dateOffset(cursor))) { count++; cursor--; }
+  return count;
+}
+
+function renderHome() {
+  profile.streak = calculateStreak();
+  $('greeting').textContent   = nowGreeting();
+  $('username').value         = profile.userName;
+  $('task-input').value       = profile.task;
+  $('streak-count').textContent = profile.streak;
+  $('tagline').textContent    = profile.streak
+    ? `${profile.streak} day${profile.streak===1?'':'s'} focused. Keep your rhythm.`
+    : 'Plan one clear session for today.';
+
+  document.querySelectorAll('.duration').forEach(b =>
+    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
+  );
+
+  const dates = completedDates();
+  $('streak-days').innerHTML = '';
+  for (let o = -6; o <= 0; o++) {
+    const bar = document.createElement('span');
+    const done = dates.has(dateOffset(o));
+    bar.className = `day-bar${done?' done':''}${o===0?' today':''}`;
+    $('streak-days').appendChild(bar);
+  }
+
+  const last = profile.history[0];
+  if (!last) {
+    $('last-session').className = 'empty-state';
+    $('last-session').textContent = 'Your first completed session will appear here.';
+    $('clear-history').classList.add('hidden');
+    $('home-coach').lastElementChild.textContent = 'Start small. A clear task and one uninterrupted block is enough for today.';
+    return;
+  }
+  $('clear-history').classList.remove('hidden');
+  $('last-session').className = 'last-summary';
+  $('last-session').innerHTML = `
+    <div>
+      <p class="last-task"></p>
+      <p class="last-details"></p>
+    </div>
+    <strong class="last-score"></strong>
+  `;
+  $('last-session').querySelector('.last-task').textContent = last.task;
+  $('last-session').querySelector('.last-details').textContent =
+    `${last.focusMinutes?`${last.focusMinutes} min`:'<1 min'} focused · ${last.distractions} distraction${last.distractions===1?'':'s'}`;
+  $('last-session').querySelector('.last-score').textContent = last.score;
+  $('home-coach').lastElementChild.textContent = last.distractions
+    ? 'Noticing distraction is progress. Try putting your first task in full screen before starting.'
+    : 'You protected your attention last session. Schedule another focus window while the habit is warm.';
+}
+
+function renderHistory() {
+  const list = $('history-list');
+  if (!profile.history.length) {
+    list.innerHTML = '<div class="empty-state">Complete sessions to build your history.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  profile.history.slice(0, 20).forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <div>
+        <p class="hi-task"></p>
+        <p class="hi-meta"></p>
+      </div>
+      <strong class="hi-score"></strong>
+    `;
+    item.querySelector('.hi-task').textContent = s.task;
+    item.querySelector('.hi-meta').textContent =
+      `${s.date} · ${s.focusMinutes||0} min · ${s.distractions} distraction${s.distractions===1?'':'s'}`;
+    item.querySelector('.hi-score').textContent = s.score;
+    item.addEventListener('click', () => { renderRecap(s); showPage('recap'); });
+    list.appendChild(item);
+  });
+}
+
+function showPage(name) {
+  pages.forEach(p => p.classList.toggle('active', p.id === `page-${name}`));
+  tabs.forEach(t => {
+    const sel = t.dataset.page === name;
+    t.classList.toggle('active', sel);
+    sel ? t.setAttribute('aria-current','page') : t.removeAttribute('aria-current');
+  });
+  document.querySelector('.app-surface').scrollTop = 0;
+  if (name === 'history') renderHistory();
+}
+
+function eventAt(text, type) {
+  if (!session) return;
+  session.events.push({ time: formatClock(session.focusSeconds), text, type });
+}
+
+function startSession() {
+  profile.task = $('task-input').value.trim() || 'Focus session';
+  saveProfile();
+  const durationSeconds = profile.durationMinutes * 60;
+  session = {
+    task: profile.task,
+    durationSeconds,
+    remainingSeconds: durationSeconds,
+    focusSeconds: 0,
+    breakRemaining: 0,
+    distractions: 0,
+    breaks: 0,
+    refocuses: 0,
+    awaitingRefocus: false,
+    mode: 'focus',
+    lastTick: Date.now(),
+    events: []
+  };
+  eventAt('Session started', 'start');
+  persistSession();
+  $('session-task').textContent = session.task;
+  $('coach-message').textContent = 'Your focus window is open. Keep the next action simple.';
+  $('pause-button').textContent = 'Pause';
+  $('pause-button').disabled = false;
+  $('break-button').textContent = 'Take a break';
+  $('distraction-button').textContent = "I'm distracted";
+  $('distraction-button').disabled = false;
+  renderSession();
+  showPage('session');
+  runTimer();
+}
+
+function runTimer() {
+  clearInterval(timerId);
+  if (session) session.lastTick = Date.now();
+  timerId = setInterval(tick, 250);
+}
+
+function tick() {
+  if (!session || session.mode === 'complete' || session.mode === 'paused') return;
+  const elapsed = Math.floor((Date.now() - session.lastTick) / 1000);
+  if (elapsed < 1) return;
+  session.lastTick += elapsed * 1000;
+  if (session.mode === 'break') {
+    session.breakRemaining = Math.max(0, session.breakRemaining - elapsed);
+    if (session.breakRemaining === 0) endBreak();
+  } else {
+    const counted = Math.min(elapsed, session.remainingSeconds);
+    session.focusSeconds += counted;
+    session.remainingSeconds -= counted;
+    if (session.remainingSeconds === 0) finishSession(true);
+  }
+  if (session.mode !== 'complete') persistSession();
+  renderSession();
+}
+
+function renderSession() {
+  if (!session) return;
+  const isBreak = session.mode === 'break';
+  $('timer-display').textContent = formatClock(isBreak ? session.breakRemaining : session.remainingSeconds);
+  $('timer-status').textContent  = isBreak ? 'Break remaining' : session.mode === 'paused' ? 'Paused' : 'Remaining';
+  const progress = session.focusSeconds / session.durationSeconds;
+  $('timer-ring').style.setProperty('--progress', `${Math.min(360, progress*360)}deg`);
+  $('focused-metric').textContent    = Math.floor(session.focusSeconds / 60);
+  $('distracted-metric').textContent = session.distractions;
+  $('breaks-metric').textContent     = session.breaks;
+}
+
+function restoreSessionControls() {
+  if (!session) return;
+  $('pause-button').textContent = session.mode === 'paused' ? 'Resume' : 'Pause';
+  $('pause-button').disabled    = session.mode === 'break';
+  $('break-button').textContent = session.mode === 'break' ? 'End break' : 'Take a break';
+  $('distraction-button').textContent = session.awaitingRefocus ? "I'm refocused" : "I'm distracted";
+  $('distraction-button').disabled = session.mode === 'break';
+  if (session.mode === 'break')
+    $('coach-message').textContent = 'Take a breath, stretch, and return before this break closes.';
+  else if (session.mode === 'paused')
+    $('coach-message').textContent = 'Paused. Resume when you are ready to give this your attention.';
+  else if (session.awaitingRefocus)
+    $('coach-message').textContent = 'No judgment. Close the distraction, then tap when you are back.';
+  else
+    $('coach-message').textContent = 'Your focus window is open. Keep the next action simple.';
+}
+
+function togglePause() {
+  if (!session || session.mode === 'complete' || session.mode === 'break') return;
+  if (session.mode === 'paused') {
+    session.mode = 'focus';
+    session.lastTick = Date.now();
+    $('pause-button').textContent = 'Pause';
+    $('coach-message').textContent = 'You are back in focus. One next action at a time.';
+    toast('Session resumed');
+  } else {
+    tick();
+    session.mode = 'paused';
+    $('pause-button').textContent = 'Resume';
+    $('coach-message').textContent = 'Paused. Resume when you are ready to give this your attention.';
+    toast('Session paused');
+  }
+  persistSession();
+  renderSession();
+}
+
+function startBreak() {
+  if (!session || session.mode === 'complete') return;
+  if (session.mode === 'break') { endBreak(); return; }
+  tick();
+  session.mode = 'break';
+  session.breakRemaining = BREAK_SECONDS;
+  session.breaks += 1;
+  session.lastTick = Date.now();
+  eventAt('Intentional break started','break');
+  $('pause-button').disabled = true;
+  $('break-button').textContent = 'End break';
+  $('distraction-button').disabled = true;
+  $('coach-message').textContent = 'Take a breath, stretch, and return before this break closes.';
+  persistSession();
+  toast('5 minute break started');
+  renderSession();
+}
+
+function endBreak() {
+  if (!session || session.mode !== 'break') return;
+  session.mode = 'focus';
+  session.breakRemaining = 0;
+  session.lastTick = Date.now();
+  eventAt('Break ended - focus resumed','refocus');
+  $('pause-button').disabled = false;
+  $('break-button').textContent = 'Take a break';
+  $('distraction-button').disabled = false;
+  $('coach-message').textContent = 'Welcome back. Reconnect with the smallest next step.';
+  persistSession();
+  toast('Welcome back');
+  renderSession();
+}
+
+function markDistraction() {
+  if (!session || session.mode !== 'focus') return;
+  if (session.awaitingRefocus) {
+    session.awaitingRefocus = false;
+    session.refocuses += 1;
+    eventAt('Returned to focus','refocus');
+    $('distraction-button').textContent = "I'm distracted";
+    $('coach-message').textContent = 'Good return. Protect the next few minutes.';
+    persistSession();
+    toast('Refocus recorded');
+    return;
+  }
+  session.distractions += 1;
+  session.awaitingRefocus = true;
+  eventAt('Distraction noticed','distraction');
+  $('distraction-button').textContent = "I'm refocused";
+  $('coach-message').textContent = 'No judgment. Close the distraction, then tap when you are back.';
+  persistSession();
+  toast('Distraction noted');
+  renderSession();
+}
+
+function scoreForSession(completedNaturally) {
+  const score = 96 + (completedNaturally?4:0) - (session.distractions*8) + (session.refocuses*4);
+  return Math.max(25, Math.min(100, score));
+}
+
+async function finishSession(completedNaturally = false) {
+  if (!session || session.mode === 'complete') return;
+  tick();
+  clearInterval(timerId);
+  clearTimeout(toastId);
+  $('toast').classList.remove('show');
+  $('toast').textContent = '';
+  session.mode = 'complete';
+  eventAt(completedNaturally ? 'Focus session completed' : 'Session finished','complete');
+
+  const summary = {
+    date:              localDateKey(),
+    task:              session.task,
+    focusMinutes:      formatMinutes(session.focusSeconds),
+    distractions:      session.distractions,
+    breaks:            session.breaks,
+    refocuses:         session.refocuses,
+    score:             scoreForSession(completedNaturally),
+    completedNaturally,
+    events:            session.events
+  };
+
+  profile.history.unshift(summary);
+  profile.history = profile.history.slice(0, 20);
+  profile.activeSession = null;
+  saveProfile();
+
+  // ← save to Supabase
+  await saveSessionToSupabase(summary);
+
+  renderRecap(summary);
+  renderHome();
+  showPage('recap');
+}
+
+function renderRecap(summary) {
+  $('final-score').textContent = summary.score;
+  $('recap-focused').textContent = summary.focusMinutes ? `${summary.focusMinutes}m` : '<1m';
+  $('recap-distractions').textContent = summary.distractions;
+  $('recap-breaks').textContent = summary.breaks;
+  $('recap-caption').textContent = summary.completedNaturally
+    ? 'Full focus window completed. Nicely done.'
+    : 'Every deliberate minute still counts.';
+
+  let insight = 'You completed a focused block with no recorded distractions. Protect this setup next time.';
+  if (summary.distractions && summary.refocuses === summary.distractions)
+    insight = `You returned after every distraction (${summary.refocuses} of ${summary.distractions}). That recovery skill is real focus.`;
+  else if (summary.distractions)
+    insight = 'Try one small barrier next time: mute notifications or keep only the task tab open.';
+  else if (summary.breaks)
+    insight = 'Your planned break helped preserve a clean session. Use breaks before attention fades.';
+
+  $('recap-insight').textContent = insight;
+  $('timeline').innerHTML = '';
+  summary.events.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'timeline-item';
+    row.dataset.type = entry.type;
+    row.innerHTML = `<span class="timeline-time"></span><span class="timeline-dot" aria-hidden="true"></span><span class="timeline-copy"></span>`;
+    row.querySelector('.timeline-time').textContent = entry.time;
+    row.querySelector('.timeline-copy').textContent = entry.text;
+    $('timeline').appendChild(row);
+  });
+}
+
+function openRecapFromHistory() {
+  const last = profile.history[0];
+  if (!last) { toast('Complete a session to see your recap'); showPage('home'); return; }
+  renderRecap(last);
+  showPage('recap');
+}
+
+function toast(message) {
+  clearTimeout(toastId);
+  $('toast').textContent = message;
+  $('toast').classList.add('show');
+  toastId = setTimeout(() => $('toast').classList.remove('show'), 1900);
+}
+
+// ─── EVENT LISTENERS ─────────────────
+$('username').addEventListener('input', e => { profile.userName = e.target.value || 'Your Name'; saveProfile(); });
+$('task-input').addEventListener('input', e => { profile.task = e.target.value; saveProfile(); });
+
+document.querySelectorAll('.duration').forEach(b => {
+  b.addEventListener('click', () => {
+    profile.durationMinutes = Number(b.dataset.duration);
+    saveProfile();
+    renderHome();
+  });
+});
+
+$('session-form').addEventListener('submit', e => { e.preventDefault(); startSession(); });
+$('pause-button').addEventListener('click', togglePause);
+$('break-button').addEventListener('click', startBreak);
+$('distraction-button').addEventListener('click', markDistraction);
+$('finish-session').addEventListener('click', () => finishSession(false));
+$('restart-button').addEventListener('click', startSession);
+$('done-button').addEventListener('click', () => showPage('home'));
+$('clear-history').addEventListener('click', () => {
+  profile.history = [];
+  saveProfile();
+  renderHome();
+  toast('Session history cleared');
+});
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const page = tab.dataset.page;
+    if (page === 'recap') openRecapFromHistory();
+    else if (page === 'session' && (!session || session.mode === 'complete')) startSession();
+    else showPage(page);
+  });
+});
+
+updateClock();
+setInterval(updateClock, 30000);
+
+// restore active session if tab was refreshed mid-session
+if (profile.activeSession && profile.activeSession.mode !== 'complete') {
+  session = profile.activeSession;
+  $('session-task').textContent = session.task;
+  tick();
+  if (session.mode !== 'complete') {
+    restoreSessionControls();
+    renderSession();
+    showPage('session');
+    runTimer();
+  }
+}
+</script>
+</body>
+</html>

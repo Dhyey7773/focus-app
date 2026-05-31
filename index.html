@@ -1012,7 +1012,10 @@ footer {
     </div>
     <span class="nav-wordmark">Quiet <span>Focus</span></span>
   </a>
-  <a href="#waitlist" class="nav-cta">Join waitlist</a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <a href="live-demo.html" class="btn-ghost" style="padding:9px 16px;font-size:13px;">Try demo</a>
+    <a href="#waitlist" class="nav-cta">Join waitlist</a>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -1024,6 +1027,7 @@ footer {
       <p class="hero-sub">A distraction-aware focus timer that helps you return to your task — without judgment. Built for students who drift, not machines who don't.</p>
       <div class="hero-actions">
         <a href="#waitlist" class="btn-primary">Join the waitlist →</a>
+        <a href="Focus_state.html" class="btn-ghost">Try live demo</a>
         <a href="#how" class="btn-ghost">See how it works</a>
       </div>
       <div class="hero-social-proof">
@@ -1208,7 +1212,7 @@ footer {
     <p class="waitlist-sub">Join the waitlist. We're letting students in first — no charge, no pressure. You'll get an email when your spot is ready.</p>
 
     <div id="waitlist-form-wrap">
-      <form class="waitlist-form" id="waitlist-form" onsubmit="submitWaitlist(event)">
+      <form class="waitlist-form" id="waitlist-form">
         <input
           type="email"
           class="waitlist-input"
@@ -1240,74 +1244,115 @@ footer {
   <div class="footer-links">
     <a href="#how">How it works</a>
     <a href="#waitlist">Join waitlist</a>
-    <a href="mailto:hello@quietfocus.app">Contact</a>
+    <a href="mailto:quietfocusai@gmail.com">Contact</a>
   </div>
   <div class="footer-right">© 2026 Quiet Focus AI</div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ── Scroll reveal ── */
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('visible');
-      observer.unobserve(e.target);
-    }
+(function () {
+  "use strict";
+
+  const SUPABASE_URL = "https://pyqnhbuzpagosqxsjvwg.supabase.co";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cW5oYnV6cGFnb3NxeHNqdndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTc1NzksImV4cCI6MjA5NTM3MzU3OX0.XorO-8qaHlgpDsPUqcOv6WDxP0op_hWAQ73rVHf28qo";
+
+  if (!window.supabase?.createClient) {
+    console.error("Supabase CDN failed to load");
+    return;
+  }
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12 }
+  );
+  document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+
+  window.addEventListener("scroll", () => {
+    const nav = document.querySelector("nav");
+    if (!nav) return;
+    nav.style.borderBottomColor =
+      window.scrollY > 20 ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.07)";
   });
-}, { threshold: 0.12 });
 
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  let ringSeconds = 32 * 60 + 14;
+  setInterval(() => {
+    if (ringSeconds > 0) ringSeconds -= 1;
+    const m = Math.floor(ringSeconds / 60);
+    const s = String(ringSeconds % 60).padStart(2, "0");
+    const el = document.querySelector(".ring-time");
+    if (el) el.textContent = `${m}:${s}`;
+  }, 1000);
 
-/* ── Waitlist submit ── */
-function submitWaitlist(e) {
-  e.preventDefault();
-  const email = document.getElementById('waitlist-email').value;
-  const btn   = document.querySelector('.waitlist-btn');
+  const savedEmail = localStorage.getItem("qf_waitlist_email");
+  if (savedEmail) {
+    const wrap = document.getElementById("waitlist-form-wrap");
+    const success = document.getElementById("waitlist-success");
+    if (wrap && success) {
+      wrap.style.display = "none";
+      success.style.display = "block";
+    }
+  }
 
-  // Show loading state
-  btn.textContent = '...';
-  btn.disabled = true;
+  async function submitWaitlist(event) {
+    event.preventDefault();
 
-  // ── REPLACE THIS with your actual Supabase call ──
-  // Example Supabase insert:
-  // const { error } = await supabase.from('waitlist').insert({ email });
-  // For now simulating success after 800ms:
-  setTimeout(() => {
-    document.getElementById('waitlist-form-wrap').style.display = 'none';
-    document.getElementById('waitlist-success').style.display = 'block';
+    const input = document.getElementById("waitlist-email");
+    const btn = document.querySelector(".waitlist-btn");
+    const email = input?.value?.trim().toLowerCase();
 
-    // Animate count up
-    const wc = document.getElementById('wc-text');
-    let count = 0;
-    const target = 47; // update this with real count from Supabase
-    const interval = setInterval(() => {
-      count++;
-      wc.textContent = `${count} students already waiting`;
-      if (count >= target) clearInterval(interval);
-    }, 30);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("Enter a valid email address.");
+      return;
+    }
 
-    // Optional: save to localStorage as fallback
-    localStorage.setItem('qf_waitlist_email', email);
-  }, 800);
-}
+    if (btn) {
+      btn.textContent = "...";
+      btn.disabled = true;
+    }
 
-/* ── Nav scroll effect ── */
-window.addEventListener('scroll', () => {
-  const nav = document.querySelector('nav');
-  nav.style.borderBottomColor = window.scrollY > 20
-    ? 'rgba(255,255,255,0.1)'
-    : 'rgba(255,255,255,0.07)';
-});
+    const { error } = await supabase.from("waitlist").insert([{ email }]);
 
-/* ── Animate ring timer display ── */
-let t = 32 * 60 + 14;
-setInterval(() => {
-  if (t > 0) t--;
-  const m = Math.floor(t / 60);
-  const s = String(t % 60).padStart(2, '0');
-  const el = document.querySelector('.ring-time');
-  if (el) el.textContent = m + ':' + s;
-}, 1000);
+    if (error) {
+      let message = error.message;
+      if (/duplicate|unique/i.test(message)) {
+        message = "You're already on the waitlist.";
+      } else if (/row-level security|policy/i.test(message)) {
+        message =
+          "Database policy blocked signup. In Supabase, run supabase-schema.sql (waitlist section).";
+      } else if (/does not exist|schema cache/i.test(message)) {
+        message = 'Table "waitlist" is missing. Run supabase-schema.sql in Supabase SQL Editor.';
+      }
+
+      alert(message);
+      console.error("Waitlist error:", error);
+      if (btn) {
+        btn.textContent = "Join →";
+        btn.disabled = false;
+      }
+      return;
+    }
+
+    localStorage.setItem("qf_waitlist_email", email);
+    const wrap = document.getElementById("waitlist-form-wrap");
+    const success = document.getElementById("waitlist-success");
+    if (wrap) wrap.style.display = "none";
+    if (success) success.style.display = "block";
+  }
+
+  window.submitWaitlist = submitWaitlist;
+  document.getElementById("waitlist-form")?.addEventListener("submit", submitWaitlist);
+})();
 </script>
 </body>
 </html>
