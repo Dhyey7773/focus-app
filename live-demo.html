@@ -1123,77 +1123,62 @@ async function testCloudSave() {
 }
 
 async function saveSessionToSupabase(summary) {
-  // direct insert — no external module needed
-  document.getElementById('sync-badge').style.display = 'flex';
-  setTimeout(() => document.getElementById('sync-badge').style.display = 'none', 3000);
+  // mirrors waitlist insert — same pattern, proven to work
+  const row = {
+    user_id:             currentUser?.id || null,
+    task:                summary.task || 'Focus session',
+    focus_minutes:       Number(summary.focusMinutes)     || 0,
+    distractions:        Number(summary.distractions)     || 0,
+    breaks:              Number(summary.breaks)            || 0,
+    refocuses:           Number(summary.refocuses)        || 0,
+    score:               Number(summary.score)            || 0,
+    completed_naturally: Boolean(summary.completedNaturally),
+    events:              summary.events                   || [],
+    date:                summary.date || new Date().toISOString().slice(0, 10)
+  };
 
-  try {
-    const { data: { session: authSession } } = await sb.auth.getSession();
-    if (!authSession?.user) {
-      toast('Not signed in — session saved locally only');
-      console.warn('saveSessionToSupabase: no auth session');
-      return;
-    }
+  console.log('[QF] saving row:', JSON.stringify(row));
 
-    const row = {
-      user_id:             authSession.user.id,
-      task:                summary.task        || 'Focus session',
-      focus_minutes:       Number(summary.focusMinutes)  || 0,
-      distractions:        Number(summary.distractions)  || 0,
-      breaks:              Number(summary.breaks)         || 0,
-      refocuses:           Number(summary.refocuses)      || 0,
-      score:               Number(summary.score)          || 0,
-      completed_naturally: Boolean(summary.completedNaturally),
-      events:              summary.events || [],
-      date:                summary.date   || new Date().toISOString().slice(0,10)
-    };
+  const { data, error } = await sb.from('focus_sessions').insert([row]);
 
-    console.log('Inserting row:', row);
-    const { data, error } = await sb.from('focus_sessions').insert([row]).select('id');
-
-    if (error) {
-      console.error('focus_sessions insert error:', error);
-      toast('Cloud save failed: ' + error.message);
-      alert('Supabase error:\n' + error.message + '\n\nCode: ' + error.code);
-      return;
-    }
-
-    console.log('Saved to Supabase:', data);
-    toast('Saved to cloud ✓');
-    await loadProfileFromSupabase();
-
-  } catch (err) {
-    console.error('saveSessionToSupabase threw:', err);
-    toast('Unexpected error — check console');
+  if (error) {
+    console.error('[QF] insert error:', error);
+    alert('Save error: ' + error.message + '\nCode: ' + (error.code || 'none'));
+    return;
   }
+
+  console.log('[QF] saved OK:', data);
+  toast('Saved to cloud ✓');
+  document.getElementById('sync-badge').style.display = 'flex';
+  setTimeout(() => document.getElementById('sync-badge').style.display = 'none', 2000);
 }
 
 async function loadProfileFromSupabase() {
   if (!currentUser) return;
 
-  try {
-    const { data, error } = await sb
-      .from('focus_sessions')
-      .select('task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at')
-      .eq('user_id', currentUser.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
+  const { data, error } = await sb
+    .from('focus_sessions')
+    .select('task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
 
-    if (error) { console.warn('loadProfileFromSupabase error:', error.message); }
-    else if (data && data.length > 0) {
-      profile.history = data.map(row => ({
-        date:              row.date || row.created_at?.slice(0,10),
-        task:              row.task || 'Focus session',
-        focusMinutes:      row.focus_minutes      || 0,
-        distractions:      row.distractions       || 0,
-        breaks:            row.breaks             || 0,
-        refocuses:         row.refocuses          || 0,
-        score:             row.score              || 0,
-        completedNaturally:!!row.completed_naturally,
-        events:            row.events             || []
-      }));
-    }
-  } catch(e) { console.error('loadProfileFromSupabase threw:', e); }
+  if (error) {
+    console.warn('[QF] load error:', error.message);
+  } else if (data && data.length > 0) {
+    profile.history = data.map(row => ({
+      date:               row.date || row.created_at?.slice(0, 10),
+      task:               row.task || 'Focus session',
+      focusMinutes:       row.focus_minutes       || 0,
+      distractions:       row.distractions        || 0,
+      breaks:             row.breaks              || 0,
+      refocuses:          row.refocuses           || 0,
+      score:              row.score               || 0,
+      completedNaturally: !!row.completed_naturally,
+      events:             row.events              || []
+    }));
+    saveProfile();
+  }
 
   const name = currentUser.user_metadata?.name;
   if (name) { profile.userName = name; saveProfile(); }
@@ -1207,10 +1192,10 @@ async function updateSidebarStats() {
 
   const { data, error } = await sb
     .from('focus_sessions')
-    .select('focus_minutes, created_at')
+    .select('focus_minutes')
     .eq('user_id', currentUser.id);
 
-  if (error) { console.warn('updateSidebarStats error:', error.message); return; }
+  if (error) { console.warn('[QF] sidebar stats error:', error.message); return; }
   if (!data) return;
 
   const totalSessions = data.length;
