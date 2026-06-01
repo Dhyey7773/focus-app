@@ -1106,26 +1106,44 @@ async function handleSignOut() {
 // ═══════════════════════════════════════
 async function testCloudSave() {
   if (!currentUser) {
-    alert('Sign in first, then tap Test save again.');
+    alert('Not signed in. Sign in first.');
     return;
   }
-  const result = await window.FocusSessions?.save({
-    focusMinutes: 1,
-    distractions: 0,
-    completedNaturally: true
-  });
-  if (result?.ok) {
-    alert('It works — Supabase saved a test row.\n\nFinish a real session and it will save the same way.');
-    await loadProfileFromSupabase();
+
+  const row = {
+    user_id:             currentUser.id,
+    task:                'Test session',
+    focus_minutes:       1,
+    distractions:        0,
+    breaks:              0,
+    refocuses:           0,
+    score:               100,
+    completed_naturally: true,
+    events:              [],
+    date:                new Date().toISOString().slice(0, 10)
+  };
+
+  alert('Attempting insert...\nuser_id: ' + currentUser.id + '\ntable: focus_sessions');
+
+  const { data, error } = await sb.from('focus_sessions').insert([row]).select('id');
+
+  if (error) {
+    alert('FAILED\n\nMessage: ' + error.message + '\nCode: ' + (error.code || 'none') + '\nDetails: ' + (error.details || 'none') + '\nHint: ' + (error.hint || 'none'));
+    console.error('[QF] test save error:', error);
   } else {
-    alert('Save failed:\n\n' + (result?.message || result?.reason || 'Unknown error'));
+    alert('SUCCESS! Row saved.\nID: ' + JSON.stringify(data));
+    await loadProfileFromSupabase();
   }
 }
 
 async function saveSessionToSupabase(summary) {
-  // mirrors waitlist insert — same pattern, proven to work
+  if (!currentUser?.id) {
+    console.warn('[QF] no currentUser — session saved locally only');
+    toast('Saved locally (not signed in)');
+    return;
+  }
   const row = {
-    user_id:             currentUser?.id || null,
+    user_id:             currentUser.id,
     task:                summary.task || 'Focus session',
     focus_minutes:       Number(summary.focusMinutes)     || 0,
     distractions:        Number(summary.distractions)     || 0,
