@@ -78,9 +78,10 @@ focusMinutes: row.focus_minutes ?? 0,
     }
 
     if (error) {
-      console.error("focus_sessions insert failed:", error, row);
-      return { ok: false, error, message: formatSaveError(error) };
-    }
+  console.error("focus_sessions insert failed:", error, row);
+  alert(JSON.stringify(error));
+  return { ok: false, error, message: formatSaveError(error) };
+}
 
     return { ok: true, data };
   }
