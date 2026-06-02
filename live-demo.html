@@ -6,6 +6,7 @@
   <title>Quiet Focus</title>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-sessions.js"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -957,7 +958,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 const cfg = window.APP_CONFIG || {};
 const SUPABASE_URL = cfg.SUPABASE_URL || 'https://pyqnhbuzpagosqxsjvwg.supabase.co';
 const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cW5oYnV6cGFnb3NxeHNqdndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTc1NzksImV4cCI6MjA5NTM3MzU3OX0.XorO-8qaHlgpDsPUqcOv6WDxP0op_hWAQ73rVHf28qo';
+  'sb_publishable_SzfOXVnE2HjjdZ4oNptiLQ_oPtZq1xk';
 
 if (!window.supabase?.createClient) {
   throw new Error('Supabase failed to load. Check your network or CDN script.');
@@ -1123,22 +1124,35 @@ async function testCloudSave() {
     date:                new Date().toISOString().slice(0, 10)
   };
 
-  alert('Attempting insert...\nuser_id: ' + currentUser.id + '\ntable: focus_sessions');
+  alert('Attempting insert...\nuser_id: ' + currentUser.id);
 
-  const { data, error } = await sb.from('focus_sessions').insert([row]).select('id');
-
-  if (error) {
-    alert('FAILED\n\nMessage: ' + error.message + '\nCode: ' + (error.code || 'none') + '\nDetails: ' + (error.details || 'none') + '\nHint: ' + (error.hint || 'none'));
-    console.error('[QF] test save error:', error);
-  } else {
-    alert('SUCCESS! Row saved.\nID: ' + JSON.stringify(data));
-    await loadProfileFromSupabase();
+  try {
+    const authSess = await sb.auth.getSession();
+    const token = authSess?.data?.session?.access_token || SUPABASE_ANON_KEY;
+    const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Prefer':        'return=representation'
+      },
+      body: JSON.stringify(row)
+    });
+    const text = await res.text();
+    if (res.ok) {
+      alert('SUCCESS! Status: ' + res.status + '\n' + text);
+    } else {
+      alert('FAILED! Status: ' + res.status + '\n' + text);
+    }
+  } catch(e) {
+    alert('ERROR: ' + e.message);
   }
 }
 
+
 async function saveSessionToSupabase(summary) {
   if (!currentUser?.id) {
-    console.warn('[QF] no currentUser — session saved locally only');
     toast('Saved locally (not signed in)');
     return;
   }
@@ -1155,51 +1169,52 @@ async function saveSessionToSupabase(summary) {
     date:                summary.date || new Date().toISOString().slice(0, 10)
   };
 
-  console.log('[QF] saving row:', JSON.stringify(row));
+  console.log('[QF] saving:', JSON.stringify(row));
 
-  const { data, error } = await sb.from('focus_sessions').insert([row]);
+  try {
+    const authSess = await sb.auth.getSession();
+    const token = authSess?.data?.session?.access_token || SUPABASE_ANON_KEY;
+    const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Prefer':        'return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+    if (res.ok) {
+      console.log('[QF] saved OK');
+      toast('Saved to cloud ✓');
+      document.getElementById('sync-badge').style.display = 'flex';
+      setTimeout(() => document.getElementById('sync-badge').style.display = 'none', 2000);
+    } else {
+      const txt = await res.text();
+      console.error('[QF] save failed:', res.status, txt);
+      alert('Save failed ' + res.status + ': ' + txt);
+    }
+  } catch(e) {
+    console.error('[QF] save threw:', e);
+    alert('Save error: ' + e.message);
+  }
+}
 
-  if (error) {
-    console.error('[QF] insert error:', error);
-    alert('Save error: ' + error.message + '\nCode: ' + (error.code || 'none'));
+
+async function loadProfileFromSupabase() {
+  if (!currentUser || !window.FocusSessions?.applyToProfile) return;
+
+  const sync = await window.FocusSessions.applyToProfile(profile);
+  if (!sync?.ok && sync?.message) {
+    console.warn('Load error:', sync.message);
     return;
   }
 
-  console.log('[QF] saved OK:', data);
-  toast('Saved to cloud ✓');
-  document.getElementById('sync-badge').style.display = 'flex';
-  setTimeout(() => document.getElementById('sync-badge').style.display = 'none', 2000);
-}
-
-async function loadProfileFromSupabase() {
-  if (!currentUser) return;
-
-  const { data, error } = await sb
-    .from('focus_sessions')
-    .select('task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at')
-    .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if (error) {
-    console.warn('[QF] load error:', error.message);
-  } else if (data && data.length > 0) {
-    profile.history = data.map(row => ({
-      date:               row.date || row.created_at?.slice(0, 10),
-      task:               row.task || 'Focus session',
-      focusMinutes:       row.focus_minutes       || 0,
-      distractions:       row.distractions        || 0,
-      breaks:             row.breaks              || 0,
-      refocuses:          row.refocuses           || 0,
-      score:              row.score               || 0,
-      completedNaturally: !!row.completed_naturally,
-      events:             row.events              || []
-    }));
+  const name = currentUser.user_metadata?.name;
+  if (name) {
+    profile.userName = name;
     saveProfile();
   }
-
-  const name = currentUser.user_metadata?.name;
-  if (name) { profile.userName = name; saveProfile(); }
 
   renderHome();
   await updateSidebarStats();
@@ -1208,21 +1223,17 @@ async function loadProfileFromSupabase() {
 async function updateSidebarStats() {
   if (!currentUser) return;
 
-  const { data, error } = await sb
-    .from('focus_sessions')
-    .select('focus_minutes')
-    .eq('user_id', currentUser.id);
+  const { data, error } = await sb.from('focus_sessions').select('duration, created_at');
 
-  if (error) { console.warn('[QF] sidebar stats error:', error.message); return; }
-  if (!data) return;
+  if (error || !data) return;
 
   const totalSessions = data.length;
-  const totalMins     = data.reduce((s, r) => s + (r.focus_minutes || 0), 0);
-  const totalHours    = (totalMins / 60).toFixed(1);
+  const totalMins = data.reduce((s, r) => s + (r.duration || 0), 0);
+  const totalHours = (totalMins / 60).toFixed(1);
 
   document.getElementById('us-sessions').textContent = totalSessions;
-  document.getElementById('us-hours').textContent    = totalHours + 'h';
-  document.getElementById('us-streak').textContent   = calculateStreak();
+  document.getElementById('us-hours').textContent = totalHours + 'h';
+  document.getElementById('us-streak').textContent = calculateStreak();
   document.getElementById('user-stats').style.display = 'block';
 }
 
