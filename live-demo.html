@@ -1105,134 +1105,87 @@ async function handleSignOut() {
 // ═══════════════════════════════════════
 //  SUPABASE DATA — save / load sessions
 // ═══════════════════════════════════════
+
 async function testCloudSave() {
-  if (!currentUser) {
-    alert('Not signed in. Sign in first.');
-    return;
-  }
-
-  const row = {
-    user_id:             currentUser.id,
-    task:                'Test session',
-    focus_minutes:       1,
-    distractions:        0,
-    breaks:              0,
-    refocuses:           0,
-    score:               100,
-    completed_naturally: true,
-    events:              [],
-    date:                new Date().toISOString().slice(0, 10)
-  };
-
-  alert('Attempting insert...\nuser_id: ' + currentUser.id);
-
-  try {
-    const authSess = await sb.auth.getSession();
-    const token = authSess?.data?.session?.access_token || SUPABASE_ANON_KEY;
-    const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + token,
-        'Prefer':        'return=representation'
-      },
-      body: JSON.stringify(row)
-    });
-    const text = await res.text();
-    if (res.ok) {
-      alert('SUCCESS! Status: ' + res.status + '\n' + text);
-    } else {
-      alert('FAILED! Status: ' + res.status + '\n' + text);
-    }
-  } catch(e) {
-    alert('ERROR: ' + e.message);
-  }
+  if (!currentUser) { alert('Not signed in.'); return; }
+  const token = (await sb.auth.getSession())?.data?.session?.access_token || SUPABASE_ANON_KEY;
+  const row = { user_id: currentUser.id, task: 'Test', focus_minutes: 1, distractions: 0, breaks: 0, refocuses: 0, score: 100, completed_naturally: true, events: [], date: new Date().toISOString().slice(0,10) };
+  alert('Sending to Supabase...');
+  const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(row)
+  });
+  const txt = await res.text();
+  alert(res.ok ? 'SUCCESS ' + res.status : 'FAIL ' + res.status + ' ' + txt);
 }
-
 
 async function saveSessionToSupabase(summary) {
-  if (!currentUser?.id) {
-    toast('Saved locally (not signed in)');
-    return;
-  }
+  if (!currentUser?.id) { toast('Not signed in'); return; }
+  const token = (await sb.auth.getSession())?.data?.session?.access_token || SUPABASE_ANON_KEY;
   const row = {
-    user_id:             currentUser.id,
-    task:                summary.task || 'Focus session',
-    focus_minutes:       Number(summary.focusMinutes)     || 0,
-    distractions:        Number(summary.distractions)     || 0,
-    breaks:              Number(summary.breaks)            || 0,
-    refocuses:           Number(summary.refocuses)        || 0,
-    score:               Number(summary.score)            || 0,
+    user_id: currentUser.id,
+    task: summary.task || 'Focus session',
+    focus_minutes: Number(summary.focusMinutes) || 0,
+    distractions: Number(summary.distractions) || 0,
+    breaks: Number(summary.breaks) || 0,
+    refocuses: Number(summary.refocuses) || 0,
+    score: Number(summary.score) || 0,
     completed_naturally: Boolean(summary.completedNaturally),
-    events:              summary.events                   || [],
-    date:                summary.date || new Date().toISOString().slice(0, 10)
+    events: summary.events || [],
+    date: summary.date || new Date().toISOString().slice(0,10)
   };
-
-  console.log('[QF] saving:', JSON.stringify(row));
-
-  try {
-    const authSess = await sb.auth.getSession();
-    const token = authSess?.data?.session?.access_token || SUPABASE_ANON_KEY;
-    const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + token,
-        'Prefer':        'return=minimal'
-      },
-      body: JSON.stringify(row)
-    });
-    if (res.ok) {
-      console.log('[QF] saved OK');
-      toast('Saved to cloud ✓');
-      document.getElementById('sync-badge').style.display = 'flex';
-      setTimeout(() => document.getElementById('sync-badge').style.display = 'none', 2000);
-    } else {
-      const txt = await res.text();
-      console.error('[QF] save failed:', res.status, txt);
-      alert('Save failed ' + res.status + ': ' + txt);
-    }
-  } catch(e) {
-    console.error('[QF] save threw:', e);
-    alert('Save error: ' + e.message);
-  }
+  console.log('QF-SAVE', JSON.stringify(row));
+  const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(row)
+  });
+  const txt = await res.text();
+  if (res.ok) { console.log('QF-SAVE-OK'); toast('Saved ✓'); }
+  else { console.error('QF-SAVE-FAIL', res.status, txt); alert('FAIL ' + res.status + ': ' + txt); }
 }
 
-
 async function loadProfileFromSupabase() {
-  if (!currentUser || !window.FocusSessions?.applyToProfile) return;
-
-  const sync = await window.FocusSessions.applyToProfile(profile);
-  if (!sync?.ok && sync?.message) {
-    console.warn('Load error:', sync.message);
-    return;
+  if (!currentUser) return;
+  const token = (await sb.auth.getSession())?.data?.session?.access_token || SUPABASE_ANON_KEY;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions?user_id=eq.' + currentUser.id + '&order=created_at.desc&limit=20', {
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (res.ok) {
+    const data = await res.json();
+    if (data.length > 0) {
+      profile.history = data.map(r => ({
+        date: r.date || r.created_at?.slice(0,10),
+        task: r.task || 'Focus session',
+        focusMinutes: r.focus_minutes || 0,
+        distractions: r.distractions || 0,
+        breaks: r.breaks || 0,
+        refocuses: r.refocuses || 0,
+        score: r.score || 0,
+        completedNaturally: !!r.completed_naturally,
+        events: r.events || []
+      }));
+      saveProfile();
+    }
   }
-
   const name = currentUser.user_metadata?.name;
-  if (name) {
-    profile.userName = name;
-    saveProfile();
-  }
-
+  if (name) { profile.userName = name; saveProfile(); }
   renderHome();
   await updateSidebarStats();
 }
 
 async function updateSidebarStats() {
   if (!currentUser) return;
-
-  const { data, error } = await sb.from('focus_sessions').select('duration, created_at');
-
-  if (error || !data) return;
-
-  const totalSessions = data.length;
-  const totalMins = data.reduce((s, r) => s + (r.duration || 0), 0);
-  const totalHours = (totalMins / 60).toFixed(1);
-
-  document.getElementById('us-sessions').textContent = totalSessions;
-  document.getElementById('us-hours').textContent = totalHours + 'h';
+  const token = (await sb.auth.getSession())?.data?.session?.access_token || SUPABASE_ANON_KEY;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/focus_sessions?user_id=eq.' + currentUser.id + '&select=focus_minutes', {
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  const totalMins = data.reduce((s,r) => s + (r.focus_minutes||0), 0);
+  document.getElementById('us-sessions').textContent = data.length;
+  document.getElementById('us-hours').textContent = (totalMins/60).toFixed(1) + 'h';
   document.getElementById('us-streak').textContent = calculateStreak();
   document.getElementById('user-stats').style.display = 'block';
 }
