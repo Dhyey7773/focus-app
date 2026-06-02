@@ -973,10 +973,10 @@ window.FocusAuth = { getSupabase: () => sb };
 // ═══════════════════════════════════════
 let currentUser = null;
 
-sb.auth.onAuthStateChange(async (event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   currentUser = session?.user || null;
   if (currentUser) {
-    await onUserSignedIn();
+    onUserSignedIn();
   } else {
     showAuthScreen();
   }
