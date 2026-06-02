@@ -3,39 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiet Focus — Focus, with a calmer coach.</title>
-<meta name="description" content="A distraction-aware focus timer that helps you return to your task — without judgment. Built for students.">
-<meta property="og:title" content="Quiet Focus — Focus, with a calmer coach.">
-<meta property="og:description" content="A distraction-aware focus timer that helps you return to your task — without judgment.">
+<title>Quiet Focus — A focus timer for when you drift</title>
+<meta name="description" content="Set one task, run one session, notice when you drift, come back. No streak guilt. No noise.">
+<meta property="og:title" content="Quiet Focus">
+<meta property="og:description" content="A focus timer built around the moment you return.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════
-   TOKENS
-═══════════════════════════════════════ */
 :root {
-  --bg:        #07080a;
-  --panel:     #0c0e11;
-  --panel-2:   #12151a;
-  --line:      rgba(255,255,255,0.07);
-  --line-2:    rgba(255,255,255,0.12);
-  --muted:     rgba(238,242,248,0.38);
-  --muted-2:   rgba(238,242,248,0.62);
-  --text:      #f0f2f7;
-  --mint:      #94dab1;
-  --mint-dim:  rgba(148,218,177,0.12);
-  --mint-glow: rgba(148,218,177,0.06);
-  --amber:     #ffcf70;
-  --serif:     'Instrument Serif', Georgia, serif;
-  --sans:      'DM Sans', system-ui, sans-serif;
-  --radius:    18px;
-  --radius-lg: 28px;
+  --bg:       #07080a;
+  --panel:    #0c0e11;
+  --panel-2:  #12151a;
+  --line:     rgba(255,255,255,0.08);
+  --line-2:   rgba(255,255,255,0.14);
+  --muted:    rgba(238,242,248,0.42);
+  --muted-2:  rgba(238,242,248,0.68);
+  --text:     #f0f2f7;
+  --mint:     #94dab1;
+  --mint-dim: rgba(148,218,177,0.1);
+  --serif:    'Instrument Serif', Georgia, serif;
+  --sans:     'DM Sans', system-ui, sans-serif;
+  --radius:   16px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { scroll-behavior: smooth; }
 
 body {
@@ -44,36 +37,22 @@ body {
   font-family: var(--sans);
   font-size: 16px;
   line-height: 1.6;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ═══════════════════════════════════════
-   NOISE OVERLAY
-═══════════════════════════════════════ */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.4;
-}
+a { color: inherit; }
 
-/* ═══════════════════════════════════════
-   NAV
-═══════════════════════════════════════ */
+/* ─── NAV ─── */
 nav {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  inset: 0 0 auto 0;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 40px;
-  background: rgba(7,8,10,0.8);
-  backdrop-filter: blur(20px);
+  padding: 18px clamp(20px, 4vw, 48px);
+  background: rgba(7,8,10,0.82);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
 }
 
@@ -84,135 +63,90 @@ nav {
   text-decoration: none;
 }
 
-.nav-logo-icon {
-  width: 34px; height: 34px;
-  background: var(--panel-2);
-  border-radius: 9px;
+.nav-mark {
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--line-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-/* Lines icon */
-.nav-logo-icon::before {
-  content: '';
-  position: absolute;
-  left: 7px; top: 9px;
-  width: 12px; height: 2px;
-  background: rgba(255,255,255,0.8);
-  border-radius: 1px;
-  box-shadow: 0 5px 0 rgba(255,255,255,0.4), 0 10px 0 rgba(255,255,255,0.2);
-}
-
-/* Clock SVG */
-.nav-logo-clock {
-  position: absolute;
-  right: 5px; top: 6px;
-  width: 14px; height: 14px;
+  border-radius: 9px;
+  background: var(--panel-2);
+  display: grid;
+  place-items: center;
 }
 
 .nav-wordmark {
-  font-family: var(--sans);
   font-size: 15px;
   font-weight: 500;
-  color: var(--text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .nav-wordmark span { color: var(--mint); }
 
-.nav-cta {
-  background: var(--text);
-  color: var(--bg);
-  border: none;
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 10px;
-  padding: 9px 18px;
+  padding: 10px 18px;
   font-size: 13px;
   font-weight: 500;
   font-family: var(--sans);
-  cursor: pointer;
-  transition: opacity 0.15s;
   text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
 }
-.nav-cta:hover { opacity: 0.85; }
 
-/* ═══════════════════════════════════════
-   HERO
-═══════════════════════════════════════ */
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+}
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted-2);
+  border-color: var(--line-2);
+}
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: rgba(255,255,255,0.22);
+}
+
+/* ─── HERO ─── */
 .hero {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 120px 40px 80px;
-  position: relative;
-  overflow: hidden;
-}
-
-/* radial glows */
-.hero::before {
-  content: '';
-  position: absolute;
-  width: 600px; height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(148,218,177,0.07) 0%, transparent 70%);
-  top: -100px; right: -100px;
-  pointer-events: none;
-}
-
-.hero::after {
-  content: '';
-  position: absolute;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(55,64,81,0.18) 0%, transparent 70%);
-  bottom: 0; left: -100px;
-  pointer-events: none;
-}
-
-.hero-inner {
-  max-width: 1160px;
-  width: 100%;
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 80px;
+  grid-template-columns: 1fr min(380px, 42vw);
+  gap: clamp(40px, 6vw, 80px);
   align-items: center;
-  position: relative;
-  z-index: 1;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 120px clamp(20px, 4vw, 48px) 80px;
 }
 
-.hero-eyebrow {
+.hero-kicker {
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--mint);
-  margin-bottom: 28px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  animation: fadeUp 0.7s ease 0.1s forwards;
-}
-
-.hero-eyebrow::before {
-  content: '';
-  width: 24px; height: 1px;
-  background: var(--mint);
+  color: var(--muted);
+  margin-bottom: 24px;
 }
 
 .hero-h1 {
   font-family: var(--serif);
-  font-size: clamp(48px, 5.5vw, 72px);
+  font-size: clamp(44px, 5.5vw, 68px);
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  margin-bottom: 24px;
-  color: var(--text);
-  opacity: 0;
-  animation: fadeUp 0.7s ease 0.2s forwards;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  margin-bottom: 22px;
+  max-width: 11ch;
 }
 
 .hero-h1 em {
@@ -220,194 +154,102 @@ nav {
   color: var(--mint);
 }
 
-.hero-sub {
+.hero-lede {
   font-size: 17px;
   line-height: 1.7;
   color: var(--muted-2);
-  max-width: 440px;
-  margin-bottom: 44px;
-  opacity: 0;
-  animation: fadeUp 0.7s ease 0.3s forwards;
+  max-width: 42ch;
+  margin-bottom: 36px;
 }
 
 .hero-actions {
   display: flex;
-  align-items: center;
-  gap: 16px;
   flex-wrap: wrap;
-  opacity: 0;
-  animation: fadeUp 0.7s ease 0.4s forwards;
+  gap: 12px;
+  margin-bottom: 28px;
 }
 
-.btn-primary {
-  background: var(--text);
-  color: var(--bg);
-  border: none;
-  border-radius: 12px;
-  padding: 14px 28px;
-  font-size: 15px;
-  font-weight: 500;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
-  text-decoration: none;
-  display: inline-block;
-}
-.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-.btn-primary:active { transform: scale(0.98); }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--muted-2);
-  border: 1px solid var(--line-2);
-  border-radius: 12px;
-  padding: 14px 24px;
-  font-size: 15px;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  text-decoration: none;
-  display: inline-block;
-}
-.btn-ghost:hover { background: var(--mint-dim); color: var(--mint); border-color: var(--mint); }
-
-.hero-social-proof {
-  margin-top: 44px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  opacity: 0;
-  animation: fadeUp 0.7s ease 0.5s forwards;
-}
-
-.proof-avatars {
-  display: flex;
-}
-
-.proof-avatar {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--bg);
-  margin-left: -8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 500;
-}
-.proof-avatar:first-child { margin-left: 0; }
-.pa1 { background: #2d3a4a; }
-.pa2 { background: #3a2d4a; }
-.pa3 { background: #2d4a3a; }
-.pa4 { background: #4a3a2d; }
-
-.proof-text {
+.hero-note {
   font-size: 13px;
-  color: var(--muted-2);
-}
-.proof-text strong { color: var(--text); }
-
-/* ═══════════════════════════════════════
-   PHONE MOCKUP
-═══════════════════════════════════════ */
-.phone-wrap {
-  position: relative;
-  opacity: 0;
-  animation: fadeUp 0.9s ease 0.3s forwards;
+  color: var(--muted);
+  max-width: 38ch;
 }
 
-.phone-glow {
-  position: absolute;
-  inset: -40px;
-  background: radial-gradient(ellipse at center, rgba(148,218,177,0.08) 0%, transparent 65%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
+/* ─── PHONE ─── */
 .phone {
   background: #050608;
-  border: 1px solid rgba(255,255,255,0.13);
-  border-radius: 50px;
-  box-shadow:
-    0 40px 100px rgba(0,0,0,0.7),
-    0 0 0 1px rgba(255,255,255,0.04) inset,
-    0 1px 0 rgba(255,255,255,0.08) inset;
-  width: 340px;
-  padding: 8px;
-  margin: 0 auto;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 44px;
+  padding: 7px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.55);
 }
 
 .phone-inner {
   background: var(--panel);
-  border-radius: 42px;
+  border-radius: 38px;
   overflow: hidden;
-  height: 680px;
-  position: relative;
+  height: min(640px, 72vh);
   display: flex;
   flex-direction: column;
 }
 
 .phone-island {
-  width: 100px; height: 26px;
-  background: #020304;
+  width: 96px;
+  height: 24px;
+  background: #050608;
   border-radius: 99px;
   margin: 10px auto 0;
-  flex-shrink: 0;
 }
 
-.phone-status {
+.phone-bar {
   display: flex;
   justify-content: space-between;
-  padding: 6px 24px 0;
+  padding: 8px 24px 0;
   font-size: 11px;
-  color: rgba(238,242,248,0.5);
-  font-weight: 500;
-  flex-shrink: 0;
+  color: var(--muted);
 }
 
-.phone-screen {
+.phone-body {
   flex: 1;
-  padding: 16px 20px 12px;
+  padding: 18px 22px 20px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-.phone-greeting { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
-.phone-name { font-size: 26px; font-weight: 500; letter-spacing: -0.04em; margin-bottom: 2px; }
-.phone-tagline { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+.phone-greeting { font-size: 12px; color: var(--muted); }
+.phone-name {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  margin: 4px 0 16px;
+}
 
-/* timer ring */
 .ring-wrap {
-  display: flex;
-  justify-content: center;
-  margin: 10px 0 24px;
   position: relative;
+  width: 168px;
+  height: 168px;
+  margin: 8px auto 20px;
 }
 
 .ring-svg {
-  width: 180px; height: 180px;
+  width: 100%;
+  height: 100%;
   transform: rotate(-90deg);
 }
 
 .ring-track {
   fill: none;
-  stroke: rgba(255,255,255,0.065);
-  stroke-width: 10;
+  stroke: rgba(255,255,255,0.07);
+  stroke-width: 9;
 }
 
 .ring-progress {
   fill: none;
-  stroke: #f0f2f7;
-  stroke-width: 10;
+  stroke: var(--text);
+  stroke-width: 9;
   stroke-linecap: round;
   stroke-dasharray: 502;
-  stroke-dashoffset: 180;
-  animation: ring-fill 3s ease 1.2s forwards;
-}
-
-@keyframes ring-fill {
-  to { stroke-dashoffset: 80; }
+  stroke-dashoffset: 120;
 }
 
 .ring-center {
@@ -420,19 +262,18 @@ nav {
 }
 
 .ring-time {
-  font-size: 42px;
-  font-weight: 400;
+  font-size: 38px;
   letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .ring-label {
+  margin-top: 6px;
   font-size: 10px;
-  color: var(--muted);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-top: 5px;
+  color: var(--muted);
   font-weight: 600;
 }
 
@@ -442,811 +283,530 @@ nav {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   padding: 12px 0;
-  margin-bottom: 16px;
-}
-
-.pm-item { text-align: center; border-right: 1px solid var(--line); }
-.pm-item:last-child { border-right: none; }
-.pm-n { font-size: 20px; font-weight: 400; display: block; margin-bottom: 3px; }
-.pm-l { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-
-.phone-coach {
-  background: rgba(148,218,177,0.06);
-  border: 1px solid rgba(148,218,177,0.12);
-  border-radius: 14px;
-  padding: 12px 14px;
   margin-bottom: 14px;
 }
 
-.pc-label { font-size: 9px; color: var(--mint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 6px; }
+.pm { text-align: center; border-right: 1px solid var(--line); }
+.pm:last-child { border-right: 0; }
+.pm-n { display: block; font-size: 18px; margin-bottom: 2px; }
+.pm-l {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.phone-coach {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: auto;
+}
+
+.pc-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
 .pc-msg {
   font-size: 12px;
   color: var(--muted-2);
   line-height: 1.55;
-  overflow: hidden;
-  white-space: nowrap;
-  border-right: 2px solid var(--mint);
-  animation: typewriter 2.5s steps(44) 1.8s both;
-  width: 0;
 }
 
-@keyframes typewriter {
-  to { width: 100%; }
+/* ─── SECTIONS ─── */
+.section {
+  padding: 88px clamp(20px, 4vw, 48px);
+  border-top: 1px solid var(--line);
 }
 
-.phone-btns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
-}
-
-.phone-btn {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  padding: 10px;
-  font-size: 12px;
-  color: var(--muted-2);
-  text-align: center;
-}
-
-.phone-btn-primary {
-  grid-column: span 2;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  padding: 11px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
-  text-align: center;
-}
-
-/* ═══════════════════════════════════════
-   REFRAME SECTION
-═══════════════════════════════════════ */
-.section { padding: 100px 40px; position: relative; z-index: 1; }
-
-.reframe {
-  max-width: 1000px;
+.section-inner {
+  max-width: 960px;
   margin: 0 auto;
-  text-align: center;
 }
 
-.section-eyebrow {
+.section-label {
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--mint);
-  margin-bottom: 20px;
+  color: var(--muted);
+  margin-bottom: 18px;
 }
 
-.reframe-title {
+.section-title {
   font-family: var(--serif);
-  font-size: clamp(36px, 4vw, 54px);
+  font-size: clamp(32px, 4vw, 48px);
   font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  margin-bottom: 20px;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin-bottom: 16px;
+  max-width: 18ch;
 }
 
-.reframe-title em { font-style: italic; color: var(--mint); }
-
-.reframe-sub {
-  font-size: 17px;
+.section-lede {
+  font-size: 16px;
   color: var(--muted-2);
-  max-width: 560px;
-  margin: 0 auto 64px;
   line-height: 1.7;
+  max-width: 52ch;
+  margin-bottom: 48px;
 }
 
-.reframe-cols {
+/* contrast grid */
+.contrast-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: 20px;
   overflow: hidden;
 }
 
-.reframe-col {
+.contrast-cell {
   background: var(--panel);
-  padding: 36px 32px;
-  text-align: left;
-  transition: background 0.2s;
-}
-.reframe-col:hover { background: var(--panel-2); }
-
-.rc-icon {
-  width: 40px; height: 40px;
-  border-radius: 10px;
-  background: var(--mint-dim);
-  border: 1px solid rgba(148,218,177,0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  font-size: 18px;
+  padding: 28px 26px;
 }
 
-.rc-problem {
+.contrast-num {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--mint);
+  margin-bottom: 14px;
+  line-height: 1;
+}
+
+.contrast-old {
   font-size: 13px;
   color: var(--muted);
+  font-style: italic;
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
-  font-style: italic;
 }
 
-.rc-solution {
+.contrast-new {
   font-size: 15px;
-  color: var(--text);
   line-height: 1.6;
+  color: var(--text);
 }
 
-/* ═══════════════════════════════════════
-   HOW IT WORKS
-═══════════════════════════════════════ */
-.how {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.how-title {
-  font-family: var(--serif);
-  font-size: clamp(36px, 4vw, 52px);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 16px;
-}
-
-.how-sub {
-  font-size: 17px;
-  color: var(--muted-2);
-  max-width: 480px;
-  line-height: 1.7;
-  margin-bottom: 64px;
-}
-
+/* steps */
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  background: var(--line);
+  gap: 0;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: 20px;
   overflow: hidden;
 }
 
 .step {
-  background: var(--panel);
-  padding: 36px 40px;
   display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 28px;
-  align-items: start;
-  transition: background 0.2s;
+  grid-template-columns: 56px 1fr;
+  gap: 24px;
+  padding: 28px 32px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
 }
-.step:hover { background: var(--panel-2); }
 
-.step-num {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid var(--line-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.step:last-child { border-bottom: 0; }
+
+.step-n {
   font-family: var(--serif);
-  font-size: 22px;
+  font-size: 24px;
   color: var(--mint);
-  flex-shrink: 0;
+  padding-top: 2px;
 }
 
 .step-title {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 500;
   letter-spacing: -0.02em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .step-desc {
   font-size: 15px;
   color: var(--muted-2);
   line-height: 1.65;
+  max-width: 56ch;
 }
 
-.step-tag {
-  display: inline-block;
-  margin-top: 12px;
-  background: var(--mint-dim);
-  color: var(--mint);
-  border: 1px solid rgba(148,218,177,0.18);
-  border-radius: 99px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* ═══════════════════════════════════════
-   PHILOSOPHY BLOCK
-═══════════════════════════════════════ */
-.philosophy {
-  position: relative;
-  overflow: hidden;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.philosophy::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, rgba(148,218,177,0.05) 0%, transparent 65%);
-}
-
-.philosophy-inner {
-  max-width: 760px;
-  margin: 0 auto;
+/* quote */
+.quote-block {
   text-align: center;
-  position: relative;
-  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
 }
 
-.philosophy-quote {
+.quote-text {
   font-family: var(--serif);
-  font-size: clamp(28px, 4vw, 46px);
-  font-weight: 400;
+  font-size: clamp(26px, 3.5vw, 40px);
   font-style: italic;
   line-height: 1.25;
   letter-spacing: -0.02em;
-  color: var(--text);
-  margin-bottom: 28px;
-}
-
-.philosophy-quote em { color: var(--mint); font-style: normal; }
-
-.philosophy-body {
-  font-size: 16px;
-  color: var(--muted-2);
-  line-height: 1.75;
-  max-width: 540px;
-  margin: 0 auto;
-}
-
-/* ═══════════════════════════════════════
-   FEATURES GRID
-═══════════════════════════════════════ */
-.features {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.features-title {
-  font-family: var(--serif);
-  font-size: clamp(36px, 4vw, 52px);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 16px;
-}
-
-.features-sub {
-  font-size: 17px;
-  color: var(--muted-2);
-  max-width: 440px;
-  line-height: 1.7;
-  margin-bottom: 56px;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.feat-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 28px 24px;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
-}
-
-.feat-card:hover {
-  background: var(--panel-2);
-  border-color: var(--line-2);
-  transform: translateY(-2px);
-}
-
-.feat-icon {
-  font-size: 24px;
-  margin-bottom: 16px;
-  display: block;
-}
-
-.feat-title {
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-}
-
-.feat-desc {
-  font-size: 13px;
-  color: var(--muted-2);
-  line-height: 1.65;
-}
-
-.feat-card.wide {
-  grid-column: span 2;
-}
-
-/* ═══════════════════════════════════════
-   WAITLIST
-═══════════════════════════════════════ */
-.waitlist-section {
-  position: relative;
-  overflow: hidden;
-}
-
-.waitlist-section::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 60% 40%, rgba(148,218,177,0.07) 0%, transparent 60%);
-}
-
-.waitlist-inner {
-  max-width: 640px;
-  margin: 0 auto;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
-.waitlist-title {
-  font-family: var(--serif);
-  font-size: clamp(38px, 4.5vw, 60px);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
   margin-bottom: 20px;
 }
 
-.waitlist-title em { font-style: italic; color: var(--mint); }
+.quote-text strong {
+  font-style: normal;
+  color: var(--mint);
+  font-weight: 400;
+}
 
-.waitlist-sub {
-  font-size: 16px;
+.quote-cite {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* features */
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.feat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.feat-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.feat-mark::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 2px;
+  background: var(--mint);
+  opacity: 0.7;
+}
+
+.feat-title {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.feat-desc {
+  font-size: 14px;
   color: var(--muted-2);
-  line-height: 1.7;
-  margin-bottom: 40px;
-  max-width: 440px;
-  margin-left: auto;
-  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* waitlist */
+.waitlist-wrap {
+  max-width: 520px;
 }
 
 .waitlist-form {
   display: flex;
   gap: 10px;
-  max-width: 440px;
-  margin: 0 auto 20px;
+  margin: 32px 0 12px;
 }
 
 .waitlist-input {
   flex: 1;
   background: var(--panel-2);
   border: 1px solid var(--line-2);
-  border-radius: 12px;
-  padding: 14px 18px;
+  border-radius: 10px;
+  padding: 13px 16px;
   font-size: 15px;
   font-family: var(--sans);
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s;
 }
-.waitlist-input::placeholder { color: var(--muted); }
+
 .waitlist-input:focus { border-color: rgba(148,218,177,0.4); }
+.waitlist-input::placeholder { color: var(--muted); }
 
-.waitlist-btn {
-  background: var(--mint);
-  color: #07080a;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: 500;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
-  white-space: nowrap;
-}
-.waitlist-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-.waitlist-btn:active { transform: scale(0.98); }
-
-.waitlist-note {
-  font-size: 12px;
-  color: var(--muted);
-}
+.waitlist-note { font-size: 12px; color: var(--muted); }
 
 .waitlist-success {
   display: none;
+  margin-top: 28px;
+  padding: 20px 22px;
   background: var(--mint-dim);
   border: 1px solid rgba(148,218,177,0.2);
   border-radius: 14px;
-  padding: 20px 28px;
-  max-width: 440px;
-  margin: 0 auto;
-  text-align: center;
 }
 
-.ws-emoji { font-size: 28px; margin-bottom: 10px; display: block; }
-.ws-title { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
-.ws-sub { font-size: 14px; color: var(--muted-2); }
+.waitlist-success p:first-child {
+  font-weight: 500;
+  margin-bottom: 6px;
+}
 
-.waitlist-count {
-  margin-top: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 13px;
+.waitlist-success p:last-child {
+  font-size: 14px;
   color: var(--muted-2);
 }
 
-.wc-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--mint);
-  animation: pulse-dot 2s ease infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-}
-
-/* ═══════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════ */
+/* footer */
 footer {
   border-top: 1px solid var(--line);
-  padding: 40px 40px;
+  padding: 32px clamp(20px, 4vw, 48px);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  position: relative;
-  z-index: 1;
-  flex-wrap: wrap;
   gap: 16px;
 }
 
 .footer-logo {
   font-size: 14px;
-  font-weight: 500;
   color: var(--muted-2);
 }
+
 .footer-logo span { color: var(--mint); }
 
 .footer-links {
   display: flex;
   gap: 24px;
 }
+
 .footer-links a {
   font-size: 13px;
   color: var(--muted);
   text-decoration: none;
-  transition: color 0.15s;
 }
+
 .footer-links a:hover { color: var(--text); }
 
-.footer-right {
+.footer-copy {
   font-size: 12px;
   color: var(--muted);
 }
 
-/* ═══════════════════════════════════════
-   SCROLL ANIMATIONS
-═══════════════════════════════════════ */
 .reveal {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
+  transform: translateY(16px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
+
 .reveal.visible {
   opacity: 1;
   transform: none;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ═══════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════ */
 @media (max-width: 900px) {
-  nav { padding: 16px 24px; }
-  .hero { padding: 100px 24px 60px; }
-  .hero-inner {
+  .hero {
     grid-template-columns: 1fr;
-    gap: 48px;
-    text-align: center;
+    text-align: left;
+    padding-top: 100px;
   }
-  .hero-eyebrow { justify-content: center; }
-  .hero-sub { margin-left: auto; margin-right: auto; }
-  .hero-actions { justify-content: center; }
-  .hero-social-proof { justify-content: center; }
-  .phone-wrap { display: none; }
-  .section { padding: 72px 24px; }
-  .reframe-cols { grid-template-columns: 1fr; }
-  .features-grid { grid-template-columns: 1fr 1fr; }
-  .feat-card.wide { grid-column: span 1; }
+  .phone { max-width: 340px; margin: 0 auto; }
+  .contrast-grid { grid-template-columns: 1fr; }
+  .feat-grid { grid-template-columns: 1fr; }
   .waitlist-form { flex-direction: column; }
-  footer { flex-direction: column; text-align: center; }
-  .footer-links { justify-content: center; }
+  .step { grid-template-columns: 40px 1fr; padding: 22px 20px; }
 }
 
-@media (max-width: 600px) {
-  .features-grid { grid-template-columns: 1fr; }
-  .step { grid-template-columns: 1fr; gap: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none; transform: none; opacity: 1; }
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">
-    <div class="nav-logo-icon">
-      <svg class="nav-logo-clock" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="7" cy="7" r="6" stroke="#94dab1" stroke-width="1.4"/>
-        <line x1="7" y1="3.5" x2="7" y2="7" stroke="#94dab1" stroke-width="1.4" stroke-linecap="round"/>
-        <line x1="7" y1="7" x2="9.5" y2="8.8" stroke="#94dab1" stroke-width="1.4" stroke-linecap="round"/>
+    <div class="nav-mark" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="7" stroke="#94dab1" stroke-width="1.5"/>
+        <line x1="9" y1="4.5" x2="9" y2="9" stroke="#94dab1" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="9" y1="9" x2="12" y2="11.2" stroke="#94dab1" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </div>
     <span class="nav-wordmark">Quiet <span>Focus</span></span>
   </a>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <a href="live-demo.html" class="btn-ghost" style="padding:9px 16px;font-size:13px;">Try demo</a>
-    <a href="#waitlist" class="nav-cta">Join waitlist</a>
+  <div class="nav-actions">
+    <a href="#waitlist" class="btn btn-ghost">Waitlist</a>
+    <a href="live-demo.html" class="btn btn-primary">Open demo</a>
   </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-inner">
-    <div class="hero-content">
-      <p class="hero-eyebrow">Quiet Focus AI</p>
-      <h1 class="hero-h1">Focus, with a<br><em>calmer coach.</em></h1>
-      <p class="hero-sub">A distraction-aware focus timer that helps you return to your task — without judgment. Built for students who drift, not machines who don't.</p>
-      <div class="hero-actions">
-        <a href="#waitlist" class="btn-primary">Join the waitlist →</a>
-        <a href="live-demo.html" class="btn-ghost">Try live demo</a>
-        <a href="#how" class="btn-ghost">See how it works</a>
-      </div>
-      <div class="hero-social-proof">
-        <div class="proof-avatars">
-          <div class="proof-avatar pa1">D</div>
-          <div class="proof-avatar pa2">S</div>
-          <div class="proof-avatar pa3">A</div>
-          <div class="proof-avatar pa4">M</div>
-        </div>
-        <p class="proof-text"><strong>Early access</strong> — be among the first students in</p>
-      </div>
+  <div>
+    <p class="hero-kicker">Focus timer</p>
+    <h1 class="hero-h1">Built for the moment you <em>come back.</em></h1>
+    <p class="hero-lede">Name one task. Run one session. When your mind wanders, tap once — no lecture, no broken streak. Just a quiet record of what happened.</p>
+    <div class="hero-actions">
+      <a href="live-demo.html" class="btn btn-primary">Try the demo</a>
+      <a href="#how" class="btn btn-ghost">How it works</a>
     </div>
+    <p class="hero-note">Works in the browser. Sign in optional — sessions save locally if you skip it.</p>
+  </div>
 
-    <!-- Phone mockup -->
-    <div class="phone-wrap">
-      <div class="phone-glow"></div>
-      <div class="phone">
-        <div class="phone-inner">
-          <div class="phone-island"></div>
-          <div class="phone-status">
-            <span>9:41</span>
-            <span>●●●</span>
+  <div class="phone" aria-hidden="true">
+    <div class="phone-inner">
+      <div class="phone-island"></div>
+      <div class="phone-bar"><span>9:41</span><span>Session</span></div>
+      <div class="phone-body">
+        <p class="phone-greeting">Good afternoon</p>
+        <p class="phone-name">Chapter 4 notes</p>
+        <div class="ring-wrap">
+          <svg class="ring-svg" viewBox="0 0 180 180">
+            <circle class="ring-track" cx="90" cy="90" r="80"/>
+            <circle class="ring-progress" cx="90" cy="90" r="80"/>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-time">32:14</div>
+            <div class="ring-label">Remaining</div>
           </div>
-          <div class="phone-screen">
-            <p class="phone-greeting">Good afternoon</p>
-            <p class="phone-name">Marcus</p>
-            <p class="phone-tagline">3 days focused. Keep your rhythm.</p>
-
-            <div class="ring-wrap">
-              <svg class="ring-svg" viewBox="0 0 180 180">
-                <circle class="ring-track" cx="90" cy="90" r="80"/>
-                <circle class="ring-progress" cx="90" cy="90" r="80"/>
-              </svg>
-              <div class="ring-center">
-                <div class="ring-time">32:14</div>
-                <div class="ring-label">Remaining</div>
-              </div>
-            </div>
-
-            <div class="phone-metrics">
-              <div class="pm-item"><span class="pm-n">21</span><span class="pm-l">focused</span></div>
-              <div class="pm-item"><span class="pm-n" style="color:rgba(255,100,100,0.9)">1</span><span class="pm-l">distracted</span></div>
-              <div class="pm-item"><span class="pm-n" style="color:var(--amber)">0</span><span class="pm-l">breaks</span></div>
-            </div>
-
-            <div class="phone-coach">
-              <div class="pc-label">Coach</div>
-              <div class="pc-msg">You noticed. That's the whole skill.</div>
-            </div>
-
-            <div class="phone-btns">
-              <div class="phone-btn">Pause</div>
-              <div class="phone-btn">Take a break</div>
-              <div class="phone-btn-primary">I'm distracted</div>
-            </div>
-          </div>
+        </div>
+        <div class="phone-metrics">
+          <div class="pm"><span class="pm-n">21</span><span class="pm-l">focused</span></div>
+          <div class="pm"><span class="pm-n">1</span><span class="pm-l">drift</span></div>
+          <div class="pm"><span class="pm-n">0</span><span class="pm-l">breaks</span></div>
+        </div>
+        <div class="phone-coach">
+          <div class="pc-label">Coach</div>
+          <p class="pc-msg">You noticed. Close the tab, then tap when you're back.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- REFRAME -->
 <section class="section">
-  <div class="reframe reveal">
-    <p class="section-eyebrow">The problem</p>
-    <h2 class="reframe-title">Most focus apps<br>weren't built for <em>humans.</em></h2>
-    <p class="reframe-sub">They assume you won't drift. They punish you when you do. We built something different.</p>
-
-    <div class="reframe-cols">
-      <div class="reframe-col">
-        <div class="rc-icon">😤</div>
-        <p class="rc-problem">"Most apps shame you for drifting."</p>
-        <p class="rc-solution">Quiet Focus doesn't track streaks to punish you. It tracks them to show you what's possible — quietly.</p>
+  <div class="section-inner reveal">
+    <p class="section-label">The difference</p>
+    <h2 class="section-title">Most timers punish drift. This one expects it.</h2>
+    <p class="section-lede">Attention isn't binary. You leave, you return — that return is the skill worth tracking.</p>
+    <div class="contrast-grid">
+      <div class="contrast-cell">
+        <div class="contrast-num">01</div>
+        <p class="contrast-old">"You broke your streak."</p>
+        <p class="contrast-new">Streaks show rhythm, not worth. Missing a day doesn't reset anything important.</p>
       </div>
-      <div class="reframe-col">
-        <div class="rc-icon">⏱️</div>
-        <p class="rc-problem">"Most timers ignore that you're human."</p>
-        <p class="rc-solution">Distraction is normal. Our timer expects it, accommodates it, and helps you return from it in seconds.</p>
+      <div class="contrast-cell">
+        <div class="contrast-num">02</div>
+        <p class="contrast-old">"Stay focused or fail."</p>
+        <p class="contrast-new">One tap marks a distraction. Another marks the return. The session keeps going.</p>
       </div>
-      <div class="reframe-col">
-        <div class="rc-icon">🧠</div>
-        <p class="rc-problem">"Most coaches forget recovery is the skill."</p>
-        <p class="rc-solution">The quality of a focus session is measured not by whether you drifted — but by how quickly you came back.</p>
+      <div class="contrast-cell">
+        <div class="contrast-num">03</div>
+        <p class="contrast-old">"Here's your productivity score."</p>
+        <p class="contrast-new">Recap shows focused minutes, drifts, and a short note — honest, not harsh.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="section" id="how" style="background: var(--panel); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
-  <div class="how reveal">
-    <p class="section-eyebrow">How it works</p>
-    <h2 class="how-title">Simple by design.<br>Powerful by feel.</h2>
-    <p class="how-sub">Three steps. No overwhelming dashboards. No guilt. Just a clean environment that holds your attention gently.</p>
-
+<section class="section" id="how" style="background: var(--panel);">
+  <div class="section-inner reveal">
+    <p class="section-label">How it works</p>
+    <h2 class="section-title">Three steps. No setup tour.</h2>
+    <p class="section-lede">Open the demo, pick a duration, start. That's the whole onboarding.</p>
     <div class="steps">
       <div class="step">
-        <div class="step-num">1</div>
+        <div class="step-n">1</div>
         <div>
-          <p class="step-title">Name your task. Set your time.</p>
-          <p class="step-desc">Type what you're working on and pick a duration — 25, 45, 60, or 90 minutes. The session starts immediately. No setup friction, no tutorial.</p>
-          <span class="step-tag">Takes 10 seconds</span>
+          <p class="step-title">Write the task. Pick 25, 45, or 60 minutes.</p>
+          <p class="step-desc">One line for what you're doing. The timer starts immediately — no accounts, no config screens.</p>
         </div>
       </div>
       <div class="step">
-        <div class="step-num">2</div>
+        <div class="step-n">2</div>
         <div>
-          <p class="step-title">The coach checks in. Quietly.</p>
-          <p class="step-desc">During your session, the AI sends one short nudge at the right moment. Not a chatbot. Not notifications. Just a calm phrase that helps you return — "You noticed. That's the whole skill."</p>
-          <span class="step-tag">Non-intrusive AI</span>
+          <p class="step-title">Drift, notice, return.</p>
+          <p class="step-desc">When you catch yourself off-task, tap "I'm distracted." When you're back, tap again. The coach stays brief — one sentence, no chat thread.</p>
         </div>
       </div>
       <div class="step">
-        <div class="step-num">3</div>
+        <div class="step-n">3</div>
         <div>
-          <p class="step-title">Recap without judgment.</p>
-          <p class="step-desc">After each session, see what actually happened. Focused time, distractions, your best streak. A coach insight that's honest — not harsh. Your data stays private. Always.</p>
-          <span class="step-tag">Honest, not harsh</span>
+          <p class="step-title">Finish and read the recap.</p>
+          <p class="step-desc">See focused time, distraction count, a timeline of the session, and a short insight. Sign in if you want sessions synced across devices.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- PHILOSOPHY -->
-<section class="section philosophy">
-  <div class="philosophy-inner reveal">
-    <p class="section-eyebrow">Our belief</p>
-    <p class="philosophy-quote">"Distraction is not failure.<br><em>Return</em> is the practice."</p>
-    <p class="philosophy-body">Attention research shows that the quality of a focus session isn't determined by whether you drift — it's determined by how quickly and calmly you return. Quiet Focus is built around that single insight.</p>
-  </div>
-</section>
-
-<!-- FEATURES -->
 <section class="section">
-  <div class="features reveal">
-    <p class="section-eyebrow">Features</p>
-    <h2 class="features-title">Everything you need.<br>Nothing you don't.</h2>
-    <p class="features-sub">Built for students. Every feature earns its place by making focus easier — not more complicated.</p>
+  <div class="quote-block reveal">
+    <p class="quote-text">"Distraction isn't failure. <strong>Return</strong> is the practice."</p>
+    <p class="quote-cite">The whole product is built around that one idea.</p>
+  </div>
+</section>
 
-    <div class="features-grid">
-      <div class="feat-card wide">
-        <span class="feat-icon">⏱️</span>
+<section class="section" style="background: var(--panel);">
+  <div class="section-inner reveal">
+    <p class="section-label">Included</p>
+    <h2 class="section-title">What you get in the demo</h2>
+    <div class="feat-grid" style="margin-top: 36px;">
+      <div class="feat">
+        <div class="feat-mark"></div>
         <p class="feat-title">Distraction-aware timer</p>
-        <p class="feat-desc">A conic-gradient ring that fills as you focus. When you drift, tap once. The session doesn't end — it adapts. The timer tracks your actual focused minutes, not just elapsed time.</p>
+        <p class="feat-desc">Ring fills with focused time. Drifts are logged without ending the session.</p>
       </div>
-      <div class="feat-card">
-        <span class="feat-icon">🧠</span>
-        <p class="feat-title">AI coach check-ins</p>
-        <p class="feat-desc">Short, calm prompts at the right moment. The AI speaks once — not constantly. It never lectures.</p>
-      </div>
-      <div class="feat-card">
-        <span class="feat-icon">📊</span>
+      <div class="feat">
+        <div class="feat-mark"></div>
         <p class="feat-title">Session recap</p>
-        <p class="feat-desc">After each session: focused time, distractions, breaks, your score, a timeline, and one honest coach insight.</p>
+        <p class="feat-desc">Score, timeline, and a written coach note after each block.</p>
       </div>
-      <div class="feat-card">
-        <span class="feat-icon">🔥</span>
-        <p class="feat-title">Calm streaks</p>
-        <p class="feat-desc">Daily focus streaks that celebrate consistency — not perfection. Missing a day doesn't break anything. It just waits for you.</p>
+      <div class="feat">
+        <div class="feat-mark"></div>
+        <p class="feat-title">Daily streak</p>
+        <p class="feat-desc">Seven-day view of days you completed a session. Quiet, not gamified.</p>
       </div>
-      <div class="feat-card">
-        <span class="feat-icon">☕</span>
-        <p class="feat-title">Intentional breaks</p>
-        <p class="feat-desc">Built-in 5-minute break timer. The coach tells you when to stop resisting rest and actually step away.</p>
-      </div>
-      <div class="feat-card">
-        <span class="feat-icon">🔒</span>
-        <p class="feat-title">Private by default</p>
-        <p class="feat-desc">Your sessions, scores, and history stay on your device. No account required to start. No data sold. Ever.</p>
+      <div class="feat">
+        <div class="feat-mark"></div>
+        <p class="feat-title">Optional cloud sync</p>
+        <p class="feat-desc">Sign in with Google to keep history across devices. Works offline without it.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WAITLIST -->
-<section class="section waitlist-section" id="waitlist" style="border-top: 1px solid var(--line);">
-  <div class="waitlist-inner reveal">
-    <p class="section-eyebrow">Early access</p>
-    <h2 class="waitlist-title">Ready for a<br><em>calmer way</em> to focus?</h2>
-    <p class="waitlist-sub">Join the waitlist. We're letting students in first — no charge, no pressure. You'll get an email when your spot is ready.</p>
-
-    <div id="waitlist-form-wrap">
-      <form class="waitlist-form" id="waitlist-form">
-        <input
-          type="email"
-          class="waitlist-input"
-          placeholder="your@email.com"
-          id="waitlist-email"
-          required
-        />
-        <button type="submit" class="waitlist-btn">Join →</button>
-      </form>
-      <p class="waitlist-note">Free · No spam · Unsubscribe anytime</p>
-    </div>
-
-    <div class="waitlist-success" id="waitlist-success">
-      <span class="ws-emoji">🌿</span>
-      <p class="ws-title">You're on the list.</p>
-      <p class="ws-sub">We'll reach out when your spot opens. In the meantime, try the live demo.</p>
-    </div>
-
-    <div class="waitlist-count">
-      <div class="wc-dot"></div>
-      <span id="wc-text">Students already waiting</span>
+<section class="section" id="waitlist">
+  <div class="section-inner reveal">
+    <div class="waitlist-wrap">
+      <p class="section-label">Waitlist</p>
+      <h2 class="section-title">Want the mobile app?</h2>
+      <p class="section-lede" style="margin-bottom: 0;">The web demo is live now. Leave your email if you want early access when the native app ships.</p>
+      <div id="waitlist-form-wrap">
+        <form class="waitlist-form" id="waitlist-form">
+          <input type="email" class="waitlist-input" placeholder="you@email.com" id="waitlist-email" required autocomplete="email">
+          <button type="submit" class="btn btn-primary">Join</button>
+        </form>
+        <p class="waitlist-note">No spam. One email when there's something to try.</p>
+      </div>
+      <div class="waitlist-success" id="waitlist-success">
+        <p>You're on the list.</p>
+        <p>Try the <a href="live-demo.html" style="color: var(--mint);">web demo</a> while you wait.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
-  <div class="footer-logo">Quiet <span>Focus</span> AI</div>
+  <div class="footer-logo">Quiet <span>Focus</span></div>
   <div class="footer-links">
+    <a href="live-demo.html">Demo</a>
     <a href="#how">How it works</a>
-    <a href="#waitlist">Join waitlist</a>
     <a href="mailto:quietfocusai@gmail.com">Contact</a>
   </div>
-  <div class="footer-right">© 2026 Quiet Focus AI</div>
+  <div class="footer-copy">&copy; 2026 Quiet Focus</div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1257,13 +817,6 @@ footer {
   const SUPABASE_URL = "https://pyqnhbuzpagosqxsjvwg.supabase.co";
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cW5oYnV6cGFnb3NxeHNqdndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTc1NzksImV4cCI6MjA5NTM3MzU3OX0.XorO-8qaHlgpDsPUqcOv6WDxP0op_hWAQ73rVHf28qo";
-
-  if (!window.supabase?.createClient) {
-    console.error("Supabase CDN failed to load");
-    return;
-  }
-
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -1278,13 +831,6 @@ footer {
   );
   document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
 
-  window.addEventListener("scroll", () => {
-    const nav = document.querySelector("nav");
-    if (!nav) return;
-    nav.style.borderBottomColor =
-      window.scrollY > 20 ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.07)";
-  });
-
   let ringSeconds = 32 * 60 + 14;
   setInterval(() => {
     if (ringSeconds > 0) ringSeconds -= 1;
@@ -1296,61 +842,45 @@ footer {
 
   const savedEmail = localStorage.getItem("qf_waitlist_email");
   if (savedEmail) {
-    const wrap = document.getElementById("waitlist-form-wrap");
-    const success = document.getElementById("waitlist-success");
-    if (wrap && success) {
-      wrap.style.display = "none";
-      success.style.display = "block";
-    }
+    document.getElementById("waitlist-form-wrap").style.display = "none";
+    document.getElementById("waitlist-success").style.display = "block";
   }
 
   async function submitWaitlist(event) {
     event.preventDefault();
-
     const input = document.getElementById("waitlist-email");
-    const btn = document.querySelector(".waitlist-btn");
+    const btn = event.target.querySelector('button[type="submit"]');
     const email = input?.value?.trim().toLowerCase();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      alert("Enter a valid email address.");
+      alert("Enter a valid email.");
       return;
     }
 
-    if (btn) {
-      btn.textContent = "...";
-      btn.disabled = true;
+    if (btn) { btn.textContent = "..."; btn.disabled = true; }
+
+    if (!window.supabase?.createClient) {
+      alert("Could not connect. Try again later.");
+      if (btn) { btn.textContent = "Join"; btn.disabled = false; }
+      return;
     }
 
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { error } = await supabase.from("waitlist").insert([{ email }]);
 
     if (error) {
       let message = error.message;
-      if (/duplicate|unique/i.test(message)) {
-        message = "You're already on the waitlist.";
-      } else if (/row-level security|policy/i.test(message)) {
-        message =
-          "Database policy blocked signup. In Supabase, run supabase-schema.sql (waitlist section).";
-      } else if (/does not exist|schema cache/i.test(message)) {
-        message = 'Table "waitlist" is missing. Run supabase-schema.sql in Supabase SQL Editor.';
-      }
-
+      if (/duplicate|unique/i.test(message)) message = "You're already on the list.";
       alert(message);
-      console.error("Waitlist error:", error);
-      if (btn) {
-        btn.textContent = "Join →";
-        btn.disabled = false;
-      }
+      if (btn) { btn.textContent = "Join"; btn.disabled = false; }
       return;
     }
 
     localStorage.setItem("qf_waitlist_email", email);
-    const wrap = document.getElementById("waitlist-form-wrap");
-    const success = document.getElementById("waitlist-success");
-    if (wrap) wrap.style.display = "none";
-    if (success) success.style.display = "block";
+    document.getElementById("waitlist-form-wrap").style.display = "none";
+    document.getElementById("waitlist-success").style.display = "block";
   }
 
-  window.submitWaitlist = submitWaitlist;
   document.getElementById("waitlist-form")?.addEventListener("submit", submitWaitlist);
 })();
 </script>
