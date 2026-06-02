@@ -6,38 +6,35 @@
   function rowToHistoryItem(row) {
     const created = row.created_at ? new Date(row.created_at) : new Date();
     const offset = created.getTimezoneOffset() * 60000;
-    const date = new Date(created.getTime() - offset).toISOString().slice(0, 10);
-    const distractions = row.distractions ?? 0;
-const completedNaturally = !!row.completed_naturally;
-    let score = 96 + (completedNaturally ? 4 : 0) - distractions * 8;
-    score = Math.max(25, Math.min(100, score));
+    const date =
+      row.date || new Date(created.getTime() - offset).toISOString().slice(0, 10);
 
     return {
       date,
-      task: "Focus session",
-focusMinutes: row.focus_minutes ?? 0,
-      distractions,
-      breaks: 0,
-      refocuses: 0,
-      score,
-      completedNaturally,
-      events: []
+      task: row.task || "Focus session",
+      focusMinutes: row.focus_minutes ?? 0,
+      distractions: row.distractions ?? 0,
+      breaks: row.breaks ?? 0,
+      refocuses: row.refocuses ?? 0,
+      score: row.score ?? 0,
+      completedNaturally: !!row.completed_naturally,
+      events: Array.isArray(row.events) ? row.events : []
     };
   }
 
   function formatSaveError(error) {
     const msg = error?.message || "Could not save session";
     if (/row-level security|policy/i.test(msg)) {
-      return "Blocked by policy. Run supabase-schema.sql in Supabase SQL Editor.";
+      return "Blocked by policy. Check Supabase RLS for focus_sessions.";
     }
     if (/does not exist|schema cache|PGRST204/i.test(msg)) {
-      return "Wrong column names. Table needs: duration, interruptions, completed.";
+      return "Table or column missing. Run your Supabase schema migration.";
     }
     if (/JWT|session|not authenticated/i.test(msg)) {
       return "Not signed in. Sign out, sign in again, then finish a session.";
     }
     if (/email not confirmed/i.test(msg)) {
-      return "Confirm your email in inbox, then sign in again.";
+      return "Confirm your email, then sign in again.";
     }
     return msg;
   }
@@ -52,36 +49,28 @@ focusMinutes: row.focus_minutes ?? 0,
       data: { session }
     } = await supabase.auth.getSession();
     if (!session?.user) {
-      return { ok: false, reason: "not-signed-in", message: "Sign in first (top of app)." };
+      return { ok: false, reason: "not-signed-in", message: "Sign in to sync sessions." };
     }
 
     const row = {
-  user_id: session.user.id,
-  task: summary.task,
-  focus_minutes: Number(summary.focusMinutes) || 0,
-  distractions: Number(summary.distractions) || 0,
-  breaks: Number(summary.breaks) || 0,
-  refocuses: Number(summary.refocuses) || 0,
-  score: Number(summary.score) || 0,
-  completed_naturally: Boolean(summary.completedNaturally),
-  events: summary.events || [],
-  date: summary.date
-};
+      user_id: session.user.id,
+      task: summary.task || "Focus session",
+      focus_minutes: Number(summary.focusMinutes) || 0,
+      distractions: Number(summary.distractions) || 0,
+      breaks: Number(summary.breaks) || 0,
+      refocuses: Number(summary.refocuses) || 0,
+      score: Number(summary.score) || 0,
+      completed_naturally: Boolean(summary.completedNaturally),
+      events: summary.events || [],
+      date: summary.date || new Date().toISOString().slice(0, 10)
+    };
 
-    let { data, error } = await supabase.from("focus_sessions").insert([row]).select("id");
-
-    if (error && /user_id|null value in column/i.test(error.message)) {
-      const withUser = { ...row, user_id: session.user.id };
-      const retry = await supabase.from("focus_sessions").insert([withUser]).select("id");
-      data = retry.data;
-      error = retry.error;
-    }
+    const { data, error } = await supabase.from("focus_sessions").insert([row]).select("id");
 
     if (error) {
-  console.error("focus_sessions insert failed:", error, row);
-  alert(JSON.stringify(error));
-  return { ok: false, error, message: formatSaveError(error) };
-}
+      console.error("focus_sessions insert failed:", error, row);
+      return { ok: false, error, message: formatSaveError(error) };
+    }
 
     return { ok: true, data };
   }
@@ -99,19 +88,10 @@ focusMinutes: row.focus_minutes ?? 0,
 
     const { data, error } = await supabase
       .from("focus_sessions")
-.select(`
-  id,
-  task,
-  focus_minutes,
-  distractions,
-  breaks,
-  refocuses,
-  score,
-  completed_naturally,
-  events,
-  date,
-  created_at
-`)
+      .select(
+        "id, task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at"
+      )
+      .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(limit);
 
