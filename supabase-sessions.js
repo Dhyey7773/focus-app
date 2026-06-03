@@ -14,13 +14,15 @@
     const date =
       row.date || new Date(created.getTime() - offset).toISOString().slice(0, 10);
 
-    const focusMinutes = row.focus_minutes ?? row.duration ?? 0;
+    const focusSeconds = row.focus_seconds ?? (row.focus_minutes ?? row.duration ?? 0) * 60;
+    const focusMinutes = row.focus_minutes ?? row.duration ?? Math.floor(focusSeconds / 60);
     const distractions = row.distractions ?? row.interruptions ?? 0;
 
     return {
       date,
       task: row.task || "Focus session",
       focusMinutes,
+      focusSeconds,
       distractions,
       breaks: row.breaks ?? 0,
       refocuses: row.refocuses ?? 0,
@@ -57,11 +59,18 @@
     return refreshed.session;
   }
 
+  function focusSecondsFromSummary(summary) {
+    if (summary.focusSeconds != null) return Math.max(0, Math.round(Number(summary.focusSeconds)));
+    return Math.max(0, Math.round(Number(summary.focusMinutes) || 0) * 60);
+  }
+
   function buildFullRow(userId, summary) {
+    const focusSeconds = focusSecondsFromSummary(summary);
     return {
       user_id: userId,
       task: summary.task || "Focus session",
-      focus_minutes: Number(summary.focusMinutes) || 0,
+      focus_minutes: Math.floor(focusSeconds / 60),
+      focus_seconds: focusSeconds,
       distractions: Number(summary.distractions) || 0,
       breaks: Number(summary.breaks) || 0,
       refocuses: Number(summary.refocuses) || 0,
@@ -108,6 +117,13 @@
 
     if (error) {
       console.error("focus_sessions insert failed:", error, fullRow);
+      if (/row-level security|policy|permission denied|42501/i.test(error.message || "")) {
+        return {
+          ok: false,
+          error,
+          message: "Cloud save blocked — re-run supabase-schema.sql in Supabase SQL Editor."
+        };
+      }
       return { ok: false, error, message: formatSaveError(error) };
     }
 
@@ -130,7 +146,7 @@
     }
 
     const fullSelect =
-      "id, task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at";
+      "id, task, focus_minutes, focus_seconds, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at";
 
     const { data, error } = await supabase
       .from("focus_sessions")
@@ -162,13 +178,21 @@
 
     const { data, error } = await supabase
       .from("focus_sessions")
-      .select("focus_minutes")
+      .select("focus_minutes, focus_seconds")
       .eq("user_id", session.user.id);
 
-    if (error || !data) return { ok: false, totalSessions: 0, totalMinutes: 0 };
+    if (error || !data) return { ok: false, totalSessions: 0, totalMinutes: 0, totalSeconds: 0 };
 
-    const totalMinutes = data.reduce((s, r) => s + (r.focus_minutes || 0), 0);
-    return { ok: true, totalSessions: data.length, totalMinutes };
+    const totalSeconds = data.reduce(
+      (s, r) => s + (r.focus_seconds ?? (r.focus_minutes || 0) * 60),
+      0
+    );
+    return {
+      ok: true,
+      totalSessions: data.length,
+      totalMinutes: totalSeconds / 60,
+      totalSeconds
+    };
   }
 
   async function applySessionsToProfile(profile) {
