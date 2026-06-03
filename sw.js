@@ -1,13 +1,17 @@
-const CACHE = 'quiet-focus-v1';
+const CACHE = 'quiet-focus-v2';
 const ASSETS = [
-  './',
-  './index.html',
-  './live-demo.html',
-  './config.js',
-  './supabase-sessions.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'
+];
+
+const NETWORK_FIRST = [
+  './live-demo.html',
+  './index.html',
+  './config.js',
+  './auth-captcha.js',
+  './supabase-sessions.js',
+  './sw.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -24,15 +28,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function isNetworkFirst(url) {
+  const path = url.pathname.replace(/\/$/, '') || '/';
+  const file = path.slice(path.lastIndexOf('/') + 1) || 'index.html';
+  return NETWORK_FIRST.some((entry) => entry.endsWith(file));
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
+  if (isNetworkFirst(url)) {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
           if (response && response.status === 200 && response.type === 'basic') {
             const copy = response.clone();
@@ -40,9 +50,15 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
-      return cached || network;
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request);
     })
   );
 });
