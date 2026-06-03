@@ -58,3 +58,31 @@ create policy "Users update own sessions"
 
 create index if not exists focus_sessions_user_created_idx
   on public.focus_sessions (user_id, created_at desc);
+
+-- Rate limit: max 30 session saves per user per hour (anti-abuse)
+create or replace function public.enforce_focus_session_rate_limit()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  recent_count integer;
+begin
+  select count(*) into recent_count
+  from public.focus_sessions
+  where user_id = new.user_id
+    and created_at > now() - interval '1 hour';
+
+  if recent_count >= 30 then
+    raise exception 'Too many sessions saved this hour. Try again later.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists focus_sessions_rate_limit on public.focus_sessions;
+create trigger focus_sessions_rate_limit
+  before insert on public.focus_sessions
+  for each row execute function public.enforce_focus_session_rate_limit();
