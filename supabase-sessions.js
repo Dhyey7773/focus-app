@@ -109,6 +109,12 @@
     const fullRow = buildFullRow(session.user.id, summary);
     let { error } = await supabase.from("focus_sessions").insert([fullRow]);
 
+    if (error && isColumnError(error) && fullRow.focus_seconds != null) {
+      const { focus_seconds, ...rowWithoutSeconds } = fullRow;
+      const retry = await supabase.from("focus_sessions").insert([rowWithoutSeconds]);
+      error = retry.error;
+    }
+
     if (error && isColumnError(error)) {
       const legacyRow = buildLegacyRow(summary);
       const retry = await supabase.from("focus_sessions").insert([legacyRow]);
@@ -146,14 +152,25 @@
     }
 
     const fullSelect =
-      "id, task, focus_minutes, focus_seconds, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at";
+      "id, task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at";
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("focus_sessions")
-      .select(fullSelect)
+      .select(fullSelect + ", focus_seconds")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(limit);
+
+    if (error && isColumnError(error)) {
+      const fallback = await supabase
+        .from("focus_sessions")
+        .select(fullSelect)
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) {
       console.error("focus_sessions load error:", error);
@@ -176,10 +193,19 @@
 
     if (!session?.user) return { ok: false, totalSessions: 0, totalMinutes: 0 };
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("focus_sessions")
       .select("focus_minutes, focus_seconds")
       .eq("user_id", session.user.id);
+
+    if (error && isColumnError(error)) {
+      const fallback = await supabase
+        .from("focus_sessions")
+        .select("focus_minutes")
+        .eq("user_id", session.user.id);
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error || !data) return { ok: false, totalSessions: 0, totalMinutes: 0, totalSeconds: 0 };
 
