@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Quiet Focus</title>
   <script src="config.js"></script>
+  <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <style>
@@ -278,6 +279,14 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   text-align:center;
   line-height:1.6;
 }
+
+.auth-captcha-wrap {
+  display:flex;
+  justify-content:center;
+  min-height:65px;
+  margin:2px 0 4px;
+}
+.auth-captcha-wrap.is-hidden { display:none; }
 
 /* ═══════════════════════════════════════
    MAIN APP
@@ -801,6 +810,10 @@ button:disabled { cursor:not-allowed; opacity:.42; }
     <div id="auth-error" class="auth-error" role="alert"></div>
     <div id="auth-success" class="auth-success" role="status"></div>
 
+    <div class="auth-captcha-wrap is-hidden" id="auth-captcha-wrap" aria-label="Security check">
+      <div id="auth-captcha"></div>
+    </div>
+
     <div class="auth-social" aria-label="Sign in with Google">
       <button type="button" class="auth-oauth" id="btn-oauth-google" onclick="handleGoogleSignIn()">
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
@@ -1134,6 +1147,21 @@ function showAuthScreen() {
   app.classList.remove('is-visible');
   auth.style.display = 'flex';
   auth.classList.remove('is-hidden');
+  initAuthCaptcha();
+}
+
+async function initAuthCaptcha() {
+  const wrap = document.getElementById('auth-captcha-wrap');
+  if (!window.AuthCaptcha?.isEnabled?.()) {
+    if (wrap) wrap.classList.add('is-hidden');
+    return;
+  }
+  if (wrap) wrap.classList.remove('is-hidden');
+  try {
+    await window.AuthCaptcha.render('auth-captcha');
+  } catch (err) {
+    showAuthError(err.message || 'Could not load security check.');
+  }
 }
 
 function showAppScreen() {
@@ -1163,6 +1191,7 @@ function switchAuthTab(tab) {
   document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
   document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
   clearAuthMessages();
+  window.AuthCaptcha?.reset?.();
 }
 
 function showAuthError(msg) {
@@ -1200,14 +1229,17 @@ async function handleSignIn(e) {
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
 
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  btn.textContent = 'Sign in';
-  btn.disabled = false;
-
-  if (error) {
-    showAuthError(error.message);
+  try {
+    const options = await window.AuthCaptcha?.authOptions?.();
+    const { error } = await sb.auth.signInWithPassword({ email, password, options });
+    if (error) showAuthError(error.message);
+  } catch (err) {
+    showAuthError(err.message || 'Sign in failed.');
+  } finally {
+    window.AuthCaptcha?.afterAttempt?.();
+    btn.textContent = 'Sign in';
+    btn.disabled = false;
   }
-  // onAuthStateChange handles the rest
 }
 
 async function handleSignUp(e) {
@@ -1220,34 +1252,41 @@ async function handleSignUp(e) {
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
 
-  const { error } = await sb.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name }
+  try {
+    const options = await window.AuthCaptcha?.authOptions?.({ data: { name } });
+    const { error } = await sb.auth.signUp({ email, password, options });
+    if (error) {
+      showAuthError(error.message);
+    } else {
+      showAuthSuccess('Check your email to confirm your account, then sign in.');
     }
-  });
-
-  btn.textContent = 'Create account';
-  btn.disabled = false;
-
-  if (error) {
-    showAuthError(error.message);
-  } else {
-    showAuthSuccess('Check your email to confirm your account, then sign in.');
+  } catch (err) {
+    showAuthError(err.message || 'Sign up failed.');
+  } finally {
+    window.AuthCaptcha?.afterAttempt?.();
+    btn.textContent = 'Create account';
+    btn.disabled = false;
   }
 }
 
 async function handleGoogleSignIn() {
   clearAuthMessages();
   setOAuthBusy(true);
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: oauthRedirectUrl() }
-  });
-  if (error) {
-    showAuthError(error.message);
+
+  try {
+    const options = await window.AuthCaptcha?.authOptions?.({
+      redirectTo: oauthRedirectUrl()
+    });
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options
+    });
+    if (error) showAuthError(error.message);
+  } catch (err) {
+    showAuthError(err.message || 'Google sign in failed.');
     setOAuthBusy(false);
+  } finally {
+    window.AuthCaptcha?.afterAttempt?.();
   }
 }
 
