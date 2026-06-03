@@ -1110,6 +1110,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
   currentUser = session?.user || null;
 
   if (currentUser) {
+    if (
+      event === 'SIGNED_IN' ||
+      (event === 'INITIAL_SESSION' && session)
+    ) {
+      cleanAuthRedirectFromUrl();
+    }
+
     const isNewSignIn =
       event === 'SIGNED_IN' ||
       event === 'INITIAL_SESSION' ||
@@ -1126,6 +1133,28 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
   hideBootScreen();
 });
+
+function cleanAuthRedirectFromUrl() {
+  const hasHash = window.location.hash.includes('access_token');
+  const hasCode = window.location.search.includes('code=');
+  if (hasHash || hasCode) {
+    history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+function formatAuthError(error) {
+  const msg = error?.message || 'Sign in failed.';
+  if (/email not confirmed/i.test(msg)) {
+    return 'Email not confirmed yet. Check your inbox and click the confirmation link, then try again.';
+  }
+  if (/captcha/i.test(msg)) {
+    return 'Security check failed. Complete the CAPTCHA and try again.';
+  }
+  if (/invalid login credentials/i.test(msg)) {
+    return 'Wrong email or password. Double-check and try again.';
+  }
+  return msg;
+}
 
 async function onUserSignedIn() {
   if (profileLoading) return;
@@ -1232,7 +1261,7 @@ async function handleSignIn(e) {
   try {
     const options = await window.AuthCaptcha?.authOptions?.();
     const { error } = await sb.auth.signInWithPassword({ email, password, options });
-    if (error) showAuthError(error.message);
+    if (error) showAuthError(formatAuthError(error));
   } catch (err) {
     showAuthError(err.message || 'Sign in failed.');
   } finally {
@@ -1253,7 +1282,10 @@ async function handleSignUp(e) {
   btn.disabled = true;
 
   try {
-    const options = await window.AuthCaptcha?.authOptions?.({ data: { name } });
+    const options = await window.AuthCaptcha?.authOptions?.({
+      data: { name },
+      emailRedirectTo: oauthRedirectUrl()
+    });
     const { error } = await sb.auth.signUp({ email, password, options });
     if (error) {
       showAuthError(error.message);
@@ -1842,10 +1874,7 @@ if (profile.activeSession && profile.activeSession.mode !== 'complete') {
   }
 }
 
-// Handle OAuth return hash; boot hides when onAuthStateChange runs
-if (window.location.hash.includes('access_token')) {
-  history.replaceState(null, '', window.location.pathname + window.location.search);
-}
+// Boot screen fallback if auth is slow
 setTimeout(hideBootScreen, 4000);
 </script>
 </body>
