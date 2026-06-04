@@ -185,27 +185,41 @@ nav {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 28px;
 }
 
 .hero-mascot-wrap {
   text-align: center;
+  width: 100%;
+  padding: 8px 0 4px;
+  position: relative;
+  background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(58,64,72,.32) 0%, transparent 70%);
 }
 
 .hero-mascot {
-  width: min(240px, 88%);
+  width: min(260px, 72%);
   height: auto;
   display: block;
   margin: 0 auto;
-  filter: drop-shadow(0 16px 40px rgba(0,0,0,.55)) drop-shadow(0 0 32px rgba(255,255,255,.07));
+  mix-blend-mode: lighten;
+  object-fit: contain;
+  filter:
+    brightness(1.06)
+    drop-shadow(0 20px 44px rgba(0,0,0,.5))
+    drop-shadow(0 0 36px rgba(255,255,255,.08));
 }
 
 .hero-mascot-caption {
-  margin-top: 14px;
+  margin-top: 16px;
   font-size: 12px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.nav-mark img {
+  mix-blend-mode: lighten;
+  border-radius: 9px;
 }
 
 /* ─── PHONE ─── */
@@ -686,7 +700,7 @@ footer {
 
   <div class="hero-visual">
   <div class="hero-mascot-wrap">
-    <img class="hero-mascot" src="icons/quiet-hero-lockup.png" width="360" height="400" alt="Quiet, your focus companion">
+    <img class="hero-mascot" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
     <p class="hero-mascot-caption">Meet Quiet</p>
   </div>
   <div class="phone" aria-hidden="true">
