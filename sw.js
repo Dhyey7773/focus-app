@@ -1,8 +1,15 @@
-const CACHE = 'quiet-focus-v8';
+const CACHE = 'quiet-focus-v10';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/quiet-hero.png',
+  './icons/quiet-mood-focused.png',
+  './icons/quiet-mood-thinking.png',
+  './icons/quiet-mood-encouraging.png',
+  './icons/quiet-mood-celebrating.png',
+  './icons/quiet-mood-reminder.png',
+  './icons/quiet-mood-rest.png'
 ];
 
 const NETWORK_FIRST = [
