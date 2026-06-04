@@ -556,32 +556,163 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   flex-direction:column;
   align-items:center;
   text-align:center;
-  padding:8px 4px 20px;
-  min-height:min(520px, calc(100vh - 220px));
+  padding:4px 4px 20px;
+  min-height:min(560px, calc(100vh - 200px));
 }
 .home-greeting {
-  color:var(--muted);
-  font-size:13px;
-  letter-spacing:.02em;
-  margin:6px 0 0;
+  color:var(--muted-2);
+  font-size:15px;
+  font-weight:500;
+  letter-spacing:-.02em;
+  margin:4px 0 0;
   width:100%;
   text-align:left;
 }
-.home-name {
-  color:var(--text);
-  font-size:22px;
-  font-weight:520;
-  letter-spacing:-.04em;
-  margin:2px 0 18px;
+.home-name { display:none; }
+.home-mascot-stage {
+  flex:1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   width:100%;
-  text-align:left;
+  min-height:min(42vh, 340px);
+  max-height:min(52vh, 420px);
+  margin:4px 0 0;
+  position:relative;
 }
 .quiet-mascot {
   position:relative;
-  margin:8px 0 18px;
+  margin:0;
 }
-.quiet-mascot--sm { margin:0; transform:scale(.55); transform-origin:left center; }
-.quiet-mascot--sm .quiet-cube { width:88px; height:88px; }
+.quiet-mascot--hero {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.quiet-mascot-glow {
+  position:absolute;
+  width:min(360px, 92vw);
+  height:min(360px, 92vw);
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.14) 0%, rgba(58,64,72,.2) 28%, transparent 62%),
+    radial-gradient(circle at 50% 60%, rgba(42,47,54,.35) 0%, transparent 55%);
+  filter:blur(18px);
+  z-index:0;
+  pointer-events:none;
+  animation:quiet-glow-pulse 5s ease-in-out infinite;
+}
+@keyframes quiet-glow-pulse {
+  0%, 100% { opacity:.85; transform:scale(1); }
+  50% { opacity:1; transform:scale(1.04); }
+}
+.quiet-art-wrap {
+  position:relative;
+  display:inline-block;
+  line-height:0;
+}
+.quiet-art {
+  display:block;
+  height:auto;
+  pointer-events:none;
+  user-select:none;
+}
+.quiet-mascot--hero .quiet-art-wrap {
+  position:relative;
+  z-index:1;
+  animation:quiet-breathe 4.5s ease-in-out infinite;
+}
+@keyframes quiet-breathe {
+  0%, 100% { transform:translateY(0); }
+  50% { transform:translateY(-8px); }
+}
+.quiet-art--hero {
+  width:min(300px, 82vw);
+  max-height:min(52vh, 400px);
+  object-fit:contain;
+  filter:
+    brightness(1.14)
+    contrast(1.06)
+    drop-shadow(0 28px 56px rgba(0,0,0,.5))
+    drop-shadow(0 0 48px rgba(255,255,255,.12));
+}
+.quiet-mascot--hero .quiet-expression {
+  left:36%;
+  top:44%;
+  width:38%;
+  height:26%;
+}
+.quiet-mascot--hero .quiet-screen {
+  background:linear-gradient(165deg, #3A4048 0%, #32373F 45%, #2E333B 100%);
+  border-radius:22%;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.1),
+    inset 0 -8px 18px rgba(0,0,0,.4);
+}
+.quiet-mascot--hero .quiet-eye {
+  top:10%;
+  width:22%;
+  height:46%;
+  min-width:11px;
+  min-height:22px;
+  max-width:18px;
+  max-height:32px;
+  border-radius:999px;
+  background:#f5f7fc;
+  box-shadow:0 0 18px rgba(245,247,252,.55);
+}
+.quiet-mascot--hero .quiet-eye.left { left:18%; }
+.quiet-mascot--hero .quiet-eye.right { right:18%; }
+.quiet-mascot--hero .quiet-mouth {
+  bottom:8%;
+  width:44%;
+  max-width:40px;
+  height:auto;
+  min-height:0;
+  background:transparent;
+  border:none;
+  border-bottom:4px solid #f5f7fc;
+  border-radius:0 0 50% 50%;
+  box-shadow:0 0 14px rgba(245,247,252,.4);
+}
+.quiet-mascot--hero[data-mood="idle"] .quiet-mouth,
+.quiet-mascot--hero[data-mood="focused"] .quiet-mouth,
+.quiet-mascot--hero[data-mood="happy"] .quiet-mouth {
+  border-bottom-width:4px;
+  border-radius:0 0 50% 50%;
+}
+.quiet-mascot--hero[data-mood="thinking"] .quiet-eye.right {
+  transform:translateY(-6%) scale(1.02);
+}
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-mouth {
+  max-width:44px;
+  border-bottom-width:5px;
+}
+.quiet-mascot--hero[data-mood="celebrating"] .quiet-mouth {
+  max-width:48px;
+  border-bottom-width:5px;
+  border-radius:0 0 55% 55%;
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-eye {
+  height:12%;
+  top:22%;
+  width:28%;
+  max-height:8px;
+  border-radius:4px;
+  box-shadow:none;
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-mouth { opacity:0; }
+@media (prefers-reduced-motion: reduce) {
+  .quiet-mascot--hero .quiet-art-wrap,
+  .quiet-mascot-glow { animation:none; }
+}
+.quiet-art--session {
+  width:72px;
+  height:auto;
+  object-fit:contain;
+  filter:drop-shadow(0 6px 16px rgba(0,0,0,.4));
+}
+.quiet-mascot--sm { margin:0; }
 .quiet-badge {
   position:absolute;
   top:-6px;
@@ -609,48 +740,33 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   transform:scale(1);
 }
 .quiet-mascot[data-mood="reminder"] .quiet-badge::after { content:"🔔"; font-size:12px; }
-.quiet-mascot[data-mood="encouraging"] .quiet-badge::after { content:"♡"; color:var(--success); }
+.quiet-mascot[data-mood="encouraging"] .quiet-badge::after { content:"♡"; color:rgba(240,242,247,.85); }
 .quiet-mascot[data-mood="celebrating"] .quiet-badge::after { content:"✦"; }
 .quiet-mascot[data-mood="rest"] .quiet-badge::after { content:"z"; font-size:11px; letter-spacing:-2px; }
-.quiet-cube {
-  width:104px;
-  height:104px;
-  border-radius:26px;
-  background:linear-gradient(165deg, #2a2e34 0%, #121418 42%, #060708 100%);
-  border:1px solid rgba(255,255,255,.06);
-  box-shadow:
-    0 22px 44px rgba(0,0,0,.55),
-    inset 0 2px 3px rgba(255,255,255,.07),
-    inset 0 -10px 20px rgba(0,0,0,.45);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transform:perspective(500px) rotateX(10deg);
-  transition:transform .3s ease;
+.quiet-mascot[data-mood="celebrating"] .quiet-art {
+  transform:scale(1.03);
+  filter:drop-shadow(0 12px 28px rgba(0,0,0,.5)) drop-shadow(0 0 32px rgba(255,255,255,.1));
+  transition:transform .3s ease, filter .3s ease;
 }
-.quiet-mascot[data-mood="celebrating"] .quiet-cube {
-  transform:perspective(500px) rotateX(10deg) scale(1.05);
-  box-shadow:
-    0 22px 44px rgba(0,0,0,.55),
-    0 0 28px rgba(148,218,177,.12),
-    inset 0 2px 3px rgba(255,255,255,.07);
-}
+.quiet-art { transition:transform .3s ease, filter .3s ease; }
 .quiet-screen {
-  width:72px;
-  height:50px;
-  border-radius:14px;
-  background:linear-gradient(180deg, #0a0b0e 0%, #050608 100%);
+  width:100%;
+  height:100%;
+  border-radius:28%;
+  background:linear-gradient(165deg, #3A4048 0%, #2E333B 100%);
   box-shadow:
-    inset 0 0 20px rgba(148,218,177,.06),
-    inset 0 3px 12px rgba(0,0,0,.85);
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -6px 14px rgba(0,0,0,.35);
   display:flex;
   align-items:center;
   justify-content:center;
 }
 .quiet-face {
   position:relative;
-  width:46px;
-  height:26px;
+  width:72%;
+  height:58%;
+  min-width:32px;
+  min-height:18px;
 }
 .quiet-eye {
   position:absolute;
@@ -690,19 +806,19 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 }
 /* Encouraging */
 .quiet-mascot[data-mood="encouraging"] .quiet-mouth {
-  width:18px; border-bottom-color:var(--success);
+  width:18px; border-bottom-color:rgba(240,242,247,.95);
 }
 /* Celebrating */
 .quiet-mascot[data-mood="celebrating"] .quiet-mouth {
   width:22px; height:9px; border-radius:0 0 12px 12px; background:transparent;
-  border-bottom:4px solid var(--success);
-  box-shadow:0 0 12px rgba(148,218,177,.35);
+  border-bottom:3px solid rgba(240,242,247,.95);
+  box-shadow:0 0 10px rgba(240,242,247,.2);
 }
 .quiet-mascot[data-mood="celebrating"]::before,
 .quiet-mascot[data-mood="celebrating"]::after {
   content:"✦";
   position:absolute;
-  color:rgba(148,218,177,.5);
+  color:rgba(255,255,255,.35);
   font-size:10px;
   animation:quiet-sparkle 1.2s ease infinite;
 }
@@ -723,26 +839,19 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   width:12px; height:3px; border-radius:99px; background:rgba(240,242,247,.75);
   border-bottom:none;
 }
-.home-quiet-kicker {
-  color:var(--muted);
-  font-size:10px;
-  font-weight:600;
-  letter-spacing:.14em;
-  text-transform:uppercase;
-  margin:0 0 4px;
-}
 .home-quiet-title {
-  font-size:20px;
-  font-weight:520;
-  letter-spacing:-.03em;
-  margin:0 0 8px;
+  font-size:22px;
+  font-weight:560;
+  letter-spacing:-.04em;
+  margin:0 0 10px;
+  color:var(--text);
 }
 .home-quiet-copy {
   color:var(--muted-2);
-  font-size:13px;
-  line-height:1.6;
-  max-width:300px;
-  margin:0 auto 14px;
+  font-size:14px;
+  line-height:1.65;
+  max-width:320px;
+  margin:0 auto 12px;
 }
 .home-quiet-motto {
   margin-top:18px;
@@ -764,36 +873,52 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .coach-quiet-row .meta-label { margin-bottom:6px; }
 .home-summary {
   width:100%;
-  margin-bottom:16px;
+  margin-bottom:14px;
 }
 .home-summary p {
-  color:var(--muted-2);
-  font-size:13px;
+  color:var(--muted);
+  font-size:12px;
   line-height:1.5;
-  margin:0 0 6px;
+  margin:0 0 4px;
+}
+.home-content {
+  width:100%;
+  flex-shrink:0;
 }
 .home-start-btn {
   width:100%;
-  min-height:48px;
-  margin-bottom:14px;
+  min-height:50px;
+  margin-bottom:16px;
+  font-size:15px;
+}
+.home-streak-block {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
 }
 .home-streak-pill {
   display:inline-flex;
   align-items:center;
-  gap:6px;
-  padding:8px 14px;
+  gap:8px;
+  padding:10px 18px;
   border-radius:999px;
-  background:rgba(255,255,255,.04);
-  border:1px solid var(--line);
-  font-size:12px;
+  background:rgba(42,47,54,.45);
+  border:1px solid rgba(255,255,255,.1);
+  font-size:14px;
   color:var(--muted-2);
+  box-shadow:0 0 24px rgba(255,255,255,.04);
 }
-.home-streak-pill strong { color:var(--text); font-weight:520; }
+.home-streak-pill strong {
+  color:var(--text);
+  font-weight:560;
+  font-size:16px;
+}
 .home-streak-days {
   display:flex;
   gap:4px;
   justify-content:center;
-  margin-top:12px;
 }
 
 /* Focus setup tab */
@@ -1441,40 +1566,49 @@ button:disabled { cursor:not-allowed; opacity:.42; }
           <section class="page active" id="page-home" aria-label="Home">
             <div class="home-companion">
               <p class="home-greeting" id="greeting">Good evening</p>
-              <p class="home-name" id="home-display-name">Your Name</p>
+              <p class="home-name" id="home-display-name" hidden>Your Name</p>
 
-              <div class="quiet-mascot" id="quiet-mascot" data-mood="idle" aria-hidden="true">
-                <span class="quiet-badge" aria-hidden="true"></span>
-                <div class="quiet-cube">
-                  <div class="quiet-screen">
-                    <div class="quiet-face">
-                      <span class="quiet-eye left"></span>
-                      <span class="quiet-eye right"></span>
-                      <span class="quiet-mouth"></span>
+              <div class="home-mascot-stage">
+                <div class="quiet-mascot quiet-mascot--hero" id="quiet-mascot" data-mood="idle" aria-label="Quiet, your focus companion">
+                  <div class="quiet-mascot-glow" aria-hidden="true"></div>
+                  <span class="quiet-badge" aria-hidden="true"></span>
+                  <div class="quiet-art-wrap">
+                    <img class="quiet-art quiet-art--hero" src="icons/quiet-hero.png" width="300" height="400" alt="">
+                    <div class="quiet-expression" aria-hidden="true">
+                      <div class="quiet-screen">
+                        <div class="quiet-face">
+                          <span class="quiet-eye left"></span>
+                          <span class="quiet-eye right"></span>
+                          <span class="quiet-mouth"></span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p class="home-quiet-kicker">Your focus companion</p>
-              <p class="home-quiet-title">Hi, I'm Quiet.</p>
-              <p class="home-quiet-copy" id="quiet-intro">I help you focus with gentle check-ins, smart reminders, and session insights. No pressure. Just progress.</p>
+              <div class="home-content">
+                <h2 class="home-quiet-title">Hi, I'm Quiet.</h2>
+                <p class="home-quiet-copy" id="quiet-intro">I'll help you stay focused through gentle reminders, check-ins, and session summaries.</p>
 
-              <div class="home-summary" id="home-summary" aria-live="polite">
-                <p id="home-tasks-line">No tasks due soon.</p>
-                <p id="home-streak-line">Start your first focus session today.</p>
+                <div class="home-summary" id="home-summary" aria-live="polite">
+                  <p id="home-tasks-line" hidden>No tasks due soon.</p>
+                  <p id="home-streak-line" hidden>Start your first focus session today.</p>
+                </div>
+
+                <button class="primary home-start-btn" type="button" id="home-start-btn">Start focus session</button>
+
+                <div class="home-streak-block">
+                  <div class="home-streak-pill" aria-label="Focus streak">
+                    <span>Streak</span>
+                    <strong id="streak-count">0</strong>
+                    <span>day<span id="streak-plural">s</span></span>
+                  </div>
+                  <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
+                </div>
+
+                <p class="home-quiet-motto">Distraction is not failure. <strong>Return is the practice.</strong></p>
               </div>
-
-              <button class="primary home-start-btn" type="button" id="home-start-btn">Start focus session</button>
-
-              <div class="home-streak-pill">
-                <span>Streak</span>
-                <strong id="streak-count">0</strong>
-                <span>day<span id="streak-plural">s</span></span>
-              </div>
-              <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
-
-              <p class="home-quiet-motto">Distraction is not failure. <strong>Return is the practice.</strong></p>
             </div>
           </section>
 
@@ -1524,14 +1658,8 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <div class="coach-quiet-row">
                 <div class="quiet-mascot quiet-mascot--sm" id="session-quiet" data-mood="focused" aria-hidden="true">
                   <span class="quiet-badge" aria-hidden="true"></span>
-                  <div class="quiet-cube">
-                    <div class="quiet-screen">
-                      <div class="quiet-face">
-                        <span class="quiet-eye left"></span>
-                        <span class="quiet-eye right"></span>
-                        <span class="quiet-mouth"></span>
-                      </div>
-                    </div>
+                  <div class="quiet-art-wrap">
+                    <img class="quiet-art quiet-art--session" src="icons/quiet-mood-focused.png" width="148" height="158" alt="">
                   </div>
                 </div>
                 <div class="coach-quiet-copy">
@@ -2624,6 +2752,16 @@ function calculateStreak() {
   return count;
 }
 
+const QUIET_MOOD_SRC = {
+  idle: 'icons/quiet-mood-focused.png',
+  focused: 'icons/quiet-mood-focused.png',
+  thinking: 'icons/quiet-mood-thinking.png',
+  encouraging: 'icons/quiet-mood-encouraging.png',
+  celebrating: 'icons/quiet-mood-celebrating.png',
+  rest: 'icons/quiet-mood-rest.png',
+  reminder: 'icons/quiet-mood-reminder.png'
+};
+
 function setQuietMood(mood) {
   const map = {
     idle: 'idle',
@@ -2641,6 +2779,15 @@ function setQuietMood(mood) {
   const m = map[mood] || mood || 'idle';
   document.querySelectorAll('.quiet-mascot').forEach(el => {
     el.dataset.mood = m;
+    const img = el.querySelector('.quiet-art');
+    if (!img) return;
+    if (el.classList.contains('quiet-mascot--hero')) {
+      img.src = 'icons/quiet-hero.png';
+      return;
+    }
+    if (el.classList.contains('quiet-mascot--sm')) {
+      img.src = QUIET_MOOD_SRC[m] || QUIET_MOOD_SRC.focused;
+    }
   });
 }
 
@@ -2654,8 +2801,9 @@ function countDueSoonTasks() {
 function renderHome() {
   profile.streak = calculateStreak();
   const name = profile.userName || 'Your Name';
-  $('greeting').textContent = nowGreeting();
-  $('home-display-name').textContent = name.split(' ')[0] || name;
+  const firstName = name.split(' ')[0] || name;
+  $('greeting').textContent = `${nowGreeting()}, ${firstName}`;
+  if ($('home-display-name')) $('home-display-name').textContent = firstName;
   if ($('username')) $('username').value = name;
   $('streak-count').textContent = profile.streak;
   const plural = $('streak-plural');
@@ -2676,31 +2824,30 @@ function renderHome() {
   const streakLine = $('home-streak-line');
   const intro = $('quiet-intro');
 
-  if (dueSoon && next) {
-    const status = getDueStatus(next);
-    tasksLine.textContent = dueSoon === 1
-      ? `Your next task is due ${(status?.label || formatDueRelative(next.dueAt)).toLowerCase()}.`
-      : `You have ${dueSoon} task${dueSoon === 1 ? '' : 's'} due soon.`;
-  } else if (pendingAssignments().length) {
-    tasksLine.textContent = `You have ${pendingAssignments().length} upcoming task${pendingAssignments().length === 1 ? '' : 's'}.`;
-  } else {
-    tasksLine.textContent = 'No tasks due soon.';
+  if (tasksLine) {
+    if (dueSoon && next) {
+      const status = getDueStatus(next);
+      tasksLine.textContent = dueSoon === 1
+        ? `Your next task is due ${(status?.label || formatDueRelative(next.dueAt)).toLowerCase()}.`
+        : `You have ${dueSoon} tasks due soon.`;
+      tasksLine.hidden = false;
+    } else if (pendingAssignments().length) {
+      tasksLine.textContent = `${pendingAssignments().length} upcoming task${pendingAssignments().length === 1 ? '' : 's'}.`;
+      tasksLine.hidden = false;
+    } else {
+      tasksLine.hidden = true;
+    }
   }
-
-  if (profile.streak > 0) {
-    streakLine.textContent = `You've focused ${profile.streak} day${profile.streak === 1 ? '' : 's'} in a row.`;
-  } else {
-    streakLine.textContent = 'Start your first focus session today.';
-  }
+  if (streakLine) streakLine.hidden = true;
 
   const last = profile.history[0];
   if (last) {
     intro.textContent = last.distractions
-      ? 'Welcome back. You noticed drift last time — that awareness is the skill.'
-      : 'Welcome back. Ready for another calm focus block?';
+      ? "Welcome back. I'll help you notice drift gently and return without pressure."
+      : "Welcome back. Ready for another calm focus block together?";
     setQuietMood('encouraging');
   } else {
-    intro.textContent = 'I help you focus with gentle check-ins, smart reminders, and session insights. No pressure. Just progress.';
+    intro.textContent = "I'll help you stay focused through gentle reminders, check-ins, and session summaries.";
     setQuietMood('idle');
   }
 
@@ -3072,9 +3219,9 @@ function toast(message, duration = 1900) {
 $('username').addEventListener('input', e => {
   profile.userName = e.target.value || 'Your Name';
   saveProfile();
-  if ($('home-display-name')) {
-    $('home-display-name').textContent = profile.userName.split(' ')[0] || profile.userName;
-  }
+  const n = profile.userName.split(' ')[0] || profile.userName;
+  if ($('home-display-name')) $('home-display-name').textContent = n;
+  if ($('greeting')) $('greeting').textContent = `${nowGreeting()}, ${n}`;
 });
 $('home-start-btn').addEventListener('click', () => showPage('focus'));
 $('task-input').addEventListener('input', e => { profile.task = e.target.value; saveProfile(); });
