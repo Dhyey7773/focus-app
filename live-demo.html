@@ -289,6 +289,30 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   text-align:center;
   line-height:1.6;
 }
+.auth-skip-wrap {
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--line);
+  text-align:center;
+}
+.auth-skip {
+  width:100%;
+  min-height:44px;
+  border-radius:12px;
+  border:1px solid var(--line-2);
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+}
+.auth-skip:hover { background:rgba(255,255,255,.04); }
+.auth-skip-note {
+  margin-top:8px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.45;
+}
 
 .auth-captcha-wrap {
   display:flex;
@@ -741,6 +765,9 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .push-card-copy p { color:var(--muted-2); font-size:12px; line-height:1.45; margin:0; }
 .push-card-actions { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
 .push-card-actions button { min-height:36px; font-size:12px; padding:8px 12px; white-space:nowrap; }
+.push-card-actions .ghost {
+  background:transparent; border:0; color:var(--muted); padding:6px 8px; min-height:auto;
+}
 .assign-form {
   background:rgba(255,255,255,.03);
   border:1px solid var(--line);
@@ -1069,6 +1096,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
       <button class="auth-submit" type="submit" id="btn-signup">Create account</button>
       <p class="auth-footer">Your sessions sync across devices.<br>Free forever, no card needed.</p>
     </form>
+
+    <div class="auth-skip-wrap">
+      <button type="button" class="auth-skip" id="btn-guest-demo" onclick="enterGuestMode()">Continue without account</button>
+      <p class="auth-skip-note">Try the timer now. Sessions save on this device only.</p>
+    </div>
   </div>
 </div>
 
@@ -1094,11 +1126,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
     <section class="intro" aria-label="App introduction">
       <p class="eyebrow">Quiet Focus</p>
       <h1>Focus, with a calmer coach.</h1>
-      <p class="intro-copy">A distraction-aware focus timer that helps you return to the task without judgment.</p>
+      <p class="intro-copy">An AI focus coach and timer: run one session, notice when you drift, get a short recap after — no lecture, just what happened.</p>
       <div class="feature-list" aria-label="Features">
-        <span>Smart timer</span>
-        <span>Session recap</span>
-        <span>Cloud sync</span>
+        <span>Focus timer</span>
+        <span>Drift counter</span>
+        <span>Coach recap</span>
       </div>
       <div class="user-stats" id="user-stats" style="display:none">
         <p class="us-label">Your progress</p>
@@ -1377,6 +1409,50 @@ let bootDone = false;
 let signedInUserId = null;
 let profileLoading = false;
 let signingOut = false;
+let guestMode = false;
+const GUEST_KEY = 'quiet-focus-guest-v1';
+
+function isGuestMode() {
+  return guestMode || sessionStorage.getItem(GUEST_KEY) === '1';
+}
+
+function enterGuestMode() {
+  guestMode = true;
+  sessionStorage.setItem(GUEST_KEY, '1');
+  currentUser = null;
+  signedInUserId = null;
+  clearAuthMessages();
+  showAppScreen();
+  updateGuestBar();
+  renderHome();
+  renderAssignments();
+  renderPushCard();
+  initAssignmentFormDefaults();
+  hideBootScreen();
+}
+
+function exitGuestMode() {
+  guestMode = false;
+  sessionStorage.removeItem(GUEST_KEY);
+  const signOutBtn = document.querySelector('.ub-signout');
+  if (signOutBtn) signOutBtn.textContent = 'Sign out';
+  showAuthScreen();
+}
+
+function updateGuestBar() {
+  if (!isGuestMode() || currentUser) return;
+  const sync = document.getElementById('ub-sync');
+  document.getElementById('ub-email').textContent = 'Local demo';
+  document.getElementById('ub-avatar').textContent = 'G';
+  if (sync) {
+    sync.innerHTML = 'Local only';
+    sync.classList.remove('spinner');
+  }
+  const signOutBtn = document.querySelector('.ub-signout');
+  if (signOutBtn) signOutBtn.textContent = 'Sign in';
+  const stats = document.getElementById('user-stats');
+  if (stats) stats.style.display = 'none';
+}
 
 function oauthRedirectUrl() {
   return window.location.origin + window.location.pathname;
@@ -1426,7 +1502,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
     }
   } else {
     signedInUserId = null;
-    showAuthScreen();
+    if (isGuestMode()) {
+      showAppScreen();
+      updateGuestBar();
+      renderHome();
+    } else {
+      showAuthScreen();
+    }
   }
 
   hideBootScreen();
@@ -1446,6 +1528,14 @@ function formatAuthError(error) {
     return 'Email not confirmed yet. Check your inbox and click the confirmation link, then try again.';
   }
   if (/captcha/i.test(msg)) {
+    const captchaOn = window.AuthCaptcha?.isEnabled?.();
+    const hasToken = window.AuthCaptcha?.getToken?.();
+    if (!captchaOn) {
+      return 'Supabase requires a security check, but CAPTCHA is not set up in the app. Either add TURNSTILE_SITE_KEY to config.js, or turn off CAPTCHA in Supabase → Authentication → Attack Protection.';
+    }
+    if (!hasToken) {
+      return 'Complete the security check box above, then try again.';
+    }
     return 'Security check failed. Complete the CAPTCHA and try again.';
   }
   if (/invalid login credentials/i.test(msg)) {
@@ -1457,6 +1547,10 @@ function formatAuthError(error) {
 async function onUserSignedIn() {
   if (profileLoading) return;
   profileLoading = true;
+  guestMode = false;
+  sessionStorage.removeItem(GUEST_KEY);
+  const signOutBtn = document.querySelector('.ub-signout');
+  if (signOutBtn) signOutBtn.textContent = 'Sign out';
   try {
     showAppScreen();
     updateUserBar();
@@ -1474,6 +1568,7 @@ async function onUserSignedIn() {
 }
 
 function showAuthScreen() {
+  if (isGuestMode()) return;
   const auth = document.getElementById('auth-screen');
   const app = document.getElementById('app-screen');
   app.style.display = 'none';
@@ -1627,6 +1722,10 @@ async function handleGoogleSignIn() {
 }
 
 async function handleSignOut() {
+  if (isGuestMode() && !currentUser) {
+    exitGuestMode();
+    return;
+  }
   if (signingOut) return;
   signingOut = true;
 
@@ -2076,7 +2175,7 @@ function hideReminderModal() {
 }
 
 function maybeShowDueReminder() {
-  if (!currentUser || $('reminder-modal').classList.contains('is-visible')) return;
+  if ((!currentUser && !isGuestMode()) || $('reminder-modal').classList.contains('is-visible')) return;
   const assignment = findReminderAssignment();
   if (assignment) showReminderModal(assignment);
 }
@@ -2126,6 +2225,18 @@ function renderPushCard() {
   const enableBtn = $('push-enable-btn');
   const testBtn = $('push-test-btn');
   if (!card || !window.PushReminders) return;
+
+  if (isGuestMode() && !currentUser) {
+    card.classList.remove('is-enabled');
+    testBtn.classList.add('hidden');
+    status.textContent = 'Sign in to get phone reminders when the app is closed. In-app reminders still work in demo mode.';
+    enableBtn.textContent = 'Sign in';
+    enableBtn.disabled = false;
+    enableBtn.onclick = () => exitGuestMode();
+    return;
+  }
+
+  enableBtn.onclick = null;
 
   const supported = PushReminders.isSupported();
   const permission = PushReminders.permissionState();
@@ -2643,8 +2754,14 @@ if (pageParam && document.getElementById(`page-${pageParam}`)) {
   setTimeout(() => showPage(pageParam), 800);
 }
 
+if (new URLSearchParams(window.location.search).get('demo') === '1') {
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) enterGuestMode();
+  });
+}
+
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && currentUser && !$('reminder-modal').classList.contains('is-visible')) {
+  if (document.visibilityState === 'visible' && (currentUser || isGuestMode()) && !$('reminder-modal').classList.contains('is-visible')) {
     maybeShowDueReminder();
   }
 });
