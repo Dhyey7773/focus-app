@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Quiet Focus</title>
+  <meta name="description" content="A distraction-aware focus timer. Notice when you drift, come back gently.">
+  <meta name="theme-color" content="#07080a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Quiet Focus">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
   <script src="config.js"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -319,8 +327,22 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   font-weight:540;
   letter-spacing:-0.03em;
   color:var(--text);
+  text-decoration:none;
 }
+.ub-logo:hover { opacity:0.85; }
 .ub-logo span { color:var(--success); }
+
+.ub-home {
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  color:var(--muted);
+  text-decoration:none;
+  transition:color .15s, border-color .15s;
+}
+.ub-home:hover { color:var(--text); border-color:var(--line-2); }
 
 .ub-right { display:flex; align-items:center; gap:12px; }
 
@@ -692,6 +714,122 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .hi-score { font-size:22px; font-weight:480; }
 
 /* ═══════════════════════════════════════
+   ASSIGNMENTS
+═══════════════════════════════════════ */
+.assign-header { margin:8px 0 16px; }
+.assign-title { font-size:22px; font-weight:520; letter-spacing:-.04em; }
+.assign-sub { color:var(--muted); font-size:13px; line-height:1.5; margin-top:6px; }
+.assign-form {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:16px;
+}
+.assign-form .auth-input { padding:11px 14px; font-size:14px; }
+.assign-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.assign-section-label {
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin:14px 0 8px;
+}
+.assign-list { display:flex; flex-direction:column; gap:8px; }
+.assign-card {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+}
+.assign-card.is-urgent { border-color:rgba(255,100,100,.35); background:rgba(255,100,100,.06); }
+.assign-card.is-soon { border-color:rgba(255,207,112,.28); }
+.assign-card.is-done { opacity:.55; }
+.assign-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+.assign-name { font-size:14px; font-weight:520; letter-spacing:-.02em; line-height:1.35; }
+.assign-course { color:var(--muted); font-size:11px; margin-top:3px; }
+.assign-badge {
+  flex-shrink:0;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  padding:4px 8px;
+  border-radius:999px;
+  background:var(--mint-dim);
+  color:var(--success);
+}
+.assign-badge.urgent { background:rgba(255,100,100,.15); color:var(--danger); }
+.assign-badge.soon { background:rgba(255,207,112,.12); color:var(--warning); }
+.assign-meta { color:var(--muted-2); font-size:12px; margin-top:8px; line-height:1.45; }
+.assign-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.assign-actions .primary { min-height:40px; font-size:13px; padding:10px; }
+.assign-actions .secondary { min-height:40px; font-size:13px; padding:10px; }
+.assign-scan {
+  margin-top:12px;
+  padding:12px;
+  border:1px dashed var(--line-2);
+  border-radius:12px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+  text-align:center;
+}
+.due-banner {
+  background:var(--mint-dim);
+  border:1px solid rgba(148,218,177,.22);
+  border-radius:14px;
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+.due-banner.urgent {
+  background:rgba(255,100,100,.08);
+  border-color:rgba(255,100,100,.28);
+}
+.due-banner p { font-size:13px; line-height:1.45; color:var(--muted-2); }
+.due-banner strong { color:var(--text); display:block; margin-bottom:4px; font-size:14px; }
+.due-banner button { margin-top:10px; width:100%; }
+
+.reminder-modal {
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px;
+  background:rgba(0,0,0,.62);
+  backdrop-filter:blur(6px);
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+.reminder-modal.is-visible { opacity:1; visibility:visible; }
+.reminder-sheet {
+  background:var(--panel);
+  border:1px solid var(--line-2);
+  border-radius:22px 22px 18px 18px;
+  padding:22px 18px 18px;
+  width:min(420px,100%);
+  transform:translateY(16px);
+  transition:transform .25s ease;
+}
+.reminder-modal.is-visible .reminder-sheet { transform:translateY(0); }
+.reminder-sheet h2 { font-size:20px; font-weight:520; letter-spacing:-.03em; margin-bottom:6px; }
+.reminder-sheet p { color:var(--muted-2); font-size:14px; line-height:1.5; margin-bottom:16px; }
+.reminder-actions { display:grid; gap:8px; }
+.reminder-actions .primary, .reminder-actions .secondary, .reminder-actions .ghost {
+  min-height:44px; border-radius:12px; font-size:14px; font-weight:500;
+}
+.reminder-actions .ghost {
+  background:transparent; border:0; color:var(--muted); padding:10px;
+}
+
+/* ═══════════════════════════════════════
    TAB BAR (your exact style)
 ═══════════════════════════════════════ */
 .tab-bar {
@@ -778,9 +916,65 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   display:inline-block;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+.install-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 300;
+  width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%) translateY(120%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform .35s ease, opacity .35s ease, visibility .35s ease;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+}
+.install-banner.is-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+.install-banner p {
+  color: var(--muted-2);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+.install-banner-actions {
+  display: flex;
+  gap: 8px;
+}
+.install-banner-actions button {
+  flex: 1;
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.install-banner-actions .install-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.install-banner-actions .install-secondary {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--muted-2);
+}
   </style>
 </head>
 <body>
+
+<div class="install-banner" id="install-banner" hidden>
+  <p id="install-copy">Install Quiet Focus on your home screen for quick access during study sessions.</p>
+  <div class="install-banner-actions">
+    <button type="button" class="install-primary" id="install-accept">Install</button>
+    <button type="button" class="install-secondary" id="install-dismiss">Not now</button>
+  </div>
+</div>
 
 <div id="boot-screen" aria-hidden="true" aria-busy="true">
   <span class="spinner" aria-label="Loading"></span>
@@ -863,8 +1057,9 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
   <!-- top user bar -->
   <div class="user-bar">
-    <div class="ub-logo">Quiet <span>Focus</span></div>
+    <a href="index.html" class="ub-logo">Quiet <span>Focus</span></a>
     <div class="ub-right">
+      <a href="index.html" class="ub-home">Home</a>
       <span class="ub-sync" id="ub-sync" aria-live="polite"><span class="spinner"></span> Syncing</span>
       <span class="ub-email" id="ub-email"></span>
       <div class="ub-avatar" id="ub-avatar" title="Account">?</div>
@@ -929,6 +1124,12 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             <input class="name-input" id="username" type="text" maxlength="28" value="Your Name" autocomplete="nickname">
             <p class="tagline" id="tagline">Plan one clear session for today.</p>
 
+            <div class="due-banner" id="home-due-banner" hidden>
+              <strong id="home-due-title"></strong>
+              <p id="home-due-copy"></p>
+              <button class="primary" type="button" id="home-due-start">Start focus session</button>
+            </div>
+
             <div class="streak-card">
               <div>
                 <p class="meta-label">Daily streak</p>
@@ -979,7 +1180,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               </div>
             </div>
             <div class="live-metrics" aria-label="Live session metrics">
-              <div><strong id="focused-metric">0</strong><span>focused min</span></div>
+              <div><strong id="focused-metric">0</strong><span id="focused-metric-label">focused min</span></div>
               <div><strong id="distracted-metric">0</strong><span>distractions</span></div>
               <div><strong id="breaks-metric">0</strong><span>breaks</span></div>
             </div>
@@ -1022,6 +1223,42 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             </div>
           </section>
 
+          <!-- ASSIGNMENTS -->
+          <section class="page" id="page-assignments" aria-label="Assignments">
+            <div class="assign-header">
+              <p class="meta-label">Deadlines</p>
+              <p class="assign-title">Assignments</p>
+              <p class="assign-sub">Add what’s due. Start a focus session when it’s time.</p>
+            </div>
+
+            <form class="assign-form" id="assign-form">
+              <input class="auth-input" id="assign-title" type="text" maxlength="80" placeholder="Assignment name" required>
+              <input class="auth-input" id="assign-course" type="text" maxlength="40" placeholder="Course (optional)">
+              <div class="assign-row">
+                <input class="auth-input" id="assign-due-date" type="date" required aria-label="Due date">
+                <input class="auth-input" id="assign-due-time" type="time" value="23:59" required aria-label="Due time">
+              </div>
+              <div class="assign-row">
+                <input class="auth-input" id="assign-estimate" type="number" min="5" max="480" step="5" value="60" placeholder="Minutes" aria-label="Estimated minutes">
+                <button class="primary" type="submit" style="min-height:46px">Add assignment</button>
+              </div>
+            </form>
+
+            <div class="assign-scan">
+              PDF & photo scan — Pro feature coming soon
+            </div>
+
+            <p class="assign-section-label">Upcoming</p>
+            <div class="assign-list" id="assign-pending-list">
+              <div class="empty-state">No assignments yet. Add one above.</div>
+            </div>
+
+            <p class="assign-section-label">Completed</p>
+            <div class="assign-list" id="assign-done-list">
+              <div class="empty-state">Finished assignments appear here.</div>
+            </div>
+          </section>
+
           <!-- HISTORY -->
           <section class="page" id="page-history" aria-label="Session history">
             <div class="history-header">
@@ -1040,13 +1277,13 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             <svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>
             <span>Home</span>
           </button>
+          <button class="tab" data-page="assignments" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Tasks</span>
+          </button>
           <button class="tab" data-page="session" type="button">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
             <span>Focus</span>
-          </button>
-          <button class="tab" data-page="recap" type="button">
-            <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-8"/></svg>
-            <span>Recap</span>
           </button>
           <button class="tab" data-page="history" type="button">
             <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
@@ -1058,6 +1295,20 @@ button:disabled { cursor:not-allowed; opacity:.42; }
       </div>
     </section>
   </main>
+</div>
+
+<!-- Due reminder modal (in-app) -->
+<div class="reminder-modal" id="reminder-modal" hidden aria-modal="true" role="dialog" aria-labelledby="reminder-title">
+  <div class="reminder-sheet">
+    <p class="meta-label" id="reminder-label">Reminder</p>
+    <h2 id="reminder-title">Assignment due soon</h2>
+    <p id="reminder-copy"></p>
+    <div class="reminder-actions">
+      <button class="primary" type="button" id="reminder-start">Start focus session</button>
+      <button class="secondary" type="button" id="reminder-done">Mark completed</button>
+      <button class="ghost" type="button" id="reminder-snooze">Remind me in 1 hour</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1174,7 +1425,9 @@ async function onUserSignedIn() {
     showAppScreen();
     updateUserBar();
     await loadProfileFromSupabase();
+    renderAssignments();
     renderHome();
+    setTimeout(maybeShowDueReminder, 500);
   } finally {
     profileLoading = false;
   }
@@ -1392,11 +1645,11 @@ async function saveSessionToSupabase(summary) {
   try {
     const result = await window.FocusSessions.save(summary);
     if (result.ok) {
-      toast('Saved to cloud ✓');
+      toast('Saved to cloud ✓', 3500);
       updateSidebarStats();
     } else {
       console.error('Cloud save failed:', result);
-      toast(result.message || 'Cloud save failed');
+      toast(result.message || 'Cloud save failed', 4500);
     }
   } catch (err) {
     console.error('Cloud save error:', err);
@@ -1411,9 +1664,13 @@ async function loadProfileFromSupabase() {
 
   const result = await window.FocusSessions.applyToProfile(profile);
   if (result.ok) {
-    if (result.count > 0) saveProfile();
-  } else if (result.message) {
-    console.warn('Could not load sessions:', result.message);
+    saveProfile();
+    if (result.count > 0) {
+      toast(`Loaded ${result.count} session${result.count === 1 ? '' : 's'} from cloud`);
+    }
+  } else {
+    console.warn('Could not load sessions:', result.message || result.reason);
+    toast(result.message || 'Could not load cloud sessions — finish a session to save new data');
   }
 
   const name =
@@ -1426,6 +1683,7 @@ async function loadProfileFromSupabase() {
   }
 
   renderHome();
+  renderAssignments();
   updateSidebarStats();
 }
 
@@ -1453,6 +1711,7 @@ const defaults = {
   durationMinutes: 45,
   streak:          0,
   history:         [],
+  assignments:     [],
   activeSession:   null
 };
 
@@ -1460,6 +1719,8 @@ let profile  = loadProfile();
 let session  = null;
 let timerId  = null;
 let toastId  = null;
+let sessionAssignmentId = null;
+let activeReminderAssignmentId = null;
 
 const $     = id => document.getElementById(id);
 const pages = Array.from(document.querySelectorAll('.page'));
@@ -1468,7 +1729,12 @@ const tabs  = Array.from(document.querySelectorAll('.tab'));
 function loadProfile() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...defaults, ...saved, history: saved?.history || [] };
+    return {
+      ...defaults,
+      ...saved,
+      history: saved?.history || [],
+      assignments: saved?.assignments || []
+    };
   } catch { return { ...defaults }; }
 }
 
@@ -1498,6 +1764,245 @@ function formatClock(seconds) {
 }
 
 function formatMinutes(seconds) { return Math.floor(seconds / 60); }
+
+function formatFocusDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  if (total < 60) return total ? `${total}s` : '0s';
+  const minutes = Math.floor(total / 60);
+  const remainder = total % 60;
+  return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+}
+
+function newAssignmentId() {
+  return `a_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function parseDueAt(dateStr, timeStr) {
+  return new Date(`${dateStr}T${timeStr || '23:59'}`);
+}
+
+function getAssignmentById(id) {
+  return (profile.assignments || []).find(a => a.id === id);
+}
+
+function pendingAssignments() {
+  return (profile.assignments || [])
+    .filter(a => !a.completed)
+    .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+}
+
+function getDueStatus(assignment) {
+  if (!assignment || assignment.completed) return null;
+  const ms = new Date(assignment.dueAt) - Date.now();
+  if (ms < 0) return { level: 'urgent', label: 'Overdue', hours: ms / 3600000 };
+  const hours = ms / 3600000;
+  if (hours <= 1) return { level: 'urgent', label: 'Due in 1 hour', hours };
+  if (hours <= 6) return { level: 'urgent', label: 'Due in 6 hours', hours };
+  if (hours <= 24) return { level: 'soon', label: 'Due in 24 hours', hours };
+  return { level: 'normal', label: formatDueRelative(assignment.dueAt), hours };
+}
+
+function formatDueRelative(dueAt) {
+  const ms = new Date(dueAt) - Date.now();
+  if (ms < 0) return 'Overdue';
+  const hours = Math.floor(ms / 3600000);
+  if (hours < 24) return `Due in ${hours || 1}h`;
+  const days = Math.ceil(ms / 86400000);
+  return days === 1 ? 'Due tomorrow' : `Due in ${days} days`;
+}
+
+function formatDueDateTime(dueAt) {
+  return new Intl.DateTimeFormat([], {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  }).format(new Date(dueAt));
+}
+
+function pickDurationForAssignment(assignment) {
+  const est = Number(assignment.estimatedMinutes) || 45;
+  const options = [25, 45, 60];
+  const match = options.find(v => v >= est) || 60;
+  return Math.min(match, 45);
+}
+
+function addAssignment(data) {
+  const assignment = {
+    id: newAssignmentId(),
+    title: data.title.trim(),
+    course: (data.course || '').trim(),
+    dueAt: parseDueAt(data.date, data.time).toISOString(),
+    estimatedMinutes: Number(data.estimatedMinutes) || 60,
+    completed: false,
+    snoozedUntil: null,
+    createdAt: new Date().toISOString()
+  };
+  profile.assignments = profile.assignments || [];
+  profile.assignments.unshift(assignment);
+  saveProfile();
+  renderAssignments();
+  renderHome();
+  toast('Assignment added');
+  return assignment;
+}
+
+function completeAssignment(id) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  item.completed = true;
+  item.completedAt = new Date().toISOString();
+  saveProfile();
+  renderAssignments();
+  renderHome();
+  hideReminderModal();
+  toast('Marked complete');
+}
+
+function snoozeAssignment(id, hours = 1) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  item.snoozedUntil = new Date(Date.now() + hours * 3600000).toISOString();
+  saveProfile();
+  hideReminderModal();
+  toast(`Reminder snoozed ${hours}h`);
+}
+
+function startFocusFromAssignment(assignment) {
+  if (!assignment) return;
+  profile.task = assignment.title;
+  profile.durationMinutes = pickDurationForAssignment(assignment);
+  $('task-input').value = assignment.title;
+  document.querySelectorAll('.duration').forEach(b => {
+    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes);
+  });
+  sessionAssignmentId = assignment.id;
+  saveProfile();
+  hideReminderModal();
+  startSession();
+}
+
+function renderAssignmentCard(assignment, { showActions = true } = {}) {
+  const status = getDueStatus(assignment);
+  const card = document.createElement('div');
+  card.className = 'assign-card';
+  if (assignment.completed) card.classList.add('is-done');
+  else if (status?.level === 'urgent') card.classList.add('is-urgent');
+  else if (status?.level === 'soon') card.classList.add('is-soon');
+
+  const badge = assignment.completed
+    ? 'Done'
+    : (status?.label || 'Pending');
+  const badgeClass = assignment.completed ? '' : (status?.level === 'urgent' ? 'urgent' : status?.level === 'soon' ? 'soon' : '');
+
+  card.innerHTML = `
+    <div class="assign-top">
+      <div>
+        <p class="assign-name"></p>
+        <p class="assign-course"></p>
+      </div>
+      <span class="assign-badge ${badgeClass}"></span>
+    </div>
+    <p class="assign-meta"></p>
+    ${showActions && !assignment.completed ? `
+      <div class="assign-actions">
+        <button type="button" class="primary assign-start">Start focus</button>
+        <button type="button" class="secondary assign-done">Mark done</button>
+      </div>` : ''}
+  `;
+
+  card.querySelector('.assign-name').textContent = assignment.title;
+  card.querySelector('.assign-course').textContent = assignment.course || 'No course';
+  card.querySelector('.assign-badge').textContent = badge;
+  card.querySelector('.assign-meta').textContent =
+    `${formatDueDateTime(assignment.dueAt)} · Est. ${assignment.estimatedMinutes} min`;
+
+  if (showActions && !assignment.completed) {
+    card.querySelector('.assign-start').addEventListener('click', () => startFocusFromAssignment(assignment));
+    card.querySelector('.assign-done').addEventListener('click', () => completeAssignment(assignment.id));
+  }
+
+  return card;
+}
+
+function renderAssignments() {
+  const pending = pendingAssignments();
+  const done = (profile.assignments || []).filter(a => a.completed);
+
+  const pendingList = $('assign-pending-list');
+  const doneList = $('assign-done-list');
+
+  if (!pending.length) {
+    pendingList.innerHTML = '<div class="empty-state">No assignments yet. Add one above.</div>';
+  } else {
+    pendingList.innerHTML = '';
+    pending.forEach(a => pendingList.appendChild(renderAssignmentCard(a)));
+  }
+
+  if (!done.length) {
+    doneList.innerHTML = '<div class="empty-state">Finished assignments appear here.</div>';
+  } else {
+    doneList.innerHTML = '';
+    done.slice(0, 10).forEach(a => doneList.appendChild(renderAssignmentCard(a, { showActions: false })));
+  }
+}
+
+function renderHomeDueBanner() {
+  const banner = $('home-due-banner');
+  const next = pendingAssignments()[0];
+  if (!next) {
+    banner.hidden = true;
+    return;
+  }
+
+  const status = getDueStatus(next);
+  banner.hidden = false;
+  banner.classList.toggle('urgent', status?.level === 'urgent');
+  $('home-due-title').textContent = next.title;
+  $('home-due-copy').textContent =
+    `${next.course ? next.course + ' · ' : ''}${status?.label || formatDueRelative(next.dueAt)}`;
+  $('home-due-start').onclick = () => startFocusFromAssignment(next);
+}
+
+function findReminderAssignment() {
+  const now = Date.now();
+  return pendingAssignments().find(a => {
+    if (a.snoozedUntil && new Date(a.snoozedUntil) > now) return false;
+    const status = getDueStatus(a);
+    return status && (status.level === 'urgent' || status.level === 'soon');
+  });
+}
+
+function showReminderModal(assignment) {
+  if (!assignment) return;
+  activeReminderAssignmentId = assignment.id;
+  const status = getDueStatus(assignment);
+  const modal = $('reminder-modal');
+  $('reminder-label').textContent = status?.level === 'urgent' ? 'Urgent' : 'Reminder';
+  $('reminder-title').textContent = assignment.title;
+  $('reminder-copy').textContent =
+    `${assignment.course ? assignment.course + ' — ' : ''}${status?.label || formatDueRelative(assignment.dueAt)}. Start a focus session?`;
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-visible'));
+}
+
+function hideReminderModal() {
+  const modal = $('reminder-modal');
+  modal.classList.remove('is-visible');
+  modal.hidden = true;
+  activeReminderAssignmentId = null;
+}
+
+function maybeShowDueReminder() {
+  const assignment = findReminderAssignment();
+  if (assignment) showReminderModal(assignment);
+}
+
+function initAssignmentFormDefaults() {
+  const dateInput = $('assign-due-date');
+  if (!dateInput) return;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  dateInput.value = tomorrow.toISOString().slice(0, 10);
+}
 
 function nowGreeting() {
   const h = new Date().getHours();
@@ -1542,6 +2047,8 @@ function renderHome() {
     $('streak-days').appendChild(bar);
   }
 
+  renderHomeDueBanner();
+
   const last = profile.history[0];
   if (!last) {
     $('last-session').className = 'empty-state';
@@ -1561,7 +2068,7 @@ function renderHome() {
   `;
   $('last-session').querySelector('.last-task').textContent = last.task;
   $('last-session').querySelector('.last-details').textContent =
-    `${last.focusMinutes?`${last.focusMinutes} min`:'<1 min'} focused · ${last.distractions} distraction${last.distractions===1?'':'s'}`;
+    `${formatFocusDuration(last.focusSeconds ?? last.focusMinutes * 60)} focused · ${last.distractions} distraction${last.distractions===1?'':'s'}`;
   $('last-session').querySelector('.last-score').textContent = last.score;
   $('home-coach').lastElementChild.textContent = last.distractions
     ? 'Noticing distraction is progress. Try putting your first task in full screen before starting.'
@@ -1587,7 +2094,7 @@ function renderHistory() {
     `;
     item.querySelector('.hi-task').textContent = s.task;
     item.querySelector('.hi-meta').textContent =
-      `${s.date} · ${s.focusMinutes||0} min · ${s.distractions} distraction${s.distractions===1?'':'s'}`;
+      `${s.date} · ${formatFocusDuration(s.focusSeconds ?? s.focusMinutes * 60)} · ${s.distractions} distraction${s.distractions===1?'':'s'}`;
     item.querySelector('.hi-score').textContent = s.score;
     item.addEventListener('click', () => { renderRecap(s); showPage('recap'); });
     list.appendChild(item);
@@ -1613,6 +2120,7 @@ function showPage(name) {
   });
   document.querySelector('.app-surface').scrollTop = 0;
   if (name === 'history') renderHistory();
+  if (name === 'assignments') renderAssignments();
 }
 
 function eventAt(text, type) {
@@ -1626,6 +2134,7 @@ function startSession() {
   const durationSeconds = profile.durationMinutes * 60;
   session = {
     task: profile.task,
+    assignmentId: sessionAssignmentId || null,
     durationSeconds,
     remainingSeconds: durationSeconds,
     focusSeconds: 0,
@@ -1683,7 +2192,13 @@ function renderSession() {
   $('timer-status').textContent  = isBreak ? 'Break remaining' : session.mode === 'paused' ? 'Paused' : 'Remaining';
   const progress = session.focusSeconds / session.durationSeconds;
   $('timer-ring').style.setProperty('--progress', `${Math.min(360, progress*360)}deg`);
-  $('focused-metric').textContent    = Math.floor(session.focusSeconds / 60);
+  $('focused-metric').textContent = session.focusSeconds < 60
+    ? session.focusSeconds
+    : Math.floor(session.focusSeconds / 60);
+  const focusedLabel = $('focused-metric-label');
+  if (focusedLabel) {
+    focusedLabel.textContent = session.focusSeconds < 60 ? 'focused sec' : 'focused min';
+  }
   $('distracted-metric').textContent = session.distractions;
   $('breaks-metric').textContent     = session.breaks;
 }
@@ -1797,6 +2312,8 @@ async function finishSession(completedNaturally = false) {
   const summary = {
     date:              localDateKey(),
     task:              session.task,
+    assignmentId:      session.assignmentId || null,
+    focusSeconds:      session.focusSeconds,
     focusMinutes:      formatMinutes(session.focusSeconds),
     distractions:      session.distractions,
     breaks:            session.breaks,
@@ -1809,6 +2326,7 @@ async function finishSession(completedNaturally = false) {
   profile.history.unshift(summary);
   profile.history = profile.history.slice(0, 20);
   profile.activeSession = null;
+  sessionAssignmentId = null;
   saveProfile();
 
   renderRecap(summary);
@@ -1821,7 +2339,7 @@ async function finishSession(completedNaturally = false) {
 
 function renderRecap(summary) {
   $('final-score').textContent = summary.score;
-  $('recap-focused').textContent = summary.focusMinutes ? `${summary.focusMinutes}m` : '<1m';
+  $('recap-focused').textContent = formatFocusDuration(summary.focusSeconds ?? summary.focusMinutes * 60);
   $('recap-distractions').textContent = summary.distractions;
   $('recap-breaks').textContent = summary.breaks;
   $('recap-caption').textContent = summary.completedNaturally
@@ -1856,11 +2374,11 @@ function openRecapFromHistory() {
   showPage('recap');
 }
 
-function toast(message) {
+function toast(message, duration = 1900) {
   clearTimeout(toastId);
   $('toast').textContent = message;
   $('toast').classList.add('show');
-  toastId = setTimeout(() => $('toast').classList.remove('show'), 1900);
+  toastId = setTimeout(() => $('toast').classList.remove('show'), duration);
 }
 
 // ─── EVENT LISTENERS ─────────────────
@@ -1875,7 +2393,38 @@ document.querySelectorAll('.duration').forEach(b => {
   });
 });
 
-$('session-form').addEventListener('submit', e => { e.preventDefault(); startSession(); });
+$('session-form').addEventListener('submit', e => {
+  e.preventDefault();
+  sessionAssignmentId = null;
+  startSession();
+});
+$('assign-form').addEventListener('submit', e => {
+  e.preventDefault();
+  addAssignment({
+    title: $('assign-title').value,
+    course: $('assign-course').value,
+    date: $('assign-due-date').value,
+    time: $('assign-due-time').value,
+    estimatedMinutes: $('assign-estimate').value
+  });
+  $('assign-title').value = '';
+  $('assign-course').value = '';
+  $('assign-estimate').value = '60';
+  initAssignmentFormDefaults();
+});
+$('reminder-start').addEventListener('click', () => {
+  const item = getAssignmentById(activeReminderAssignmentId);
+  if (item) startFocusFromAssignment(item);
+});
+$('reminder-done').addEventListener('click', () => {
+  if (activeReminderAssignmentId) completeAssignment(activeReminderAssignmentId);
+});
+$('reminder-snooze').addEventListener('click', () => {
+  if (activeReminderAssignmentId) snoozeAssignment(activeReminderAssignmentId, 1);
+});
+$('reminder-modal').addEventListener('click', e => {
+  if (e.target === $('reminder-modal')) hideReminderModal();
+});
 $('pause-button').addEventListener('click', togglePause);
 $('break-button').addEventListener('click', startBreak);
 $('distraction-button').addEventListener('click', markDistraction);
@@ -1893,9 +2442,21 @@ tabs.forEach(tab => {
   tab.addEventListener('click', () => {
     const page = tab.dataset.page;
     if (page === 'recap') openRecapFromHistory();
-    else if (page === 'session' && (!session || session.mode === 'complete')) startSession();
+    else if (page === 'session' && (!session || session.mode === 'complete')) {
+      sessionAssignmentId = null;
+      startSession();
+    }
     else showPage(page);
   });
+});
+
+initAssignmentFormDefaults();
+renderAssignments();
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && currentUser && !$('reminder-modal').classList.contains('is-visible')) {
+    maybeShowDueReminder();
+  }
 });
 
 updateClock();
@@ -1916,6 +2477,73 @@ if (profile.activeSession && profile.activeSession.mode !== 'complete') {
 
 // Boot screen fallback if auth is slow
 setTimeout(hideBootScreen, 4000);
+
+// ─── PWA: service worker + install prompt ───
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+(function setupInstallPrompt() {
+  const banner = document.getElementById('install-banner');
+  const copy = document.getElementById('install-copy');
+  const accept = document.getElementById('install-accept');
+  const dismiss = document.getElementById('install-dismiss');
+  if (!banner || !copy || !accept || !dismiss) return;
+
+  const dismissedKey = 'quiet-focus-install-dismissed';
+  let deferredPrompt = null;
+
+  const hideBanner = () => {
+    banner.classList.remove('is-visible');
+    banner.hidden = true;
+  };
+
+  const showBanner = (message) => {
+    if (localStorage.getItem(dismissedKey) === '1') return;
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    copy.textContent = message;
+    banner.hidden = false;
+    requestAnimationFrame(() => banner.classList.add('is-visible'));
+  };
+
+  dismiss.addEventListener('click', () => {
+    localStorage.setItem(dismissedKey, '1');
+    hideBanner();
+  });
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    showBanner('Install Quiet Focus on your home screen for quick access during study sessions.');
+  });
+
+  accept.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      hideBanner();
+      return;
+    }
+
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      showBanner('On iPhone: tap Share, then "Add to Home Screen".');
+      accept.textContent = 'Got it';
+    }
+  });
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !isStandalone && localStorage.getItem(dismissedKey) !== '1') {
+    setTimeout(() => {
+      showBanner('On iPhone: tap Share, then "Add to Home Screen".');
+      accept.textContent = 'Got it';
+    }, 12000);
+  }
+})();
 </script>
 </body>
 </html>
