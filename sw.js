@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v5';
+const CACHE = 'quiet-focus-v6';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -11,6 +11,8 @@ const NETWORK_FIRST = [
   './config.js',
   './auth-captcha.js',
   './supabase-sessions.js',
+  './supabase-assignments.js',
+  './push-notifications.js',
   './sw.js'
 ];
 
@@ -59,6 +61,39 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request);
+    })
+  );
+});
+
+self.addEventListener('push', (event) => {
+  let payload = { title: 'Quiet Focus', body: 'Assignment reminder', url: './live-demo.html?page=assignments' };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch (_) { /* use defaults */ }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'Quiet Focus', {
+      body: payload.body || 'You have an assignment due soon.',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      tag: payload.tag || 'quiet-focus-reminder',
+      data: { url: payload.url || './live-demo.html?page=assignments' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || './live-demo.html?page=assignments';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     })
   );
 });
