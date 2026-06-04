@@ -16,6 +16,8 @@
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
+  <script src="supabase-assignments.js"></script>
+  <script src="push-notifications.js"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -720,6 +722,25 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .assign-title { font-size:22px; font-weight:520; letter-spacing:-.04em; }
 .assign-sub { color:var(--muted); font-size:13px; line-height:1.5; margin-top:6px; }
 .assign-hint { color:var(--muted); font-size:11px; line-height:1.45; margin-top:8px; }
+.push-card {
+  background:rgba(148,218,177,.06);
+  border:1px solid rgba(148,218,177,.18);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:16px;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  justify-content:space-between;
+}
+.push-card.is-enabled {
+  background:rgba(255,255,255,.03);
+  border-color:var(--line);
+}
+.push-card-copy strong { display:block; font-size:13px; font-weight:520; margin-bottom:4px; }
+.push-card-copy p { color:var(--muted-2); font-size:12px; line-height:1.45; margin:0; }
+.push-card-actions { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+.push-card-actions button { min-height:36px; font-size:12px; padding:8px 12px; white-space:nowrap; }
 .assign-form {
   background:rgba(255,255,255,.03);
   border:1px solid var(--line);
@@ -1230,7 +1251,18 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <p class="meta-label">Deadlines</p>
               <p class="assign-title">Assignments</p>
               <p class="assign-sub">Add what’s due. Start a focus session when it’s time.</p>
-              <p class="assign-hint">In-app reminders at 24h, 6h, and 1h before due.</p>
+              <p class="assign-hint">In-app popups when the app is open. Enable phone reminders below for alerts when it is closed.</p>
+            </div>
+
+            <div class="push-card" id="push-card">
+              <div class="push-card-copy">
+                <strong>Phone reminders</strong>
+                <p id="push-status">Notify at 24h, 6h, and 1h before due — even when Quiet Focus is closed.</p>
+              </div>
+              <div class="push-card-actions">
+                <button type="button" class="secondary" id="push-enable-btn">Enable</button>
+                <button type="button" class="ghost hidden" id="push-test-btn">Test</button>
+              </div>
             </div>
 
             <form class="assign-form" id="assign-form">
@@ -1429,8 +1461,11 @@ async function onUserSignedIn() {
     showAppScreen();
     updateUserBar();
     await loadProfileFromSupabase();
+    await loadAssignmentsFromSupabase();
     renderAssignments();
     renderHome();
+    renderPushCard();
+    await window.PushReminders?.syncSubscriptionIfEnabled?.();
     setTimeout(maybeShowDueReminder, 500);
     startReminderPoll();
   } finally {
@@ -1879,6 +1914,7 @@ function addAssignment(data) {
   saveProfile();
   renderAssignments();
   renderHome();
+  syncAssignmentToCloud(assignment);
   toast('Assignment added');
   setTimeout(maybeShowDueReminder, 400);
   return assignment;
@@ -1892,6 +1928,7 @@ function completeAssignment(id) {
   saveProfile();
   renderAssignments();
   renderHome();
+  syncAssignmentToCloud(item);
   hideReminderModal();
   toast('Marked complete');
 }
@@ -1901,6 +1938,7 @@ function snoozeAssignment(id, hours = 1) {
   if (!item) return;
   item.snoozedUntil = new Date(Date.now() + hours * 3600000).toISOString();
   saveProfile();
+  syncAssignmentToCloud(item);
   hideReminderModal();
   toast(`Reminder snoozed ${hours}h`);
 }
@@ -2061,6 +2099,83 @@ function initAssignmentFormDefaults() {
   dateInput.value = tomorrow.toISOString().slice(0, 10);
 }
 
+function syncAssignmentToCloud(assignment) {
+  window.AssignmentSync?.syncOne?.(assignment).catch(() => {});
+}
+
+async function loadAssignmentsFromSupabase() {
+  const sync = window.AssignmentSync;
+  if (!sync?.loadAll) return;
+
+  const result = await sync.loadAll();
+  if (!result.ok) {
+    await sync.syncAll?.(profile.assignments || []);
+    return;
+  }
+
+  const merged = new Map((profile.assignments || []).map(a => [a.id, a]));
+  (result.assignments || []).forEach(a => merged.set(a.id, a));
+  profile.assignments = Array.from(merged.values());
+  saveProfile();
+  await sync.syncAll?.(profile.assignments);
+}
+
+function renderPushCard() {
+  const card = $('push-card');
+  const status = $('push-status');
+  const enableBtn = $('push-enable-btn');
+  const testBtn = $('push-test-btn');
+  if (!card || !window.PushReminders) return;
+
+  const supported = PushReminders.isSupported();
+  const permission = PushReminders.permissionState();
+  const enabled = localStorage.getItem('quiet-focus-push-enabled') === '1' && permission === 'granted';
+
+  card.classList.toggle('is-enabled', enabled);
+  testBtn.classList.toggle('hidden', !enabled);
+
+  if (!supported) {
+    status.textContent = 'Push not supported in this browser. On iPhone, install the app to Home Screen first (iOS 16.4+).';
+    enableBtn.textContent = 'Unavailable';
+    enableBtn.disabled = true;
+    return;
+  }
+
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (ios && !PushReminders.isStandalone()) {
+    status.textContent = 'On iPhone: Share → Add to Home Screen, open the installed app, then enable reminders here.';
+  } else if (enabled) {
+    status.textContent = 'Phone reminders are on. You will get alerts before assignments are due.';
+  } else if (permission === 'denied') {
+    status.textContent = 'Notifications blocked. Allow them in browser or phone settings, then tap Enable again.';
+  } else {
+    status.textContent = 'Notify at 24h, 6h, and 1h before due — even when Quiet Focus is closed.';
+  }
+
+  enableBtn.textContent = enabled ? 'Turn off' : 'Enable';
+  enableBtn.disabled = false;
+}
+
+async function togglePushReminders() {
+  const enabled = localStorage.getItem('quiet-focus-push-enabled') === '1' &&
+    PushReminders.permissionState() === 'granted';
+
+  try {
+    if (enabled) {
+      await PushReminders.disablePushReminders();
+      toast('Phone reminders off');
+    } else {
+      await PushReminders.enablePushReminders();
+      toast('Phone reminders on');
+      await PushReminders.sendTestNotification();
+    }
+    renderPushCard();
+  } catch (err) {
+    toast(err.message || 'Could not update reminders');
+    renderPushCard();
+  }
+}
+
 function nowGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -2177,7 +2292,10 @@ function showPage(name) {
   });
   document.querySelector('.app-surface').scrollTop = 0;
   if (name === 'history') renderHistory();
-  if (name === 'assignments') renderAssignments();
+  if (name === 'assignments') {
+    renderAssignments();
+    renderPushCard();
+  }
   if (name === 'home') setTimeout(maybeShowDueReminder, 200);
 }
 
@@ -2483,6 +2601,15 @@ $('reminder-snooze').addEventListener('click', () => {
 $('reminder-modal').addEventListener('click', e => {
   if (e.target === $('reminder-modal')) hideReminderModal();
 });
+$('push-enable-btn').addEventListener('click', togglePushReminders);
+$('push-test-btn').addEventListener('click', async () => {
+  try {
+    await PushReminders.sendTestNotification();
+    toast('Test notification sent');
+  } catch (err) {
+    toast(err.message || 'Test failed');
+  }
+});
 $('pause-button').addEventListener('click', togglePause);
 $('break-button').addEventListener('click', startBreak);
 $('distraction-button').addEventListener('click', markDistraction);
@@ -2510,6 +2637,11 @@ tabs.forEach(tab => {
 
 initAssignmentFormDefaults();
 renderAssignments();
+
+const pageParam = new URLSearchParams(window.location.search).get('page');
+if (pageParam && document.getElementById(`page-${pageParam}`)) {
+  setTimeout(() => showPage(pageParam), 800);
+}
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && currentUser && !$('reminder-modal').classList.contains('is-visible')) {
