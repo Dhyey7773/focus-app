@@ -549,8 +549,155 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 }
 
 /* ═══════════════════════════════════════
-   HOME PAGE (your exact style)
+   HOME — Quiet companion
 ═══════════════════════════════════════ */
+.home-companion {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:8px 4px 20px;
+  min-height:min(520px, calc(100vh - 220px));
+}
+.home-greeting {
+  color:var(--muted);
+  font-size:13px;
+  letter-spacing:.02em;
+  margin:6px 0 0;
+  width:100%;
+  text-align:left;
+}
+.home-name {
+  color:var(--text);
+  font-size:22px;
+  font-weight:520;
+  letter-spacing:-.04em;
+  margin:2px 0 18px;
+  width:100%;
+  text-align:left;
+}
+.quiet-mascot {
+  margin:4px 0 16px;
+}
+.quiet-cube {
+  width:88px;
+  height:88px;
+  border-radius:20px;
+  background:linear-gradient(145deg, #1a1d22 0%, #0a0b0d 100%);
+  border:1px solid var(--line-2);
+  box-shadow:0 12px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:transform .25s ease;
+}
+.quiet-mascot[data-mood="complete"] .quiet-cube { transform:scale(1.04); }
+.quiet-face {
+  position:relative;
+  width:44px;
+  height:28px;
+}
+.quiet-eye {
+  position:absolute;
+  top:2px;
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  background:#f0f2f7;
+  transition:all .2s ease;
+}
+.quiet-eye.left { left:4px; }
+.quiet-eye.right { right:4px; }
+.quiet-mouth {
+  position:absolute;
+  left:50%;
+  bottom:2px;
+  transform:translateX(-50%);
+  width:18px;
+  height:3px;
+  border-radius:99px;
+  background:rgba(240,242,247,.85);
+  transition:all .2s ease;
+}
+.quiet-mascot[data-mood="focused"] .quiet-mouth {
+  width:14px; height:3px; border-radius:0 0 8px 8px; background:transparent;
+  border-bottom:3px solid rgba(240,242,247,.9);
+}
+.quiet-mascot[data-mood="distracted"] .quiet-eye.right { transform:translateY(-3px); }
+.quiet-mascot[data-mood="happy"] .quiet-mouth {
+  width:16px; height:4px; border-radius:0 0 10px 10px; background:transparent;
+  border-bottom:3px solid rgba(240,242,247,.9);
+}
+.quiet-mascot[data-mood="complete"] .quiet-mouth {
+  width:20px; height:8px; border-radius:0 0 12px 12px; background:transparent;
+  border-bottom:4px solid var(--success);
+}
+.quiet-mascot[data-mood="break"] .quiet-eye {
+  height:3px; top:6px; width:12px; border-radius:2px;
+}
+.home-quiet-title {
+  font-size:18px;
+  font-weight:520;
+  letter-spacing:-.03em;
+  margin:0 0 6px;
+}
+.home-quiet-copy {
+  color:var(--muted-2);
+  font-size:13px;
+  line-height:1.55;
+  max-width:280px;
+  margin:0 auto 14px;
+}
+.home-summary {
+  width:100%;
+  margin-bottom:16px;
+}
+.home-summary p {
+  color:var(--muted-2);
+  font-size:13px;
+  line-height:1.5;
+  margin:0 0 6px;
+}
+.home-start-btn {
+  width:100%;
+  min-height:48px;
+  margin-bottom:14px;
+}
+.home-streak-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 14px;
+  border-radius:999px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  font-size:12px;
+  color:var(--muted-2);
+}
+.home-streak-pill strong { color:var(--text); font-weight:520; }
+.home-streak-days {
+  display:flex;
+  gap:4px;
+  justify-content:center;
+  margin-top:12px;
+}
+
+/* Focus setup tab */
+.focus-setup-header {
+  margin:8px 0 12px;
+}
+.focus-setup-title {
+  font-size:22px;
+  font-weight:520;
+  letter-spacing:-.04em;
+}
+.focus-setup-sub {
+  color:var(--muted);
+  font-size:13px;
+  margin-top:6px;
+  line-height:1.45;
+}
+
 .greeting { color:var(--muted); font-size:13px; letter-spacing:.02em; margin-top:10px; }
 .name-input {
   background:transparent; border:0;
@@ -721,6 +868,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
    HISTORY PAGE (new)
 ═══════════════════════════════════════ */
 .history-header { margin:10px 0 20px; }
+.history-last-card {
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--line);
+}
 .history-title { font-size:22px; font-weight:520; letter-spacing:-.04em; margin-bottom:6px; }
 .history-list { display:flex; flex-direction:column; gap:8px; }
 .history-item {
@@ -1171,29 +1323,52 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
         <div class="app-surface">
 
-          <!-- HOME -->
+          <!-- HOME — Quiet companion -->
           <section class="page active" id="page-home" aria-label="Home">
-            <p class="greeting" id="greeting">Good morning</p>
-            <label class="sr-only" for="username">Your name</label>
-            <input class="name-input" id="username" type="text" maxlength="28" value="Your Name" autocomplete="nickname">
-            <p class="tagline" id="tagline">Plan one clear session for today.</p>
+            <div class="home-companion">
+              <p class="home-greeting" id="greeting">Good evening</p>
+              <p class="home-name" id="home-display-name">Your Name</p>
 
-            <div class="due-banner" id="home-due-banner" hidden>
-              <strong id="home-due-title"></strong>
-              <p id="home-due-copy"></p>
-              <button class="primary" type="button" id="home-due-start">Start focus session</button>
-            </div>
-
-            <div class="streak-card">
-              <div>
-                <p class="meta-label">Daily streak</p>
-                <p class="streak-copy"><strong id="streak-count">0</strong> days focused</p>
+              <div class="quiet-mascot" id="quiet-mascot" data-mood="idle" aria-hidden="true">
+                <div class="quiet-cube">
+                  <div class="quiet-face">
+                    <span class="quiet-eye left"></span>
+                    <span class="quiet-eye right"></span>
+                    <span class="quiet-mouth"></span>
+                  </div>
+                </div>
               </div>
-              <div class="streak-days" id="streak-days" aria-label="Last seven days"></div>
-            </div>
 
+              <p class="home-quiet-title">Hi, I'm Quiet.</p>
+              <p class="home-quiet-copy" id="quiet-intro">Your focus companion. I'll check in while you study and help you come back when you drift.</p>
+
+              <div class="home-summary" id="home-summary" aria-live="polite">
+                <p id="home-tasks-line">No tasks due soon.</p>
+                <p id="home-streak-line">Start your first focus session today.</p>
+              </div>
+
+              <button class="primary home-start-btn" type="button" id="home-start-btn">Start focus session</button>
+
+              <div class="home-streak-pill">
+                <span>Streak</span>
+                <strong id="streak-count">0</strong>
+                <span>day<span id="streak-plural">s</span></span>
+              </div>
+              <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
+            </div>
+          </section>
+
+          <!-- FOCUS SETUP -->
+          <section class="page" id="page-focus" aria-label="Focus setup">
+            <div class="focus-setup-header">
+              <p class="meta-label">Focus</p>
+              <p class="focus-setup-title">Ready to focus?</p>
+              <p class="focus-setup-sub">Pick your task and duration. Quiet will check in during your session.</p>
+            </div>
             <form class="session-builder" id="session-form">
-              <label class="meta-label" for="task-input">Focus on</label>
+              <label class="meta-label" for="username">Your name</label>
+              <input class="auth-input" id="username" type="text" maxlength="28" value="Your Name" autocomplete="nickname" style="margin-bottom:12px">
+              <label class="meta-label" for="task-input">Task</label>
               <input class="task-input" id="task-input" type="text" maxlength="64" placeholder="What needs your attention?" value="Deep work session">
               <fieldset class="duration-picker">
                 <legend class="sr-only">Choose session duration</legend>
@@ -1201,24 +1376,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <button type="button" class="duration selected" data-duration="45">45 min</button>
                 <button type="button" class="duration" data-duration="60">60 min</button>
               </fieldset>
-              <button class="primary start-button" type="submit">Start focus session</button>
+              <button class="primary start-button" type="submit">Start session</button>
             </form>
-
-            <section class="last-card" aria-label="Most recent session">
-              <div class="row-heading">
-                <p class="meta-label">Last session</p>
-                <button class="text-button hidden" type="button" id="clear-history">Clear</button>
-              </div>
-              <div id="last-session" class="empty-state">Your first completed session will appear here.</div>
-            </section>
-
-            <aside class="coach-note" id="home-coach">
-              <p class="meta-label">Coach</p>
-              <p>Start small. A clear task and one uninterrupted block is enough for today.</p>
-            </aside>
           </section>
 
-          <!-- SESSION -->
+          <!-- SESSION (active timer) -->
           <section class="page session-page" id="page-session" aria-label="Active focus session">
             <header class="session-header">
               <div>
@@ -1239,7 +1401,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <div><strong id="breaks-metric">0</strong><span>breaks</span></div>
             </div>
             <aside class="coach-live">
-              <p class="meta-label">Coach</p>
+              <p class="meta-label">Quiet</p>
               <p id="coach-message">Your focus window is open. Keep the next action simple.</p>
             </aside>
             <div class="session-controls">
@@ -1264,7 +1426,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <div><strong id="recap-breaks">0</strong><span>breaks</span></div>
             </div>
             <aside class="recap-insight">
-              <p class="meta-label">Coach insight</p>
+              <p class="meta-label">Quiet says</p>
               <p id="recap-insight">Consistency becomes easier one session at a time.</p>
             </aside>
             <section class="timeline" aria-label="Timeline">
@@ -1279,6 +1441,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
           <!-- ASSIGNMENTS -->
           <section class="page" id="page-assignments" aria-label="Assignments">
+            <div class="due-banner" id="tasks-due-banner" hidden>
+              <strong id="tasks-due-title"></strong>
+              <p id="tasks-due-copy"></p>
+              <button class="primary" type="button" id="tasks-due-start">Start focus session</button>
+            </div>
             <div class="assign-header">
               <p class="meta-label">Deadlines</p>
               <p class="assign-title">Assignments</p>
@@ -1331,6 +1498,13 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <p class="meta-label">Your sessions</p>
               <p class="history-title">Session history</p>
             </div>
+            <section class="history-last-card last-card" aria-label="Most recent session">
+              <div class="row-heading">
+                <p class="meta-label">Last session</p>
+                <button class="text-button hidden" type="button" id="clear-history">Clear</button>
+              </div>
+              <div id="last-session" class="empty-state">Your first completed session will appear here.</div>
+            </section>
             <div class="history-list" id="history-list">
               <div class="empty-state">Complete sessions to build your history.</div>
             </div>
@@ -2120,10 +2294,12 @@ function renderAssignments() {
     doneList.innerHTML = '';
     done.slice(0, 10).forEach(a => doneList.appendChild(renderAssignmentCard(a, { showActions: false })));
   }
+  renderTasksDueBanner();
 }
 
-function renderHomeDueBanner() {
-  const banner = $('home-due-banner');
+function renderTasksDueBanner() {
+  const banner = $('tasks-due-banner');
+  if (!banner) return;
   const next = pendingAssignments()[0];
   if (!next) {
     banner.hidden = true;
@@ -2133,10 +2309,14 @@ function renderHomeDueBanner() {
   const status = getDueStatus(next);
   banner.hidden = false;
   banner.classList.toggle('urgent', status?.level === 'urgent');
-  $('home-due-title').textContent = next.title;
-  $('home-due-copy').textContent =
+  $('tasks-due-title').textContent = next.title;
+  $('tasks-due-copy').textContent =
     `${next.course ? next.course + ' · ' : ''}${status?.label || formatDueRelative(next.dueAt)}`;
-  $('home-due-start').onclick = () => startFocusFromAssignment(next);
+  $('tasks-due-start').onclick = () => startFocusFromAssignment(next);
+}
+
+function renderHomeDueBanner() {
+  renderTasksDueBanner();
 }
 
 function findReminderAssignment() {
@@ -2307,19 +2487,27 @@ function calculateStreak() {
   return count;
 }
 
+function setQuietMood(mood) {
+  const el = $('quiet-mascot');
+  if (el) el.dataset.mood = mood || 'idle';
+}
+
+function countDueSoonTasks() {
+  return pendingAssignments().filter(a => {
+    const hours = (new Date(a.dueAt) - Date.now()) / 3600000;
+    return hours <= 24;
+  }).length;
+}
+
 function renderHome() {
   profile.streak = calculateStreak();
-  $('greeting').textContent   = nowGreeting();
-  $('username').value         = profile.userName;
-  $('task-input').value       = profile.task;
+  const name = profile.userName || 'Your Name';
+  $('greeting').textContent = nowGreeting();
+  $('home-display-name').textContent = name.split(' ')[0] || name;
+  if ($('username')) $('username').value = name;
   $('streak-count').textContent = profile.streak;
-  $('tagline').textContent    = profile.streak
-    ? `${profile.streak} day${profile.streak===1?'':'s'} focused. Keep your rhythm.`
-    : 'Plan one clear session for today.';
-
-  document.querySelectorAll('.duration').forEach(b =>
-    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
-  );
+  const plural = $('streak-plural');
+  if (plural) plural.style.display = profile.streak === 1 ? 'none' : 'inline';
 
   const dates = completedDates();
   $('streak-days').innerHTML = '';
@@ -2330,14 +2518,53 @@ function renderHome() {
     $('streak-days').appendChild(bar);
   }
 
-  renderHomeDueBanner();
+  const dueSoon = countDueSoonTasks();
+  const next = pendingAssignments()[0];
+  const tasksLine = $('home-tasks-line');
+  const streakLine = $('home-streak-line');
+  const intro = $('quiet-intro');
 
+  if (dueSoon && next) {
+    const status = getDueStatus(next);
+    tasksLine.textContent = dueSoon === 1
+      ? `Your next task is due ${(status?.label || formatDueRelative(next.dueAt)).toLowerCase()}.`
+      : `You have ${dueSoon} task${dueSoon === 1 ? '' : 's'} due soon.`;
+  } else if (pendingAssignments().length) {
+    tasksLine.textContent = `You have ${pendingAssignments().length} upcoming task${pendingAssignments().length === 1 ? '' : 's'}.`;
+  } else {
+    tasksLine.textContent = 'No tasks due soon.';
+  }
+
+  if (profile.streak > 0) {
+    streakLine.textContent = `You've focused ${profile.streak} day${profile.streak === 1 ? '' : 's'} in a row.`;
+  } else {
+    streakLine.textContent = 'Start your first focus session today.';
+  }
+
+  const last = profile.history[0];
+  if (last) {
+    intro.textContent = last.distractions
+      ? 'Welcome back. You noticed drift last time — that awareness is the skill.'
+      : 'Welcome back. Ready for another calm focus block?';
+    setQuietMood('happy');
+  } else {
+    intro.textContent = "Your focus companion. I'll check in while you study and help you come back when you drift.";
+    setQuietMood('idle');
+  }
+
+  document.querySelectorAll('.duration').forEach(b =>
+    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
+  );
+  $('task-input').value = profile.task;
+  renderHistoryLast();
+}
+
+function renderHistoryLast() {
   const last = profile.history[0];
   if (!last) {
     $('last-session').className = 'empty-state';
     $('last-session').textContent = 'Your first completed session will appear here.';
     $('clear-history').classList.add('hidden');
-    $('home-coach').lastElementChild.textContent = 'Start small. A clear task and one uninterrupted block is enough for today.';
     return;
   }
   $('clear-history').classList.remove('hidden');
@@ -2353,9 +2580,6 @@ function renderHome() {
   $('last-session').querySelector('.last-details').textContent =
     `${formatFocusDuration(last.focusSeconds ?? last.focusMinutes * 60)} focused · ${last.distractions} distraction${last.distractions===1?'':'s'}`;
   $('last-session').querySelector('.last-score').textContent = last.score;
-  $('home-coach').lastElementChild.textContent = last.distractions
-    ? 'Noticing distraction is progress. Try putting your first task in full screen before starting.'
-    : 'You protected your attention last session. Schedule another focus window while the habit is warm.';
 }
 
 function renderHistory() {
@@ -2385,6 +2609,10 @@ function renderHistory() {
 }
 
 function showPage(name) {
+  if (name === 'session' && (!session || session.mode === 'complete')) {
+    name = 'focus';
+  }
+
   const targetId = `page-${name}`;
   const current = pages.find(p => p.classList.contains('active'));
   const next = pages.find(p => p.id === targetId);
@@ -2397,17 +2625,31 @@ function showPage(name) {
   }
 
   tabs.forEach(t => {
-    const sel = t.dataset.page === name;
+    const tabPage = t.dataset.page;
+    const sel = tabPage === name ||
+      (tabPage === 'session' && (name === 'focus' || name === 'session'));
     t.classList.toggle('active', sel);
     sel ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current');
   });
   document.querySelector('.app-surface').scrollTop = 0;
-  if (name === 'history') renderHistory();
+  if (name === 'history') {
+    renderHistory();
+    renderHistoryLast();
+  }
   if (name === 'assignments') {
     renderAssignments();
     renderPushCard();
   }
-  if (name === 'home') setTimeout(maybeShowDueReminder, 200);
+  if (name === 'home') {
+    renderHome();
+    setTimeout(maybeShowDueReminder, 200);
+  }
+  if (name === 'focus') {
+    $('task-input').value = profile.task;
+    document.querySelectorAll('.duration').forEach(b =>
+      b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
+    );
+  }
 }
 
 function eventAt(text, type) {
@@ -2436,6 +2678,7 @@ function startSession() {
   };
   eventAt('Session started', 'start');
   persistSession();
+  setQuietMood('focused');
   $('session-task').textContent = session.task;
   $('coach-message').textContent = 'Your focus window is open. Keep the next action simple.';
   $('pause-button').textContent = 'Pause';
@@ -2535,6 +2778,7 @@ function startBreak() {
   session.breaks += 1;
   session.lastTick = Date.now();
   eventAt('Intentional break started','break');
+  setQuietMood('break');
   $('pause-button').disabled = true;
   $('break-button').textContent = 'End break';
   $('distraction-button').disabled = true;
@@ -2550,6 +2794,7 @@ function endBreak() {
   session.breakRemaining = 0;
   session.lastTick = Date.now();
   eventAt('Break ended - focus resumed','refocus');
+  setQuietMood('focused');
   $('pause-button').disabled = false;
   $('break-button').textContent = 'Take a break';
   $('distraction-button').disabled = false;
@@ -2565,6 +2810,7 @@ function markDistraction() {
     session.awaitingRefocus = false;
     session.refocuses += 1;
     eventAt('Returned to focus','refocus');
+    setQuietMood('happy');
     $('distraction-button').textContent = "I'm distracted";
     $('coach-message').textContent = 'Good return. Protect the next few minutes.';
     persistSession();
@@ -2574,6 +2820,7 @@ function markDistraction() {
   session.distractions += 1;
   session.awaitingRefocus = true;
   eventAt('Distraction noticed','distraction');
+  setQuietMood('distracted');
   $('distraction-button').textContent = "I'm refocused";
   $('coach-message').textContent = 'No judgment. Close the distraction, then tap when you are back.';
   persistSession();
@@ -2617,6 +2864,7 @@ async function finishSession(completedNaturally = false) {
   saveProfile();
 
   renderRecap(summary);
+  setQuietMood('complete');
   renderHome();
   showPage('recap');
 
@@ -2669,7 +2917,14 @@ function toast(message, duration = 1900) {
 }
 
 // ─── EVENT LISTENERS ─────────────────
-$('username').addEventListener('input', e => { profile.userName = e.target.value || 'Your Name'; saveProfile(); });
+$('username').addEventListener('input', e => {
+  profile.userName = e.target.value || 'Your Name';
+  saveProfile();
+  if ($('home-display-name')) {
+    $('home-display-name').textContent = profile.userName.split(' ')[0] || profile.userName;
+  }
+});
+$('home-start-btn').addEventListener('click', () => showPage('focus'));
 $('task-input').addEventListener('input', e => { profile.task = e.target.value; saveProfile(); });
 
 document.querySelectorAll('.duration').forEach(b => {
@@ -2731,6 +2986,7 @@ $('clear-history').addEventListener('click', () => {
   profile.history = [];
   saveProfile();
   renderHome();
+  renderHistoryLast();
   toast('Session history cleared');
 });
 
@@ -2738,9 +2994,12 @@ tabs.forEach(tab => {
   tab.addEventListener('click', () => {
     const page = tab.dataset.page;
     if (page === 'recap') openRecapFromHistory();
-    else if (page === 'session' && (!session || session.mode === 'complete')) {
-      sessionAssignmentId = null;
-      startSession();
+    else if (page === 'session') {
+      if (session && session.mode !== 'complete') showPage('session');
+      else {
+        sessionAssignmentId = null;
+        showPage('focus');
+      }
     }
     else showPage(page);
   });
