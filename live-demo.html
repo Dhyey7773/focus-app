@@ -577,77 +577,191 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   text-align:left;
 }
 .quiet-mascot {
-  margin:4px 0 16px;
+  position:relative;
+  margin:8px 0 18px;
 }
-.quiet-cube {
-  width:88px;
-  height:88px;
-  border-radius:20px;
-  background:linear-gradient(145deg, #1a1d22 0%, #0a0b0d 100%);
+.quiet-mascot--sm { margin:0; transform:scale(.55); transform-origin:left center; }
+.quiet-mascot--sm .quiet-cube { width:88px; height:88px; }
+.quiet-badge {
+  position:absolute;
+  top:-6px;
+  right:-10px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
   border:1px solid var(--line-2);
-  box-shadow:0 12px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
   display:flex;
   align-items:center;
   justify-content:center;
-  transition:transform .25s ease;
+  font-size:13px;
+  opacity:0;
+  transform:scale(.8);
+  transition:opacity .2s ease, transform .2s ease;
+  pointer-events:none;
+  z-index:2;
 }
-.quiet-mascot[data-mood="complete"] .quiet-cube { transform:scale(1.04); }
+.quiet-mascot[data-mood="reminder"] .quiet-badge,
+.quiet-mascot[data-mood="encouraging"] .quiet-badge,
+.quiet-mascot[data-mood="celebrating"] .quiet-badge,
+.quiet-mascot[data-mood="rest"] .quiet-badge {
+  opacity:1;
+  transform:scale(1);
+}
+.quiet-mascot[data-mood="reminder"] .quiet-badge::after { content:"🔔"; font-size:12px; }
+.quiet-mascot[data-mood="encouraging"] .quiet-badge::after { content:"♡"; color:var(--success); }
+.quiet-mascot[data-mood="celebrating"] .quiet-badge::after { content:"✦"; }
+.quiet-mascot[data-mood="rest"] .quiet-badge::after { content:"z"; font-size:11px; letter-spacing:-2px; }
+.quiet-cube {
+  width:104px;
+  height:104px;
+  border-radius:26px;
+  background:linear-gradient(165deg, #2a2e34 0%, #121418 42%, #060708 100%);
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:
+    0 22px 44px rgba(0,0,0,.55),
+    inset 0 2px 3px rgba(255,255,255,.07),
+    inset 0 -10px 20px rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform:perspective(500px) rotateX(10deg);
+  transition:transform .3s ease;
+}
+.quiet-mascot[data-mood="celebrating"] .quiet-cube {
+  transform:perspective(500px) rotateX(10deg) scale(1.05);
+  box-shadow:
+    0 22px 44px rgba(0,0,0,.55),
+    0 0 28px rgba(148,218,177,.12),
+    inset 0 2px 3px rgba(255,255,255,.07);
+}
+.quiet-screen {
+  width:72px;
+  height:50px;
+  border-radius:14px;
+  background:linear-gradient(180deg, #0a0b0e 0%, #050608 100%);
+  box-shadow:
+    inset 0 0 20px rgba(148,218,177,.06),
+    inset 0 3px 12px rgba(0,0,0,.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 .quiet-face {
   position:relative;
-  width:44px;
-  height:28px;
+  width:46px;
+  height:26px;
 }
 .quiet-eye {
   position:absolute;
-  top:2px;
-  width:10px;
-  height:10px;
-  border-radius:3px;
+  top:4px;
+  width:12px;
+  height:8px;
+  border-radius:99px;
   background:#f0f2f7;
-  transition:all .2s ease;
+  box-shadow:0 0 10px rgba(240,242,247,.35);
+  transition:all .25s ease;
 }
-.quiet-eye.left { left:4px; }
-.quiet-eye.right { right:4px; }
+.quiet-eye.left { left:5px; }
+.quiet-eye.right { right:5px; }
 .quiet-mouth {
   position:absolute;
   left:50%;
-  bottom:2px;
+  bottom:3px;
   transform:translateX(-50%);
-  width:18px;
+  width:16px;
   height:3px;
   border-radius:99px;
-  background:rgba(240,242,247,.85);
-  transition:all .2s ease;
+  background:rgba(240,242,247,.9);
+  box-shadow:0 0 8px rgba(240,242,247,.25);
+  transition:all .25s ease;
 }
-.quiet-mascot[data-mood="focused"] .quiet-mouth {
-  width:14px; height:3px; border-radius:0 0 8px 8px; background:transparent;
-  border-bottom:3px solid rgba(240,242,247,.9);
-}
-.quiet-mascot[data-mood="distracted"] .quiet-eye.right { transform:translateY(-3px); }
+/* Focused */
+.quiet-mascot[data-mood="focused"] .quiet-mouth,
+.quiet-mascot[data-mood="idle"] .quiet-mouth,
 .quiet-mascot[data-mood="happy"] .quiet-mouth {
-  width:16px; height:4px; border-radius:0 0 10px 10px; background:transparent;
-  border-bottom:3px solid rgba(240,242,247,.9);
+  width:14px; height:3px; border-radius:0 0 9px 9px; background:transparent;
+  border-bottom:3px solid rgba(240,242,247,.92);
 }
-.quiet-mascot[data-mood="complete"] .quiet-mouth {
-  width:20px; height:8px; border-radius:0 0 12px 12px; background:transparent;
+/* Thinking (drift / pause) */
+.quiet-mascot[data-mood="thinking"] .quiet-eye.right { transform:translateY(-4px) scale(1.05); }
+.quiet-mascot[data-mood="thinking"] .quiet-mouth {
+  width:10px; height:3px; border-radius:99px; background:rgba(240,242,247,.7);
+}
+/* Encouraging */
+.quiet-mascot[data-mood="encouraging"] .quiet-mouth {
+  width:18px; border-bottom-color:var(--success);
+}
+/* Celebrating */
+.quiet-mascot[data-mood="celebrating"] .quiet-mouth {
+  width:22px; height:9px; border-radius:0 0 12px 12px; background:transparent;
   border-bottom:4px solid var(--success);
+  box-shadow:0 0 12px rgba(148,218,177,.35);
 }
-.quiet-mascot[data-mood="break"] .quiet-eye {
-  height:3px; top:6px; width:12px; border-radius:2px;
+.quiet-mascot[data-mood="celebrating"]::before,
+.quiet-mascot[data-mood="celebrating"]::after {
+  content:"✦";
+  position:absolute;
+  color:rgba(148,218,177,.5);
+  font-size:10px;
+  animation:quiet-sparkle 1.2s ease infinite;
+}
+.quiet-mascot[data-mood="celebrating"]::before { top:0; left:8px; }
+.quiet-mascot[data-mood="celebrating"]::after { top:12px; right:4px; animation-delay:.4s; }
+@keyframes quiet-sparkle {
+  0%, 100% { opacity:.3; transform:translateY(0); }
+  50% { opacity:1; transform:translateY(-4px); }
+}
+/* Rest */
+.quiet-mascot[data-mood="rest"] .quiet-eye {
+  height:3px; top:8px; width:14px; border-radius:2px;
+  box-shadow:none;
+}
+.quiet-mascot[data-mood="rest"] .quiet-mouth { opacity:0; }
+/* Reminder */
+.quiet-mascot[data-mood="reminder"] .quiet-mouth {
+  width:12px; height:3px; border-radius:99px; background:rgba(240,242,247,.75);
+  border-bottom:none;
+}
+.home-quiet-kicker {
+  color:var(--muted);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  margin:0 0 4px;
 }
 .home-quiet-title {
-  font-size:18px;
+  font-size:20px;
   font-weight:520;
   letter-spacing:-.03em;
-  margin:0 0 6px;
+  margin:0 0 8px;
 }
 .home-quiet-copy {
   color:var(--muted-2);
   font-size:13px;
-  line-height:1.55;
-  max-width:280px;
+  line-height:1.6;
+  max-width:300px;
   margin:0 auto 14px;
 }
+.home-quiet-motto {
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  width:100%;
+  font-size:11px;
+  line-height:1.5;
+  color:var(--muted);
+}
+.home-quiet-motto strong { color:var(--muted-2); font-weight:500; }
+.coach-quiet-row {
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  margin:30px 0 20px;
+}
+.coach-quiet-row .coach-quiet-copy { flex:1; min-width:0; }
+.coach-quiet-row .meta-label { margin-bottom:6px; }
 .home-summary {
   width:100%;
   margin-bottom:16px;
@@ -1330,17 +1444,21 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <p class="home-name" id="home-display-name">Your Name</p>
 
               <div class="quiet-mascot" id="quiet-mascot" data-mood="idle" aria-hidden="true">
+                <span class="quiet-badge" aria-hidden="true"></span>
                 <div class="quiet-cube">
-                  <div class="quiet-face">
-                    <span class="quiet-eye left"></span>
-                    <span class="quiet-eye right"></span>
-                    <span class="quiet-mouth"></span>
+                  <div class="quiet-screen">
+                    <div class="quiet-face">
+                      <span class="quiet-eye left"></span>
+                      <span class="quiet-eye right"></span>
+                      <span class="quiet-mouth"></span>
+                    </div>
                   </div>
                 </div>
               </div>
 
+              <p class="home-quiet-kicker">Your focus companion</p>
               <p class="home-quiet-title">Hi, I'm Quiet.</p>
-              <p class="home-quiet-copy" id="quiet-intro">Your focus companion. I'll check in while you study and help you come back when you drift.</p>
+              <p class="home-quiet-copy" id="quiet-intro">I help you focus with gentle check-ins, smart reminders, and session insights. No pressure. Just progress.</p>
 
               <div class="home-summary" id="home-summary" aria-live="polite">
                 <p id="home-tasks-line">No tasks due soon.</p>
@@ -1355,6 +1473,8 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <span>day<span id="streak-plural">s</span></span>
               </div>
               <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
+
+              <p class="home-quiet-motto">Distraction is not failure. <strong>Return is the practice.</strong></p>
             </div>
           </section>
 
@@ -1401,8 +1521,24 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <div><strong id="breaks-metric">0</strong><span>breaks</span></div>
             </div>
             <aside class="coach-live">
-              <p class="meta-label">Quiet</p>
-              <p id="coach-message">Your focus window is open. Keep the next action simple.</p>
+              <div class="coach-quiet-row">
+                <div class="quiet-mascot quiet-mascot--sm" id="session-quiet" data-mood="focused" aria-hidden="true">
+                  <span class="quiet-badge" aria-hidden="true"></span>
+                  <div class="quiet-cube">
+                    <div class="quiet-screen">
+                      <div class="quiet-face">
+                        <span class="quiet-eye left"></span>
+                        <span class="quiet-eye right"></span>
+                        <span class="quiet-mouth"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="coach-quiet-copy">
+                  <p class="meta-label">Quiet</p>
+                  <p id="coach-message">Your focus window is open. Keep the next action simple.</p>
+                </div>
+              </div>
             </aside>
             <div class="session-controls">
               <button class="secondary" id="pause-button" type="button">Pause</button>
@@ -2336,6 +2472,7 @@ function showReminderModal(assignment) {
   ensureRemindersShown(assignment);
   assignment.remindersShown[milestone] = true;
   saveProfile();
+  setQuietMood('reminder');
 
   const modal = $('reminder-modal');
   const ms = new Date(assignment.dueAt) - Date.now();
@@ -2488,8 +2625,23 @@ function calculateStreak() {
 }
 
 function setQuietMood(mood) {
-  const el = $('quiet-mascot');
-  if (el) el.dataset.mood = mood || 'idle';
+  const map = {
+    idle: 'idle',
+    focused: 'focused',
+    distracted: 'thinking',
+    thinking: 'thinking',
+    happy: 'encouraging',
+    encouraging: 'encouraging',
+    complete: 'celebrating',
+    celebrating: 'celebrating',
+    break: 'rest',
+    rest: 'rest',
+    reminder: 'reminder'
+  };
+  const m = map[mood] || mood || 'idle';
+  document.querySelectorAll('.quiet-mascot').forEach(el => {
+    el.dataset.mood = m;
+  });
 }
 
 function countDueSoonTasks() {
@@ -2546,9 +2698,9 @@ function renderHome() {
     intro.textContent = last.distractions
       ? 'Welcome back. You noticed drift last time — that awareness is the skill.'
       : 'Welcome back. Ready for another calm focus block?';
-    setQuietMood('happy');
+    setQuietMood('encouraging');
   } else {
-    intro.textContent = "Your focus companion. I'll check in while you study and help you come back when you drift.";
+    intro.textContent = 'I help you focus with gentle check-ins, smart reminders, and session insights. No pressure. Just progress.';
     setQuietMood('idle');
   }
 
