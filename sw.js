@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v14';
+const CACHE = 'quiet-focus-v15';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -19,6 +19,7 @@ const NETWORK_FIRST = [
   './auth-captcha.js',
   './supabase-sessions.js',
   './supabase-assignments.js',
+  './assignment-scan.js',
   './push-notifications.js',
   './sw.js'
 ];
