@@ -625,8 +625,8 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   animation:quiet-breathe 4.5s ease-in-out infinite;
 }
 @keyframes quiet-breathe {
-  0%, 100% { transform:translateY(0); }
-  50% { transform:translateY(-8px); }
+  0%, 100% { transform:translateY(0) rotate(0deg); }
+  50% { transform:translateY(-10px) rotate(.5deg); }
 }
 .quiet-art--hero {
   width:min(300px, 82vw);
@@ -639,12 +639,123 @@ button:disabled { cursor:not-allowed; opacity:.42; }
     drop-shadow(0 24px 48px rgba(0,0,0,.45))
     drop-shadow(0 0 40px rgba(255,255,255,.1));
 }
+/* Home hero — animated CSS face over body PNG */
+.quiet-expression--hero {
+  position:absolute;
+  left:36%;
+  top:43%;
+  width:38%;
+  height:26%;
+  z-index:2;
+  pointer-events:none;
+}
+.quiet-screen--hero {
+  width:100%;
+  height:100%;
+  border-radius:22%;
+  background:linear-gradient(165deg, #3A4048 0%, #32373F 48%, #2E333B 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    inset 0 -8px 16px rgba(0,0,0,.38);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.quiet-face--animated {
+  position:relative;
+  width:74%;
+  height:62%;
+}
+.quiet-mascot--hero .quiet-eye {
+  top:8%;
+  width:20%;
+  height:44%;
+  min-width:8px;
+  min-height:16px;
+  max-width:15px;
+  max-height:28px;
+  border-radius:999px;
+  background:#f5f7fc;
+  box-shadow:0 0 14px rgba(245,247,252,.5);
+  transform-origin:center center;
+  animation:quiet-blink 5.5s ease-in-out infinite;
+}
+.quiet-mascot--hero .quiet-eye.left { left:17%; }
+.quiet-mascot--hero .quiet-eye.right { right:17%; animation-delay:.1s; }
+.quiet-mascot--hero .quiet-mouth {
+  bottom:6%;
+  width:46%;
+  max-width:36px;
+  height:0;
+  min-height:0;
+  background:transparent;
+  border:none;
+  border-bottom:3.5px solid #f5f7fc;
+  border-radius:0 0 50% 50%;
+  box-shadow:0 0 12px rgba(245,247,252,.35);
+  animation:quiet-smile-warm 6s ease-in-out infinite;
+}
+@keyframes quiet-blink {
+  0%, 42%, 48%, 100% { transform:scaleY(1); opacity:1; }
+  45% { transform:scaleY(.1); opacity:.85; }
+}
+@keyframes quiet-smile-warm {
+  0%, 100% { transform:translateX(-50%) scaleX(1); border-bottom-width:3.5px; }
+  50% { transform:translateX(-50%) scaleX(1.08); border-bottom-width:4px; }
+}
+.quiet-mascot--hero[data-mood="idle"] .quiet-mouth,
+.quiet-mascot--hero[data-mood="focused"] .quiet-mouth,
+.quiet-mascot--hero[data-mood="happy"] .quiet-mouth,
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-mouth {
+  border-bottom-color:#f5f7fc;
+}
+.quiet-mascot--hero[data-mood="thinking"] .quiet-eye {
+  animation:none;
+}
+.quiet-mascot--hero[data-mood="thinking"] .quiet-eye.right {
+  transform:translateY(-10%) scale(1.03);
+}
+.quiet-mascot--hero[data-mood="thinking"] .quiet-mouth {
+  animation:none;
+  width:28%;
+  max-width:22px;
+  border-bottom-width:2.5px;
+  border-radius:0;
+}
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-mouth {
+  max-width:40px;
+  border-bottom-width:4px;
+}
+.quiet-mascot--hero[data-mood="celebrating"] .quiet-mouth {
+  animation:quiet-smile-warm .9s ease-in-out infinite;
+  max-width:44px;
+  border-bottom-width:4.5px;
+  border-radius:0 0 55% 55%;
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-eye {
+  animation:none;
+  height:10%;
+  top:24%;
+  width:26%;
+  max-height:6px;
+  border-radius:3px;
+  box-shadow:none;
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-mouth { opacity:0; animation:none; }
+.quiet-mascot--hero[data-mood="reminder"] .quiet-mouth {
+  animation:none;
+  width:30%;
+  border-bottom-width:2.5px;
+  border-radius:0;
+}
 .quiet-art--session {
   mix-blend-mode:lighten;
 }
 @media (prefers-reduced-motion: reduce) {
   .quiet-mascot--hero .quiet-art-wrap,
   .quiet-mascot-glow { animation:none; }
+  .quiet-mascot--hero .quiet-eye,
+  .quiet-mascot--hero .quiet-mouth { animation:none; }
 }
 .quiet-art--session {
   width:72px;
@@ -1513,7 +1624,16 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div class="quiet-mascot-glow" aria-hidden="true"></div>
                   <span class="quiet-badge" aria-hidden="true"></span>
                   <div class="quiet-art-wrap">
-                    <img class="quiet-art quiet-art--hero" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
+                    <img class="quiet-art quiet-art--hero" src="icons/quiet-hero.png" width="300" height="400" alt="">
+                    <div class="quiet-expression quiet-expression--hero" aria-hidden="true">
+                      <div class="quiet-screen quiet-screen--hero">
+                        <div class="quiet-face quiet-face--animated">
+                          <span class="quiet-eye left"></span>
+                          <span class="quiet-eye right"></span>
+                          <span class="quiet-mouth"></span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
