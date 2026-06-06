@@ -157,9 +157,15 @@
 
   async function extractTextFromFile(file, onProgress) {
     onProgress = onProgress || (() => {});
+    const type = (file.type || "").toLowerCase();
+    const name = (file.name || "").toLowerCase();
+    if (type === "text/plain" || name.endsWith(".txt")) {
+      onProgress("Reading text file…");
+      return (await file.text()).trim();
+    }
     if (isPdf(file)) return extractTextFromPdf(file, onProgress);
     if (isImage(file)) return extractTextFromImage(file, onProgress);
-    throw new Error("Upload a PDF or image (PNG, JPG, WEBP)");
+    throw new Error("Upload a PDF, photo, or .txt file");
   }
 
   function cleanScanText(raw) {
@@ -234,19 +240,25 @@
     return null;
   }
 
-  function textToMarkdown(raw) {
+  function buildCompactScanText(raw) {
     const cleaned = cleanScanText(raw);
     const lines = cleaned.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const course = guessCourse(lines);
     const important = lines.filter((line) =>
-      /due|deadline|submit|exam|quiz|homework|assignment|project|reading|lab|essay|midterm|final|pm|am|\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2}/i.test(
+      /due|deadline|submit|exam|quiz|homework|assignment|project|reading|lab|essay|midterm|final|test|paper|report|pm|am|\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2}/i.test(
         line
-      )
+      ) || parseAssignmentLine(line) || parseDateFromString(line)
     );
-    const body = (important.length ? important : lines.slice(0, 12))
-      .slice(0, 20)
-      .map((l) => "- " + l.replace(/^[-*•]\s*/, ""))
-      .join("\n");
-    return `# Scanned assignment\n\n${body}\n`;
+    const picked = (important.length ? important : lines.slice(0, 15)).slice(0, 25);
+    const body = picked.map((l) => "- " + l.replace(/^[-*•]\s*/, "")).join("\n");
+    const header = course ? `Course: ${course}\n\n` : "";
+    return (header + body).slice(0, 2500);
+  }
+
+  function textToMarkdown(raw) {
+    const compact = buildCompactScanText(raw);
+    const body = compact.replace(/^Course: .+\n\n/, "");
+    return `# Scanned assignment\n\n${body || "- (no text found)"}\n`;
   }
 
   function parseDateFromString(str) {
@@ -411,7 +423,7 @@
     }));
   }
 
-  async function extractWithEdge(text, markdown) {
+  async function extractWithEdge(compactText, markdown) {
     const supabase = window.FocusAuth?.getSupabase?.() || window.supabaseClient;
     if (!supabase) return null;
     const { data: { session } } = await supabase.auth.getSession();
@@ -419,7 +431,10 @@
 
     try {
       const invoke = supabase.functions.invoke("scan-assignment", {
-        body: { text: text.slice(0, 12000), markdown: markdown.slice(0, 12000) }
+        body: {
+          text: compactText.slice(0, 2500),
+          markdown: markdown.slice(0, 2500)
+        }
       });
       const { data, error } = await withTimeout(invoke, AI_TIMEOUT_MS, "AI timeout");
       if (data?.limited || data?.error) {
@@ -444,13 +459,14 @@
     }
 
     const markdown = textToMarkdown(cleaned);
+    const compact = buildCompactScanText(cleaned);
     const assignments = extractAssignmentsLocally(cleaned);
     const localResult = { text: cleaned, markdown, assignments, source: "local" };
 
     if (onResults) onResults(localResult);
 
     onProgress("Finding due dates…");
-    const edge = await extractWithEdge(cleaned, markdown);
+    const edge = await extractWithEdge(compact, markdown);
     if (edge?.limited) {
       return { ...localResult, aiLimitMessage: edge.message };
     }
@@ -475,6 +491,7 @@
   window.AssignmentScan = {
     scanFile,
     textToMarkdown,
+    buildCompactScanText,
     extractAssignmentsLocally,
     preload
   };
