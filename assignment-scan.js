@@ -2,57 +2,163 @@
   const MONTHS =
     "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
 
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
-        return;
+  const PDF_JS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+  const PDF_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const TESSERACT_JS = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+  const MAX_PDF_PAGES = 8;
+  const MAX_PDF_BYTES = 18 * 1024 * 1024;
+  const OCR_MAX_EDGE = 1400;
+  const OCR_TIMEOUT_MS = 90000;
+  const AI_TIMEOUT_MS = 8000;
+
+  const scriptPromises = new Map();
+
+  function loadScript(src, isReady) {
+    if (scriptPromises.has(src)) return scriptPromises.get(src);
+
+    const promise = new Promise((resolve, reject) => {
+      const finish = () => {
+        if (!isReady || isReady()) {
+          resolve();
+          return true;
+        }
+        return false;
+      };
+
+      if (finish()) return;
+
+      let tag = document.querySelector(`script[src="${src}"]`);
+      if (!tag) {
+        tag = document.createElement("script");
+        tag.src = src;
+        tag.async = true;
+        tag.onload = () => {
+          if (!finish()) {
+            let tries = 0;
+            const tick = () => {
+              if (finish() || tries++ > 40) resolve();
+              else setTimeout(tick, 50);
+            };
+            tick();
+          }
+        };
+        tag.onerror = () => reject(new Error("Could not load " + src));
+        document.head.appendChild(tag);
+      } else {
+        let tries = 0;
+        const tick = () => {
+          if (finish() || tries++ > 40) resolve();
+          else setTimeout(tick, 50);
+        };
+        tick();
       }
-      const s = document.createElement("script");
-      s.src = src;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error("Could not load " + src));
-      document.head.appendChild(s);
     });
+
+    scriptPromises.set(src, promise);
+    return promise;
   }
 
-  async function extractTextFromPdf(file) {
-    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+  function withTimeout(promise, ms, message) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(message || "Timed out")), ms))
+    ]);
+  }
+
+  function isPdf(file) {
+    const type = (file.type || "").toLowerCase();
+    const name = (file.name || "").toLowerCase();
+    return type === "application/pdf" || name.endsWith(".pdf");
+  }
+
+  function isImage(file) {
+    const type = (file.type || "").toLowerCase();
+    const name = (file.name || "").toLowerCase();
+    return type.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic)$/i.test(name);
+  }
+
+  async function extractTextFromPdf(file, onProgress) {
+    if (file.size > MAX_PDF_BYTES) {
+      throw new Error("PDF is too large. Try the first few pages or a photo instead.");
+    }
+
+    onProgress("Loading PDF reader…");
+    await loadScript(PDF_JS, () => window.pdfjsLib);
     const pdfjs = window.pdfjsLib;
     if (!pdfjs) throw new Error("PDF reader failed to load");
-    pdfjs.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER;
 
+    onProgress("Reading PDF…");
     const data = new Uint8Array(await file.arrayBuffer());
-    const pdf = await pdfjs.getDocument({ data }).promise;
+    const pdf = await pdfjs.getDocument({ data, disableAutoFetch: true, disableStream: true }).promise;
+    const pageCount = Math.min(pdf.numPages, MAX_PDF_PAGES);
     const parts = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
+
+    for (let i = 1; i <= pageCount; i++) {
+      onProgress(`Reading page ${i} of ${pageCount}…`);
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const line = content.items.map((it) => it.str).join(" ");
       parts.push(line);
     }
+
+    if (pdf.numPages > MAX_PDF_PAGES) {
+      parts.push(`[Only first ${MAX_PDF_PAGES} pages scanned for speed.]`);
+    }
+
     return parts.join("\n\n").replace(/\s+\n/g, "\n").trim();
   }
 
-  async function extractTextFromImage(file) {
-    await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+  async function prepareImageForOcr(file) {
+    if (!window.createImageBitmap) return file;
+
+    const bitmap = await createImageBitmap(file);
+    const max = Math.max(bitmap.width, bitmap.height);
+    if (max <= OCR_MAX_EDGE) {
+      bitmap.close();
+      return file;
+    }
+
+    const scale = OCR_MAX_EDGE / max;
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  }
+
+  async function extractTextFromImage(file, onProgress) {
+    onProgress("Preparing photo…");
+    const imageFile = await prepareImageForOcr(file);
+
+    onProgress("Loading OCR…");
+    await loadScript(TESSERACT_JS, () => window.Tesseract);
     if (!window.Tesseract) throw new Error("OCR failed to load");
-    const { data } = await window.Tesseract.recognize(file, "eng", {
-      logger: () => {}
+
+    onProgress("Reading photo…");
+    const ocr = window.Tesseract.recognize(imageFile, "eng", {
+      logger: (m) => {
+        if (m.status === "loading language traineddata") onProgress("Downloading OCR data (once)…");
+        else if (m.status === "recognizing text" && typeof m.progress === "number") {
+          onProgress(`Reading photo… ${Math.round(m.progress * 100)}%`);
+        }
+      }
     });
+
+    const { data } = await withTimeout(ocr, OCR_TIMEOUT_MS, "Photo scan took too long. Try a clearer, smaller image.");
     return (data.text || "").trim();
   }
 
-  async function extractTextFromFile(file) {
-    const type = (file.type || "").toLowerCase();
-    const name = (file.name || "").toLowerCase();
-    if (type === "application/pdf" || name.endsWith(".pdf")) {
-      return extractTextFromPdf(file);
-    }
-    if (type.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic)$/i.test(name)) {
-      return extractTextFromImage(file);
-    }
+  async function extractTextFromFile(file, onProgress) {
+    onProgress = onProgress || (() => {});
+    if (isPdf(file)) return extractTextFromPdf(file, onProgress);
+    if (isImage(file)) return extractTextFromImage(file, onProgress);
     throw new Error("Upload a PDF or image (PNG, JPG, WEBP)");
   }
 
@@ -206,15 +312,27 @@
     return out;
   }
 
+  function mapEdgeAssignments(list) {
+    return list.map((a) => ({
+      title: a.title || "Assignment",
+      course: a.course || "",
+      dueAt: a.dueAt || a.due_at,
+      estimatedMinutes: Number(a.estimatedMinutes || a.estimated_minutes) || 60,
+      notes: a.notes || ""
+    }));
+  }
+
   async function extractWithEdge(text, markdown) {
     const supabase = window.FocusAuth?.getSupabase?.() || window.supabaseClient;
     if (!supabase) return null;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
+
     try {
-      const { data, error } = await supabase.functions.invoke("scan-assignment", {
+      const invoke = supabase.functions.invoke("scan-assignment", {
         body: { text: text.slice(0, 12000), markdown: markdown.slice(0, 12000) }
       });
+      const { data, error } = await withTimeout(invoke, AI_TIMEOUT_MS, "AI timeout");
       if (error || !data?.assignments?.length) return null;
       return data;
     } catch {
@@ -222,33 +340,46 @@
     }
   }
 
-  async function scanFile(file) {
-    const text = await extractTextFromFile(file);
+  async function scanFile(file, opts) {
+    opts = opts || {};
+    const onProgress = opts.onProgress || (() => {});
+    const onResults = opts.onResults || null;
+
+    const text = await extractTextFromFile(file, onProgress);
     if (!text || text.length < 8) {
       throw new Error("Could not read enough text. Try a clearer photo or PDF.");
     }
-    const markdown = textToMarkdown(text);
-    let assignments = extractAssignmentsLocally(text);
-    let source = "local";
 
+    const markdown = textToMarkdown(text);
+    const assignments = extractAssignmentsLocally(text);
+    const localResult = { text, markdown, assignments, source: "local" };
+
+    if (onResults) onResults(localResult);
+
+    onProgress("Finding due dates…");
     const edge = await extractWithEdge(text, markdown);
     if (edge?.assignments?.length) {
-      assignments = edge.assignments.map((a) => ({
-        title: a.title || "Assignment",
-        course: a.course || "",
-        dueAt: a.dueAt || a.due_at,
-        estimatedMinutes: Number(a.estimatedMinutes || a.estimated_minutes) || 60,
-        notes: a.notes || ""
-      }));
-      source = "ai";
+      const aiResult = {
+        text,
+        markdown,
+        assignments: mapEdgeAssignments(edge.assignments),
+        source: "ai"
+      };
+      if (onResults) onResults(aiResult);
+      return aiResult;
     }
 
-    return { text, markdown, assignments, source };
+    return localResult;
+  }
+
+  function preload() {
+    loadScript(PDF_JS, () => window.pdfjsLib).catch(() => {});
   }
 
   window.AssignmentScan = {
     scanFile,
     textToMarkdown,
-    extractAssignmentsLocally
+    extractAssignmentsLocally,
+    preload
   };
 })();
