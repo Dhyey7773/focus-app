@@ -3486,12 +3486,13 @@ function setScanBusy(busy) {
   });
 }
 
-function scanStatusMessage(source) {
+function scanStatusMessage(source, aiLimitMessage) {
+  if (aiLimitMessage) return aiLimitMessage;
   if (source === 'ai') return 'AI extracted key dates. Review and add below.';
   return 'Dates found locally. Review and add below.';
 }
 
-function renderScanResults(assignments, source) {
+function renderScanResults(assignments, source, aiLimitMessage) {
   lastScanResults = assignments || [];
   const resultsEl = $('scan-results');
   const preview = $('scan-preview');
@@ -3546,7 +3547,7 @@ function renderScanResults(assignments, source) {
     });
   }
   preview.classList.add('is-visible');
-  status.textContent = scanStatusMessage(source);
+  status.textContent = scanStatusMessage(source, aiLimitMessage);
 }
 
 async function handleAssignmentScan(file) {
@@ -3566,15 +3567,15 @@ async function handleAssignmentScan(file) {
       onProgress: msg => { status.textContent = msg; },
       onResults: partial => {
         $('scan-markdown').value = partial.markdown || '';
-        renderScanResults(partial.assignments, partial.source);
-        if (partial.source === 'local') {
+        renderScanResults(partial.assignments, partial.source, partial.aiLimitMessage);
+        if (partial.source === 'local' && !partial.aiLimitMessage) {
           showedLocal = true;
           status.textContent = 'Checking AI (optional)…';
         }
       }
     });
     $('scan-markdown').value = result.markdown || '';
-    renderScanResults(result.assignments, result.source);
+    renderScanResults(result.assignments, result.source, result.aiLimitMessage);
     toast(result.source === 'ai' && showedLocal ? 'AI updated your dates' : 'Scan complete');
   } catch (err) {
     status.textContent = err.message || 'Scan failed';
