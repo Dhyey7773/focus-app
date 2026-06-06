@@ -1346,6 +1346,12 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   resize:vertical;
 }
 .assign-scan-results { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.assign-scan-add-all {
+  width:100%; min-height:40px; margin-bottom:4px;
+  border:1px solid rgba(255,255,255,.14); border-radius:12px;
+  background:rgba(255,255,255,.06); color:var(--text); font-size:13px; font-weight:600;
+}
+.assign-scan-add-all:hover { background:rgba(255,255,255,.1); }
 .assign-scan-item {
   padding:10px 12px;
   border-radius:10px;
@@ -1883,7 +1889,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
             <div class="assign-scan" id="assign-scan">
               <p class="assign-scan-title">Scan syllabus or assignment</p>
-              <p class="assign-scan-sub">Upload a PDF or photo. Quiet extracts due dates and adds reminders.</p>
+              <p class="assign-scan-sub">Upload a PDF or photo. Crop to the assignment only — not the menu bar.</p>
               <div class="assign-scan-actions">
                 <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
                   PDF
@@ -3492,8 +3498,32 @@ function renderScanResults(assignments, source) {
   const status = $('scan-status');
   resultsEl.innerHTML = '';
   if (!lastScanResults.length) {
-    resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Edit the form above manually.</p>';
+    resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Try a cropped photo of just the assignment lines.</p>';
   } else {
+    if (lastScanResults.length > 1) {
+      const addAll = document.createElement('button');
+      addAll.type = 'button';
+      addAll.className = 'assign-scan-add-all';
+      addAll.textContent = `Add all ${lastScanResults.length} assignments`;
+      addAll.addEventListener('click', () => {
+        lastScanResults.forEach(item => {
+          addAssignment({
+            title: item.title,
+            course: item.course,
+            dueAt: item.dueAt,
+            estimatedMinutes: item.estimatedMinutes
+          });
+        });
+        resultsEl.querySelectorAll('.assign-scan-item button').forEach(btn => {
+          btn.textContent = 'Added ✓';
+          btn.disabled = true;
+        });
+        addAll.textContent = 'All added ✓';
+        addAll.disabled = true;
+        toast(`Added ${lastScanResults.length} assignments`);
+      });
+      resultsEl.appendChild(addAll);
+    }
     lastScanResults.forEach(item => {
       const card = document.createElement('div');
       card.className = 'assign-scan-item';
