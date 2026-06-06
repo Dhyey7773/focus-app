@@ -422,6 +422,9 @@
         body: { text: text.slice(0, 12000), markdown: markdown.slice(0, 12000) }
       });
       const { data, error } = await withTimeout(invoke, AI_TIMEOUT_MS, "AI timeout");
+      if (data?.limited || data?.error) {
+        return { limited: true, message: data.error || "AI scan limit reached." };
+      }
       if (error || !data?.assignments?.length) return null;
       return data;
     } catch {
@@ -448,6 +451,9 @@
 
     onProgress("Finding due dates…");
     const edge = await extractWithEdge(cleaned, markdown);
+    if (edge?.limited) {
+      return { ...localResult, aiLimitMessage: edge.message };
+    }
     if (edge?.assignments?.length) {
       const aiResult = {
         text,
