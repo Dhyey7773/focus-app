@@ -196,6 +196,15 @@ nav {
   background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(58,64,72,.32) 0%, transparent 70%);
 }
 
+.hero-mascot-float {
+  animation: hero-mascot-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes hero-mascot-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
 .hero-mascot {
   width: min(260px, 72%);
   height: auto;
@@ -700,7 +709,9 @@ footer {
 
   <div class="hero-visual">
   <div class="hero-mascot-wrap">
-    <img class="hero-mascot" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
+    <div class="hero-mascot-float">
+      <img class="hero-mascot" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
+    </div>
     <p class="hero-mascot-caption">Meet Quiet</p>
   </div>
   <div class="phone" aria-hidden="true">
