@@ -162,11 +162,81 @@
     throw new Error("Upload a PDF or image (PNG, JPG, WEBP)");
   }
 
+  function cleanScanText(raw) {
+    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const clean = lines.filter((l) => !isJunkLine(l));
+    return (clean.length ? clean : lines.filter((l) => l.length <= 90 && !isJunkLine(l))).join("\n");
+  }
+
+  function isJunkLine(line) {
+    if (!line || line.length > 140) return true;
+    if ((line.match(/@/g) || []).length >= 2) return true;
+    if (/[@©®™]/.test(line) && /\b(pages|file|edit|window|help|chrome|vercel)\b/i.test(line)) return true;
+    if (/\b(file|edit|insert|format|arrange|view|window|help)\b/i.test(line) &&
+        line.split(/\s+/).length >= 4) return true;
+    if (/^(?:@+\s*)?(?:pages|quiet focus|assignment scan)/i.test(line)) return true;
+    if (/^[Q\s@©®+\-=CFHmVu\d]{6,}$/.test(line.replace(/\s/g, ""))) return true;
+    return false;
+  }
+
+  function buildDueDate(month, day, explicitYear) {
+    const now = new Date();
+    const year = explicitYear || now.getFullYear();
+    const d = new Date(year, month - 1, day, 23, 59, 0, 0);
+    if (!explicitYear && d < now) d.setFullYear(year + 1);
+    return d;
+  }
+
+  function parseSubject(subject) {
+    subject = subject.replace(/^assignment\s*[\-\u2013\u2014]?\s*/i, "").trim();
+    const courseMatch = subject.match(/^([A-Za-z]+)/);
+    const course = courseMatch ? courseMatch[1] : "";
+    let title = subject;
+    if (/tes$/i.test(title)) title = title.replace(/tes$/i, "test");
+    if (/^bio$/i.test(title)) title = "Bio assignment";
+    else if (title.length <= 5 && course) title = course.charAt(0).toUpperCase() + course.slice(1).toLowerCase() + " assignment";
+    return {
+      title: title.slice(0, 80),
+      course: course ? course.charAt(0).toUpperCase() + course.slice(1).toLowerCase() : ""
+    };
+  }
+
+  function parseAssignmentLine(line) {
+    const compact = line.match(/^(.+?)[\-\u2013\u2014]\s*(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm))?/i);
+    if (compact) {
+      const month = Number(compact[2]);
+      const day = Number(compact[3]);
+      if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+      const due = buildDueDate(month, day);
+      const timeStr = compact[4]
+        ? `${compact[4]}${compact[5] ? ":" + compact[5] : ""} ${compact[6] || ""}`
+        : line;
+      const t = extractTimeFromString(timeStr);
+      if (t) due.setHours(t.h, t.min, 0, 0);
+      const { title, course } = parseSubject(compact[1]);
+      return { title, course, dueAt: due.toISOString(), estimatedMinutes: guessMinutes(line), notes: line.slice(0, 120) };
+    }
+
+    const inline = line.match(/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm))?/i);
+    if (inline && line.length <= 90) {
+      const month = Number(inline[1]);
+      const day = Number(inline[2]);
+      if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+      const before = line.slice(0, inline.index).replace(/[\-\u2013\u2014]\s*$/, "").trim();
+      if (!before || before.length < 2) return null;
+      const due = buildDueDate(month, day);
+      const t = extractTimeFromString(line.slice(inline.index));
+      if (t) due.setHours(t.h, t.min, 0, 0);
+      const { title, course } = parseSubject(before);
+      return { title, course, dueAt: due.toISOString(), estimatedMinutes: guessMinutes(line), notes: line.slice(0, 120) };
+    }
+
+    return null;
+  }
+
   function textToMarkdown(raw) {
-    const lines = raw
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
+    const cleaned = cleanScanText(raw);
+    const lines = cleaned.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const important = lines.filter((line) =>
       /due|deadline|submit|exam|quiz|homework|assignment|project|reading|lab|essay|midterm|final|pm|am|\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2}/i.test(
         line
@@ -187,6 +257,15 @@
     if (m) {
       const d = new Date(`${m[1]} ${m[2]}, ${m[3] || new Date().getFullYear()}`);
       if (!Number.isNaN(d.getTime())) return d;
+    }
+
+    m = s.match(/(\d{1,2})[\/\-](\d{1,2})(?!\s*[\/\-]\d)/);
+    if (m) {
+      const month = Number(m[1]);
+      const day = Number(m[2]);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return buildDueDate(month, day);
+      }
     }
 
     m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
@@ -224,14 +303,24 @@
   }
 
   function extractTimeFromString(str) {
-    const m = str.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-    if (!m) return null;
-    let h = Number(m[1]);
-    const min = Number(m[2]);
-    const ap = (m[3] || "").toLowerCase();
-    if (ap === "pm" && h < 12) h += 12;
-    if (ap === "am" && h === 12) h = 0;
-    return { h, min };
+    let m = str.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+    if (m) {
+      let h = Number(m[1]);
+      const min = Number(m[2]);
+      const ap = (m[3] || "").toLowerCase();
+      if (ap === "pm" && h < 12) h += 12;
+      if (ap === "am" && h === 12) h = 0;
+      return { h, min };
+    }
+    m = str.match(/\b(\d{1,2})\s*(am|pm)\b/i);
+    if (m) {
+      let h = Number(m[1]);
+      const ap = m[2].toLowerCase();
+      if (ap === "pm" && h < 12) h += 12;
+      if (ap === "am" && h === 12) h = 0;
+      return { h, min: 0 };
+    }
+    return null;
   }
 
   function guessCourse(lines) {
@@ -265,51 +354,51 @@
   }
 
   function extractAssignmentsLocally(text) {
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const cleaned = cleanScanText(text);
+    const lines = cleaned.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const course = guessCourse(lines);
+    const seen = new Set();
+    const out = [];
+
+    for (const line of lines) {
+      const parsed = parseAssignmentLine(line);
+      if (!parsed) continue;
+      const key = `${parsed.title}|${parsed.dueAt.slice(0, 16)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(parsed);
+    }
+
     const dueLines = [];
     lines.forEach((line, i) => {
       if (/due|deadline|submit by|hand in|due date/i.test(line)) dueLines.push(i);
     });
-    if (!dueLines.length) {
+    if (!out.length) {
       lines.forEach((line, i) => {
         if (parseDateFromString(line)) dueLines.push(i);
       });
     }
-    if (!dueLines.length) dueLines.push(0);
 
-    const seen = new Set();
-    const out = [];
-    for (const i of dueLines.slice(0, 5)) {
+    for (const i of dueLines.slice(0, 8)) {
       const chunk = lines.slice(Math.max(0, i - 2), i + 3).join(" ");
       const due = parseDateFromString(chunk) || parseDateFromString(lines[i]);
       if (!due) continue;
       const t = extractTimeFromString(chunk);
       if (t) due.setHours(t.h, t.min, 0, 0);
-      const key = due.toISOString().slice(0, 16);
+      const title = guessTitle(lines, i);
+      const key = `${title}|${due.toISOString().slice(0, 16)}`;
       if (seen.has(key)) continue;
       seen.add(key);
       out.push({
-        title: guessTitle(lines, i),
+        title,
         course,
         dueAt: due.toISOString(),
         estimatedMinutes: guessMinutes(chunk),
         notes: lines.slice(Math.max(0, i - 1), i + 2).join(" · ").slice(0, 200)
       });
     }
-    if (!out.length && lines.length) {
-      const fallback = new Date();
-      fallback.setDate(fallback.getDate() + 7);
-      fallback.setHours(23, 59, 0, 0);
-      out.push({
-        title: guessTitle(lines, 0),
-        course,
-        dueAt: fallback.toISOString(),
-        estimatedMinutes: guessMinutes(text),
-        notes: lines.slice(0, 3).join(" · ").slice(0, 200)
-      });
-    }
-    return out;
+
+    return out.slice(0, 10);
   }
 
   function mapEdgeAssignments(list) {
@@ -346,18 +435,19 @@
     const onResults = opts.onResults || null;
 
     const text = await extractTextFromFile(file, onProgress);
-    if (!text || text.length < 8) {
-      throw new Error("Could not read enough text. Try a clearer photo or PDF.");
+    const cleaned = cleanScanText(text);
+    if (!cleaned || cleaned.length < 4) {
+      throw new Error("Could not read assignment text. Crop the photo to just the assignment (not the menu bar).");
     }
 
-    const markdown = textToMarkdown(text);
-    const assignments = extractAssignmentsLocally(text);
-    const localResult = { text, markdown, assignments, source: "local" };
+    const markdown = textToMarkdown(cleaned);
+    const assignments = extractAssignmentsLocally(cleaned);
+    const localResult = { text: cleaned, markdown, assignments, source: "local" };
 
     if (onResults) onResults(localResult);
 
     onProgress("Finding due dates…");
-    const edge = await extractWithEdge(text, markdown);
+    const edge = await extractWithEdge(cleaned, markdown);
     if (edge?.assignments?.length) {
       const aiResult = {
         text,
