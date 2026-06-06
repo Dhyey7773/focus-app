@@ -640,137 +640,12 @@ button:disabled { cursor:not-allowed; opacity:.42; }
     drop-shadow(0 24px 48px rgba(0,0,0,.45))
     drop-shadow(0 0 40px rgba(255,255,255,.1));
 }
-/* Home hero — animated CSS face over body PNG */
-.quiet-expression--hero {
-  position:absolute;
-  left:36%;
-  top:43%;
-  width:38%;
-  height:26%;
-  z-index:2;
-  pointer-events:none;
-}
-.quiet-screen--hero {
-  width:100%;
-  height:100%;
-  border-radius:22%;
-  background:linear-gradient(165deg, #3A4048 0%, #32373F 48%, #2E333B 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.1),
-    inset 0 -8px 16px rgba(0,0,0,.38);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.quiet-face--animated {
-  position:relative;
-  width:74%;
-  height:62%;
-}
-.quiet-mascot--hero .quiet-eye {
-  top:8%;
-  width:20%;
-  height:44%;
-  min-width:8px;
-  min-height:16px;
-  max-width:15px;
-  max-height:28px;
-  border-radius:999px;
-  background:#f5f7fc;
-  box-shadow:0 0 14px rgba(245,247,252,.5);
-  transform-origin:center center;
-  animation:quiet-blink 5.5s ease-in-out infinite;
-}
-.quiet-mascot--hero .quiet-eye.left { left:17%; }
-.quiet-mascot--hero .quiet-eye.right { right:17%; animation-delay:.1s; }
-.quiet-mascot--hero .quiet-mouth {
-  bottom:0;
-  left:50%;
-  width:58%;
-  max-width:46px;
-  height:18px;
-  min-height:0;
-  background:transparent;
-  border:none;
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
-  animation:quiet-smile-warm 6s ease-in-out infinite;
-}
-.quiet-smile-svg {
-  width:100%;
-  height:auto;
-  display:block;
-  overflow:visible;
-  filter:drop-shadow(0 0 10px rgba(245,247,252,.4));
-}
-.quiet-smile-path {
-  stroke:#f5f7fc;
-  stroke-width:3.5;
-  stroke-linecap:round;
-  fill:none;
-}
-@keyframes quiet-smile-warm {
-  0%, 100% { transform:translateX(-50%) scale(1); }
-  50% { transform:translateX(-50%) scale(1.06); }
-}
-@keyframes quiet-blink {
-  0%, 42%, 48%, 100% { transform:scaleY(1); opacity:1; }
-  45% { transform:scaleY(.1); opacity:.85; }
-}
-.quiet-mascot--hero[data-mood="idle"] .quiet-smile-path,
-.quiet-mascot--hero[data-mood="focused"] .quiet-smile-path,
-.quiet-mascot--hero[data-mood="happy"] .quiet-smile-path,
-.quiet-mascot--hero[data-mood="encouraging"] .quiet-smile-path {
-  stroke:#f5f7fc;
-}
-.quiet-mascot--hero[data-mood="thinking"] .quiet-eye {
-  animation:none;
-}
-.quiet-mascot--hero[data-mood="thinking"] .quiet-eye.right {
-  transform:translateY(-10%) scale(1.03);
-}
-.quiet-mascot--hero[data-mood="thinking"] .quiet-mouth { animation:none; }
-.quiet-mascot--hero[data-mood="thinking"] .quiet-smile-path {
-  d: path("M10 10 H38");
-  stroke-width:2.5;
-}
-.quiet-mascot--hero[data-mood="encouraging"] .quiet-smile-path {
-  stroke-width:4;
-  d: path("M6 8 Q24 20 42 8");
-}
-.quiet-mascot--hero[data-mood="celebrating"] .quiet-mouth {
-  animation:quiet-smile-warm .9s ease-in-out infinite;
-}
-.quiet-mascot--hero[data-mood="celebrating"] .quiet-smile-path {
-  stroke-width:4.5;
-  d: path("M4 6 Q24 22 44 6");
-}
-.quiet-mascot--hero[data-mood="rest"] .quiet-eye {
-  animation:none;
-  height:10%;
-  top:24%;
-  width:26%;
-  max-height:6px;
-  border-radius:3px;
-  box-shadow:none;
-}
-.quiet-mascot--hero[data-mood="rest"] .quiet-mouth { opacity:0; animation:none; }
-.quiet-mascot--hero[data-mood="reminder"] .quiet-mouth { animation:none; }
-.quiet-mascot--hero[data-mood="reminder"] .quiet-smile-path {
-  d: path("M12 10 H36");
-  stroke-width:2.5;
-}
-.quiet-art--session {
-  mix-blend-mode:lighten;
-}
 @media (prefers-reduced-motion: reduce) {
   .quiet-mascot--hero .quiet-art-wrap,
   .quiet-mascot-glow { animation:none; }
-  .quiet-mascot--hero .quiet-eye,
-  .quiet-mascot--hero .quiet-mouth { animation:none; }
 }
 .quiet-art--session {
+  mix-blend-mode:lighten;
   width:72px;
   height:auto;
   object-fit:contain;
@@ -1715,20 +1590,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div class="quiet-mascot-glow" aria-hidden="true"></div>
                   <span class="quiet-badge" aria-hidden="true"></span>
                   <div class="quiet-art-wrap">
-                    <img class="quiet-art quiet-art--hero" src="icons/quiet-hero.png" width="300" height="400" alt="">
-                    <div class="quiet-expression quiet-expression--hero" aria-hidden="true">
-                      <div class="quiet-screen quiet-screen--hero">
-                        <div class="quiet-face quiet-face--animated">
-                          <span class="quiet-eye left"></span>
-                          <span class="quiet-eye right"></span>
-                          <span class="quiet-mouth" aria-hidden="true">
-                            <svg class="quiet-smile-svg" viewBox="0 0 48 22" aria-hidden="true">
-                              <path class="quiet-smile-path" d="M6 8 Q24 18 42 8"/>
-                            </svg>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    <img class="quiet-art quiet-art--hero" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
                   </div>
                 </div>
               </div>
@@ -1889,7 +1751,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
             <div class="assign-scan" id="assign-scan">
               <p class="assign-scan-title">Scan syllabus or assignment</p>
-              <p class="assign-scan-sub">Upload a PDF or photo. Crop to the assignment only — not the menu bar.</p>
+              <p class="assign-scan-sub">PDF, photo, or .txt — Quiet pulls due dates only (saves AI tokens).</p>
               <div class="assign-scan-actions">
                 <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
                   PDF
@@ -1898,6 +1760,10 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
                   Photo
                   <input type="file" id="scan-photo-input" accept="image/*,.png,.jpg,.jpeg,.webp" hidden>
+                </label>
+                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                  Text
+                  <input type="file" id="scan-txt-input" accept="text/plain,.txt" hidden>
                 </label>
               </div>
               <p class="assign-scan-status" id="scan-status">Works offline with smart date parsing. Sign in for AI extraction.</p>
@@ -3591,6 +3457,11 @@ $('scan-pdf-input')?.addEventListener('change', e => {
   e.target.value = '';
 });
 $('scan-photo-input')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) handleAssignmentScan(file);
+  e.target.value = '';
+});
+$('scan-txt-input')?.addEventListener('change', e => {
   const file = e.target.files?.[0];
   if (file) handleAssignmentScan(file);
   e.target.value = '';
