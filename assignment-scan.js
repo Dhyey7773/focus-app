@@ -77,12 +77,19 @@
     return type.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic)$/i.test(name);
   }
 
-  async function extractTextFromPdf(file, onProgress) {
+  function throwIfAborted(signal) {
+    if (signal?.aborted) {
+      throw new DOMException("Scan cancelled", "AbortError");
+    }
+  }
+
+  async function extractTextFromPdf(file, onProgress, signal) {
     if (file.size > MAX_PDF_BYTES) {
       throw new Error("PDF is too large. Try the first few pages or a photo instead.");
     }
 
     onProgress("Loading PDF reader…");
+    throwIfAborted(signal);
     await loadScript(PDF_JS, () => window.pdfjsLib);
     const pdfjs = window.pdfjsLib;
     if (!pdfjs) throw new Error("PDF reader failed to load");
@@ -95,6 +102,7 @@
     const parts = [];
 
     for (let i = 1; i <= pageCount; i++) {
+      throwIfAborted(signal);
       onProgress(`Reading page ${i} of ${pageCount}…`);
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -133,11 +141,13 @@
     return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
   }
 
-  async function extractTextFromImage(file, onProgress) {
+  async function extractTextFromImage(file, onProgress, signal) {
     onProgress("Preparing photo…");
+    throwIfAborted(signal);
     const imageFile = await prepareImageForOcr(file);
 
     onProgress("Loading OCR…");
+    throwIfAborted(signal);
     await loadScript(TESSERACT_JS, () => window.Tesseract);
     if (!window.Tesseract) throw new Error("OCR failed to load");
 
@@ -152,19 +162,21 @@
     });
 
     const { data } = await withTimeout(ocr, OCR_TIMEOUT_MS, "Photo scan took too long. Try a clearer, smaller image.");
+    throwIfAborted(signal);
     return (data.text || "").trim();
   }
 
-  async function extractTextFromFile(file, onProgress) {
+  async function extractTextFromFile(file, onProgress, signal) {
     onProgress = onProgress || (() => {});
     const type = (file.type || "").toLowerCase();
     const name = (file.name || "").toLowerCase();
     if (type === "text/plain" || name.endsWith(".txt")) {
       onProgress("Reading text file…");
+      throwIfAborted(signal);
       return (await file.text()).trim();
     }
-    if (isPdf(file)) return extractTextFromPdf(file, onProgress);
-    if (isImage(file)) return extractTextFromImage(file, onProgress);
+    if (isPdf(file)) return extractTextFromPdf(file, onProgress, signal);
+    if (isImage(file)) return extractTextFromImage(file, onProgress, signal);
     throw new Error("Upload a PDF, photo, or .txt file");
   }
 
@@ -423,7 +435,8 @@
     }));
   }
 
-  async function extractWithEdge(compactText, markdown) {
+  async function extractWithEdge(compactText, markdown, signal) {
+    throwIfAborted(signal);
     const supabase = window.FocusAuth?.getSupabase?.() || window.supabaseClient;
     if (!supabase) return null;
     const { data: { session } } = await supabase.auth.getSession();
@@ -437,6 +450,7 @@
         }
       });
       const { data, error } = await withTimeout(invoke, AI_TIMEOUT_MS, "AI timeout");
+      throwIfAborted(signal);
       if (data?.limited || data?.error) {
         return { limited: true, message: data.error || "AI scan limit reached." };
       }
@@ -451,8 +465,10 @@
     opts = opts || {};
     const onProgress = opts.onProgress || (() => {});
     const onResults = opts.onResults || null;
+    const signal = opts.signal;
 
-    const text = await extractTextFromFile(file, onProgress);
+    const text = await extractTextFromFile(file, onProgress, signal);
+    throwIfAborted(signal);
     const cleaned = cleanScanText(text);
     if (!cleaned || cleaned.length < 4) {
       throw new Error("Could not read assignment text. Crop the photo to just the assignment (not the menu bar).");
@@ -465,8 +481,9 @@
 
     if (onResults) onResults(localResult);
 
+    throwIfAborted(signal);
     onProgress("Finding due dates…");
-    const edge = await extractWithEdge(compact, markdown);
+    const edge = await extractWithEdge(compact, markdown, signal);
     if (edge?.limited) {
       return { ...localResult, aiLimitMessage: edge.message };
     }
