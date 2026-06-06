@@ -3099,6 +3099,7 @@ function showPage(name) {
   if (name === 'assignments') {
     renderAssignments();
     renderPushCard();
+    window.AssignmentScan?.preload?.();
   }
   if (name === 'home') {
     renderHome();
@@ -3469,55 +3470,87 @@ initAssignmentFormDefaults();
 renderAssignments();
 
 let lastScanResults = [];
+let scanBusy = false;
+
+function setScanBusy(busy) {
+  scanBusy = busy;
+  document.querySelectorAll('.assign-scan-btn').forEach(btn => {
+    btn.style.pointerEvents = busy ? 'none' : '';
+    btn.style.opacity = busy ? '0.55' : '';
+  });
+}
+
+function scanStatusMessage(source) {
+  if (source === 'ai') return 'AI extracted key dates. Review and add below.';
+  return 'Dates found locally. Review and add below.';
+}
+
+function renderScanResults(assignments, source) {
+  lastScanResults = assignments || [];
+  const resultsEl = $('scan-results');
+  const preview = $('scan-preview');
+  const status = $('scan-status');
+  resultsEl.innerHTML = '';
+  if (!lastScanResults.length) {
+    resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Edit the form above manually.</p>';
+  } else {
+    lastScanResults.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'assign-scan-item';
+      card.innerHTML = '<strong></strong><p></p><button type="button" class="primary">Add assignment</button>';
+      card.querySelector('strong').textContent = item.title;
+      card.querySelector('p').textContent =
+        `${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)} · Est. ${item.estimatedMinutes} min` +
+        (item.notes ? ` · ${item.notes}` : '');
+      card.querySelector('button').addEventListener('click', () => {
+        addAssignment({
+          title: item.title,
+          course: item.course,
+          dueAt: item.dueAt,
+          estimatedMinutes: item.estimatedMinutes
+        });
+        card.querySelector('button').textContent = 'Added ✓';
+        card.querySelector('button').disabled = true;
+      });
+      resultsEl.appendChild(card);
+    });
+  }
+  preview.classList.add('is-visible');
+  status.textContent = scanStatusMessage(source);
+}
 
 async function handleAssignmentScan(file) {
   const status = $('scan-status');
   const preview = $('scan-preview');
-  const resultsEl = $('scan-results');
   if (!window.AssignmentScan?.scanFile) {
     toast('Scan module not loaded');
     return;
   }
-  status.textContent = 'Reading document…';
+  if (scanBusy) return;
+  setScanBusy(true);
+  status.textContent = 'Starting scan…';
   preview.classList.remove('is-visible');
+  let showedLocal = false;
   try {
-    const result = await window.AssignmentScan.scanFile(file);
-    lastScanResults = result.assignments || [];
+    const result = await window.AssignmentScan.scanFile(file, {
+      onProgress: msg => { status.textContent = msg; },
+      onResults: partial => {
+        $('scan-markdown').value = partial.markdown || '';
+        renderScanResults(partial.assignments, partial.source);
+        if (partial.source === 'local') {
+          showedLocal = true;
+          status.textContent = 'Checking AI (optional)…';
+        }
+      }
+    });
     $('scan-markdown').value = result.markdown || '';
-    status.textContent = result.source === 'ai'
-      ? 'AI extracted key dates. Review and add below.'
-      : 'Parsed dates locally. Sign in and set GEMINI_API_KEY on scan-assignment for smarter extraction.';
-    resultsEl.innerHTML = '';
-    if (!lastScanResults.length) {
-      resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Edit the form above manually.</p>';
-    } else {
-      lastScanResults.forEach((item, idx) => {
-        const card = document.createElement('div');
-        card.className = 'assign-scan-item';
-        const due = new Date(item.dueAt);
-        card.innerHTML = '<strong></strong><p></p><button type="button" class="primary">Add assignment</button>';
-        card.querySelector('strong').textContent = item.title;
-        card.querySelector('p').textContent =
-          `${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)} · Est. ${item.estimatedMinutes} min` +
-          (item.notes ? ` · ${item.notes}` : '');
-        card.querySelector('button').addEventListener('click', () => {
-          addAssignment({
-            title: item.title,
-            course: item.course,
-            dueAt: item.dueAt,
-            estimatedMinutes: item.estimatedMinutes
-          });
-          card.querySelector('button').textContent = 'Added ✓';
-          card.querySelector('button').disabled = true;
-        });
-        resultsEl.appendChild(card);
-      });
-    }
-    preview.classList.add('is-visible');
-    toast('Scan complete');
+    renderScanResults(result.assignments, result.source);
+    toast(result.source === 'ai' && showedLocal ? 'AI updated your dates' : 'Scan complete');
   } catch (err) {
     status.textContent = err.message || 'Scan failed';
     toast(status.textContent, 4500);
+  } finally {
+    setScanBusy(false);
   }
 }
 
