@@ -1191,7 +1191,28 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   font-size:11px;
   color:var(--muted);
   line-height:1.45;
+  flex:1;
 }
+.assign-scan-toolbar {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+}
+.assign-scan-cancel {
+  flex:0 0 auto;
+  min-height:34px;
+  padding:6px 14px;
+  border-radius:10px;
+  border:1px solid var(--line-2);
+  background:transparent;
+  color:var(--muted-2);
+  font-size:12px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.assign-scan-cancel:hover { color:var(--text); border-color:rgba(255,255,255,.22); }
+.assign-scan-cancel[hidden] { display:none; }
 .assign-scan-preview {
   margin-top:12px;
   display:none;
@@ -1766,7 +1787,10 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <input type="file" id="scan-txt-input" accept="text/plain,.txt" hidden>
                 </label>
               </div>
-              <p class="assign-scan-status" id="scan-status">Works offline with smart date parsing. Sign in for AI extraction.</p>
+              <div class="assign-scan-toolbar">
+                <p class="assign-scan-status" id="scan-status">Works offline with smart date parsing. Sign in for AI extraction.</p>
+                <button type="button" class="assign-scan-cancel" id="scan-cancel-btn" hidden>Cancel</button>
+              </div>
               <div class="assign-scan-preview" id="scan-preview">
                 <label for="scan-markdown">Extracted notes (markdown)</label>
                 <textarea class="assign-scan-md" id="scan-markdown" readonly aria-label="Extracted markdown"></textarea>
@@ -3343,6 +3367,47 @@ renderAssignments();
 
 let lastScanResults = [];
 let scanBusy = false;
+let scanAbortController = null;
+const SCAN_IDLE_STATUS = 'Works offline with smart date parsing. Sign in for AI extraction.';
+
+function setScanCancelVisible(show, mode) {
+  const btn = $('scan-cancel-btn');
+  if (!btn) return;
+  btn.hidden = !show;
+  btn.textContent = mode === 'clear' ? 'Clear scan' : 'Cancel';
+}
+
+function resetAssignmentScan() {
+  if (scanAbortController) {
+    scanAbortController.abort();
+    scanAbortController = null;
+  }
+  lastScanResults = [];
+  $('scan-markdown').value = '';
+  $('scan-results').innerHTML = '';
+  $('scan-preview').classList.remove('is-visible');
+  $('scan-status').textContent = SCAN_IDLE_STATUS;
+  setScanBusy(false);
+  setScanCancelVisible(false);
+}
+
+function cancelAssignmentScan() {
+  if (scanBusy && scanAbortController) {
+    scanAbortController.abort();
+    scanAbortController = null;
+    setScanBusy(false);
+    $('scan-preview').classList.remove('is-visible');
+    $('scan-markdown').value = '';
+    $('scan-results').innerHTML = '';
+    lastScanResults = [];
+    $('scan-status').textContent = 'Scan cancelled.';
+    setScanCancelVisible(false);
+    toast('Scan cancelled');
+    return;
+  }
+  resetAssignmentScan();
+  toast('Scan cleared');
+}
 
 function setScanBusy(busy) {
   scanBusy = busy;
@@ -3424,14 +3489,22 @@ async function handleAssignmentScan(file) {
     return;
   }
   if (scanBusy) return;
+  if (scanAbortController) scanAbortController.abort();
+  scanAbortController = new AbortController();
+  const signal = scanAbortController.signal;
   setScanBusy(true);
+  setScanCancelVisible(true, 'cancel');
   status.textContent = 'Starting scan…';
   preview.classList.remove('is-visible');
   let showedLocal = false;
   try {
     const result = await window.AssignmentScan.scanFile(file, {
-      onProgress: msg => { status.textContent = msg; },
+      signal,
+      onProgress: msg => {
+        if (!signal.aborted) status.textContent = msg;
+      },
       onResults: partial => {
+        if (signal.aborted) return;
         $('scan-markdown').value = partial.markdown || '';
         renderScanResults(partial.assignments, partial.source, partial.aiLimitMessage);
         if (partial.source === 'local' && !partial.aiLimitMessage) {
@@ -3440,16 +3513,25 @@ async function handleAssignmentScan(file) {
         }
       }
     });
+    if (signal.aborted) return;
     $('scan-markdown').value = result.markdown || '';
     renderScanResults(result.assignments, result.source, result.aiLimitMessage);
     toast(result.source === 'ai' && showedLocal ? 'AI updated your dates' : 'Scan complete');
   } catch (err) {
+    if (err.name === 'AbortError' || signal.aborted) return;
     status.textContent = err.message || 'Scan failed';
+    setScanCancelVisible(true, 'clear');
     toast(status.textContent, 4500);
   } finally {
-    setScanBusy(false);
+    if (!signal.aborted) {
+      setScanBusy(false);
+      scanAbortController = null;
+      setScanCancelVisible(true, 'clear');
+    }
   }
 }
+
+$('scan-cancel-btn')?.addEventListener('click', cancelAssignmentScan);
 
 $('scan-pdf-input')?.addEventListener('change', e => {
   const file = e.target.files?.[0];
