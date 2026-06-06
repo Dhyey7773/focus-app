@@ -3486,7 +3486,7 @@ async function handleAssignmentScan(file) {
     $('scan-markdown').value = result.markdown || '';
     status.textContent = result.source === 'ai'
       ? 'AI extracted key dates. Review and add below.'
-      : 'Parsed dates locally. Review and add below — sign in + deploy scan-assignment for AI.';
+      : 'Parsed dates locally. Sign in and set GEMINI_API_KEY on scan-assignment for smarter extraction.';
     resultsEl.innerHTML = '';
     if (!lastScanResults.length) {
       resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Edit the form above manually.</p>';
