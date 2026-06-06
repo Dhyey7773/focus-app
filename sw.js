@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v16';
+const CACHE = 'quiet-focus-v17';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
