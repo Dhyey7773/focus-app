@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v22';
+const CACHE = 'quiet-focus-v23';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -37,7 +37,9 @@ const NETWORK_FIRST = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then((cache) => Promise.allSettled(ASSETS.map((url) => cache.add(url))))
+      .then(() => self.skipWaiting())
   );
 });
 
