@@ -5,5 +5,7 @@ window.APP_CONFIG = {
   // Public site key only — secret goes in Supabase Auth → Bot and Abuse Protection
   TURNSTILE_SITE_KEY: "",
   // Web Push (public key). Private key → Supabase Edge Function secrets as VAPID_PRIVATE_KEY
-  VAPID_PUBLIC_KEY: "BA8c2Tqt7D_6skqSCU5vlAaFgeStR63xw_Y9WtMlXZ6K_1FKfd29_7aNKxh4F4V5_AbStRD6VaEtzUkRF25z2CQ"
+  VAPID_PUBLIC_KEY: "BA8c2Tqt7D_6skqSCU5vlAaFgeStR63xw_Y9WtMlXZ6K_1FKfd29_7aNKxh4F4V5_AbStRD6VaEtzUkRF25z2CQ",
+  // Optional 3D mascot URL (Supabase Storage public link). Leave empty = PNG only.
+  QUIET_GLB_URL: ""
 };
