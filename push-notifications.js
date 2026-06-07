@@ -146,8 +146,8 @@
     }
     await registration.showNotification("Quiet Focus", {
       body: "Push reminders are working. You will get alerts before assignments are due.",
-      icon: "./icons/icon-192.png",
-      badge: "./icons/icon-192.png",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
       tag: "quiet-focus-test",
       data: { url: "./live-demo.html?page=assignments" }
     });
