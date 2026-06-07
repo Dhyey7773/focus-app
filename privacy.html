@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Quiet Focus</title>
+<meta name="description" content="How Quiet Focus collects, uses, and protects your information.">
+<meta name="theme-color" content="#07080a">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07080a;
+  --panel: #0c0e11;
+  --line: rgba(255,255,255,0.08);
+  --muted: rgba(238,242,248,0.42);
+  --muted-2: rgba(238,242,248,0.68);
+  --text: #f0f2f7;
+  --mint: #94dab1;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--mint); }
+a:hover { opacity: 0.9; }
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 4vw, 48px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(7,8,10,0.92);
+  backdrop-filter: blur(16px);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+}
+.nav-logo span { color: var(--mint); }
+.nav-back {
+  font-size: 13px;
+  color: var(--muted-2);
+  text-decoration: none;
+}
+.nav-back:hover { color: var(--text); }
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px clamp(20px, 4vw, 48px) 72px;
+}
+.meta {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.lede {
+  color: var(--muted-2);
+  margin-bottom: 40px;
+  font-size: 15px;
+}
+h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 32px 0 10px;
+}
+p, ul { margin-bottom: 14px; color: var(--muted-2); }
+ul { padding-left: 1.25rem; }
+li { margin-bottom: 6px; }
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px clamp(20px, 4vw, 48px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+}
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { color: var(--muted); text-decoration: none; }
+.footer-links a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">Quiet <span>Focus</span></a>
+  <a href="index.html" class="nav-back">← Back to home</a>
+</nav>
+
+<main>
+  <p class="meta">Legal</p>
+  <h1>Privacy Policy</h1>
+  <p class="lede">Last updated: June 2, 2026. This policy explains what Quiet Focus collects and why, in plain language.</p>
+
+  <h2>Who we are</h2>
+  <p>Quiet Focus (“we,” “us”) is a student focus timer and assignment reminder app available at <a href="https://www.quietfocusai.com">quietfocusai.com</a>. Questions: <a href="mailto:quietfocusai@gmail.com">quietfocusai@gmail.com</a>.</p>
+
+  <h2>What we collect</h2>
+  <p>What we collect depends on how you use the app:</p>
+  <ul>
+    <li><strong>Account info (optional):</strong> If you sign in, we store your email and basic profile info from Google or email/password signup (via Supabase Auth).</li>
+    <li><strong>Focus sessions:</strong> Task name, session length, distractions, breaks, and recap stats — only if you sign in and use cloud sync.</li>
+    <li><strong>Assignments:</strong> Titles, courses, due dates, and reminder status you add or confirm after scanning.</li>
+    <li><strong>Push notifications:</strong> If you enable reminders, your browser generates a push subscription endpoint stored so we can send due-date alerts.</li>
+    <li><strong>Waitlist:</strong> Email address if you join the waitlist on our website.</li>
+    <li><strong>Assignment scans:</strong> When you use AI scan while signed in, extracted text from your upload (not the original PDF/image file) is sent to our server and then to Google Gemini to pull out dates and task names. We trim this to about 2,500 characters of relevant lines.</li>
+    <li><strong>Local data (guest mode):</strong> If you use the demo without signing in, assignments and sessions may stay on your device only (browser storage).</li>
+    <li><strong>Technical logs:</strong> Our hosting and database providers may log IP addresses, device type, and error data for security and reliability.</li>
+  </ul>
+
+  <h2>How we use your information</h2>
+  <ul>
+    <li>Run the focus timer, assignment list, and reminders you ask for</li>
+    <li>Sync your data across devices when you sign in</li>
+    <li>Send optional push or in-app reminders before due dates</li>
+    <li>Extract assignment details from scanned documents (AI scan, signed-in users only)</li>
+    <li>Improve reliability, prevent abuse, and respond to support requests</li>
+    <li>Email waitlist subscribers when the mobile app is ready (one-time updates, no spam)</li>
+  </ul>
+
+  <h2>What we do not do</h2>
+  <ul>
+    <li>We do not sell your personal information.</li>
+    <li>We do not use your data for third-party advertising.</li>
+    <li>We do not upload your full PDF or photo to AI — only extracted text you already see in the scan preview.</li>
+    <li>Reminders use preset friendly messages; we do not send your assignments to an AI to write notification text.</li>
+  </ul>
+
+  <h2>Third-party services</h2>
+  <p>We use trusted providers to run the app:</p>
+  <ul>
+    <li><strong>Supabase</strong> — authentication, database, and edge functions</li>
+    <li><strong>Google</strong> — optional sign-in (OAuth) and Gemini AI for assignment scan extraction</li>
+    <li><strong>Vercel</strong> — website hosting</li>
+    <li><strong>Browser push services</strong> — Apple, Google, or Mozilla, depending on your device, to deliver notifications you opted into</li>
+  </ul>
+  <p>Each provider has its own privacy policy. We only share the minimum data needed for them to provide their service.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li><strong>Guest mode:</strong> Use the app without an account; data stays local on your device.</li>
+    <li><strong>Notifications:</strong> Optional. You can decline permission or disable reminders in the app.</li>
+    <li><strong>AI scan:</strong> Optional. Local date parsing works without AI. AI scan requires sign-in.</li>
+    <li><strong>Delete data:</strong> Email us to request account or data deletion. You can also clear site data in your browser settings.</li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>Quiet Focus is built for students. If you are under 13, please use the app only with a parent or guardian’s permission. We do not knowingly collect personal information from children under 13 without appropriate consent.</p>
+
+  <h2>Security & retention</h2>
+  <p>We use industry-standard hosting and encrypted connections (HTTPS). No system is 100% secure. We keep your data while your account is active or as needed to provide the service, then delete or anonymize it when you ask or when it is no longer required.</p>
+
+  <h2>International users</h2>
+  <p>Our servers and providers may be in the United States. By using Quiet Focus, you understand your information may be processed there.</p>
+
+  <h2>Changes</h2>
+  <p>We may update this policy as the app grows. We will change the “Last updated” date at the top. Continued use after changes means you accept the updated policy.</p>
+
+  <h2>Contact</h2>
+  <p>Email <a href="mailto:quietfocusai@gmail.com">quietfocusai@gmail.com</a> with privacy questions or deletion requests.</p>
+</main>
+
+<footer>
+  <div>&copy; 2026 Quiet Focus</div>
+  <div class="footer-links">
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+    <a href="index.html">Home</a>
+    <a href="mailto:quietfocusai@gmail.com">Contact</a>
+  </div>
+</footer>
+
+</body>
+</html>
