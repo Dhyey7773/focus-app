@@ -1,179 +1,3988 @@
-(function () {
-  function getConfig() {
-    return window.APP_CONFIG || {};
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Quiet Focus</title>
+  <meta name="description" content="A distraction-aware focus timer. Notice when you drift, come back gently.">
+  <meta name="theme-color" content="#07080a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Quiet Focus">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="mascot-hybrid.css">
+  <script src="config.js"></script>
+  <script src="auth-captcha.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-sessions.js"></script>
+  <script src="supabase-assignments.js"></script>
+  <script src="assignment-scan.js"></script>
+  <script src="quiet-reminder-copy.js"></script>
+  <script src="push-notifications.js"></script>
+  <style>
+/* ═══════════════════════════════════════
+   TOKENS — exact from your app
+═══════════════════════════════════════ */
+:root {
+  --bg:         #07080a;
+  --panel:      #0c0e11;
+  --panel-2:    #12151a;
+  --line:       rgba(255,255,255,0.08);
+  --line-2:     rgba(255,255,255,0.13);
+  --muted:      rgba(238,242,248,0.42);
+  --muted-2:    rgba(238,242,248,0.64);
+  --text:       #f6f7fb;
+  --accent:     #f6f7fb;
+  --accent-ink: #0a0b0d;
+  --success:    #94dab1;
+  --warning:    #ffcf70;
+  --danger:     rgba(255,100,100,0.85);
+  --mint-dim:   rgba(148,218,177,0.10);
+  --radius:     18px;
+  font-family: Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { min-height:100%; }
+html { scroll-behavior:smooth; }
+
+body {
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 72% 16%,rgba(84,92,115,.18),transparent 27rem),
+    radial-gradient(circle at 16% 78%,rgba(55,64,81,.14),transparent 25rem),
+    var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+
+button,input,textarea { color:inherit; font:inherit; }
+button { border:0; cursor:pointer; }
+button:focus-visible,input:focus-visible { outline:2px solid rgba(255,255,255,.64); outline-offset:2px; }
+button:disabled { cursor:not-allowed; opacity:.42; }
+
+.sr-only {
+  border:0; clip:rect(0 0 0 0); clip-path:inset(50%);
+  height:1px; margin:-1px; overflow:hidden;
+  position:absolute; white-space:nowrap; width:1px;
+}
+
+/* ═══════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════ */
+#boot-screen {
+  position:fixed;
+  inset:0;
+  z-index:200;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+  transition:opacity .4s ease, visibility .4s ease;
+}
+#boot-screen.is-done {
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+#auth-screen {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  opacity:1;
+  transition:opacity .35s ease;
+}
+#auth-screen.is-hidden {
+  opacity:0;
+  pointer-events:none;
+  position:fixed;
+  inset:0;
+}
+
+#app-screen {
+  display:none;
+  opacity:0;
+  transition:opacity .4s ease;
+}
+#app-screen.is-visible {
+  opacity:1;
+}
+
+.auth-card {
+  background:var(--panel);
+  border:1px solid var(--line-2);
+  border-radius:28px;
+  padding:40px 36px;
+  width:100%;
+  max-width:400px;
+  box-shadow:0 32px 80px rgba(0,0,0,.5);
+  animation:authIn .55s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes authIn {
+  from { opacity:0; transform:translateY(14px) scale(.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.auth-logo {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:32px;
+}
+
+.auth-logo-icon {
+  width:36px; height:36px;
+  border-radius:10px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+
+.auth-logo-icon img {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.auth-logo-name {
+  font-size:17px;
+  font-weight:540;
+  letter-spacing:-0.03em;
+}
+
+.auth-logo-name span { color:var(--success); }
+
+.auth-tabs {
+  display:flex;
+  background:var(--panel-2);
+  border-radius:12px;
+  padding:4px;
+  gap:4px;
+  margin-bottom:28px;
+}
+
+.auth-tab {
+  flex:1;
+  padding:9px;
+  border-radius:9px;
+  font-size:13px;
+  font-weight:500;
+  background:transparent;
+  color:var(--muted-2);
+  transition:background .15s, color .15s;
+}
+
+.auth-tab.active {
+  background:var(--panel);
+  color:var(--text);
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+
+.auth-form { display:flex; flex-direction:column; gap:14px; }
+
+.auth-field { display:flex; flex-direction:column; gap:7px; }
+
+.auth-label {
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.auth-input {
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  border-radius:12px;
+  padding:13px 16px;
+  font-size:15px;
+  color:var(--text);
+  transition:border-color .15s;
+  outline:none;
+  width:100%;
+}
+
+.auth-input::placeholder { color:var(--muted); }
+.auth-input:focus { border-color:rgba(148,218,177,.45); }
+
+.auth-submit {
+  background:var(--accent);
+  color:var(--accent-ink);
+  border-radius:13px;
+  padding:14px;
+  font-size:15px;
+  font-weight:540;
+  margin-top:6px;
+  transition:opacity .15s, transform .12s;
+  width:100%;
+}
+.auth-submit:hover { opacity:.88; }
+.auth-submit:active { transform:scale(.985); }
+
+.auth-divider {
+  display:flex; align-items:center; gap:12px;
+  font-size:12px; color:var(--muted); margin:20px 0 22px;
+}
+.auth-divider::before,.auth-divider::after {
+  content:''; flex:1; height:1px; background:var(--line);
+}
+
+.auth-social {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:2px;
+}
+
+.auth-oauth {
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  border-radius:13px;
+  padding:12px 10px;
+  font-size:13px;
+  font-weight:500;
+  color:var(--muted-2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
+  width:100%;
+}
+.auth-oauth:hover:not(:disabled) {
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  border-color:rgba(255,255,255,.18);
+}
+.auth-oauth:active:not(:disabled) { transform:scale(.98); }
+.auth-oauth svg { flex-shrink:0; }
+
+.auth-error,
+.auth-success {
+  border-radius:10px;
+  font-size:13px;
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  padding:0 14px;
+  transition:max-height .3s ease, opacity .25s ease, padding .3s ease, margin .3s ease;
+  margin:0;
+}
+.auth-error.is-visible,
+.auth-success.is-visible {
+  max-height:120px;
+  opacity:1;
+  padding:11px 14px;
+  margin-bottom:14px;
+}
+.auth-error {
+  background:rgba(255,80,80,.1);
+  border:1px solid rgba(255,80,80,.2);
+  color:rgba(255,130,130,.9);
+}
+.auth-success {
+  background:var(--mint-dim);
+  border:1px solid rgba(148,218,177,.2);
+  color:var(--success);
+}
+
+.auth-footer {
+  margin-top:24px;
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+  line-height:1.6;
+}
+.auth-skip-wrap {
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--line);
+  text-align:center;
+}
+.auth-skip {
+  width:100%;
+  min-height:44px;
+  border-radius:12px;
+  border:1px solid var(--line-2);
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+}
+.auth-skip:hover { background:rgba(255,255,255,.04); }
+.auth-skip-note {
+  margin-top:8px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.45;
+}
+
+.auth-captcha-wrap {
+  display:flex;
+  justify-content:center;
+  min-height:65px;
+  margin:2px 0 4px;
+}
+.auth-captcha-wrap.is-hidden { display:none; }
+
+/* ═══════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════ */
+.showcase {
+  align-items:center;
+  display:flex;
+  gap:clamp(3rem,10vw,9rem);
+  justify-content:center;
+  min-height:100vh;
+  padding:28px;
+}
+
+/* Top user bar */
+.user-bar {
+  position:fixed;
+  top:0; left:0; right:0;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(7,8,10,.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
+}
+
+.ub-logo {
+  font-size:14px;
+  font-weight:540;
+  letter-spacing:-0.03em;
+  color:var(--text);
+  text-decoration:none;
+}
+.ub-logo:hover { opacity:0.85; }
+.ub-logo span { color:var(--success); }
+
+.ub-home {
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  color:var(--muted);
+  text-decoration:none;
+  transition:color .15s, border-color .15s;
+}
+.ub-home:hover { color:var(--text); border-color:var(--line-2); }
+
+.ub-right { display:flex; align-items:center; gap:12px; }
+
+.ub-email {
+  font-size:12px;
+  color:var(--muted);
+  max-width:180px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media (max-width:600px) {
+  .ub-email { display:none; }
+}
+
+.ub-avatar {
+  width:32px; height:32px;
+  border-radius:50%;
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px;
+  font-weight:600;
+  color:var(--success);
+}
+
+.ub-signout {
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 12px;
+  font-size:12px;
+  color:var(--muted);
+  transition:color .15s, border-color .15s;
+}
+.ub-signout:hover { color:var(--text); border-color:var(--line-2); }
+
+/* ═══════════════════════════════════════
+   INTRO SIDEBAR (your exact style)
+═══════════════════════════════════════ */
+.intro { max-width:374px; }
+.eyebrow {
+  color:var(--muted);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.16em;
+  margin-bottom:20px;
+  text-transform:uppercase;
+}
+.intro h1 {
+  font-size:clamp(42px,5.2vw,58px);
+  font-weight:560;
+  letter-spacing:-.065em;
+  line-height:1.02;
+  margin-bottom:20px;
+}
+.intro-copy {
+  color:var(--muted-2);
+  font-size:16px;
+  line-height:1.65;
+  margin-bottom:38px;
+}
+.feature-list { display:flex; flex-wrap:wrap; gap:9px; }
+.feature-list span {
+  border:1px solid var(--line);
+  border-radius:999px;
+  color:var(--muted-2);
+  font-size:12px;
+  padding:10px 14px;
+}
+
+/* user stats in sidebar */
+.user-stats {
+  margin-top:32px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+}
+.us-label {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+.us-row {
+  display:flex;
+  justify-content:space-between;
+}
+.us-item { text-align:center; }
+.us-num { font-size:22px; font-weight:480; display:block; }
+.us-lbl { font-size:10px; color:var(--muted); margin-top:3px; display:block; }
+
+/* ═══════════════════════════════════════
+   DEVICE (your exact style)
+═══════════════════════════════════════ */
+.device {
+  background:#050608;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:48px;
+  box-shadow:0 38px 90px rgba(0,0,0,.65), inset 0 1px rgba(255,255,255,.06);
+  flex:0 0 390px;
+  overflow:hidden;
+  padding:7px;
+}
+.device-edge {
+  background:var(--panel);
+  border-radius:40px;
+  display:flex;
+  flex-direction:column;
+  height:min(844px,calc(100dvh - 72px));
+  min-height:min(720px,calc(100dvh - 72px));
+  overflow:hidden;
+  position:relative;
+}
+.phone-header {
+  background:var(--panel);
+  flex-shrink:0;
+  height:60px;
+  padding-top:9px;
+  position:relative;
+}
+.island {
+  background:#050608;
+  border-radius:99px;
+  height:26px;
+  left:50%;
+  position:absolute;
+  top:9px;
+  transform:translateX(-50%);
+  width:108px;
+}
+.status-bar {
+  align-items:center;
+  color:rgba(238,242,248,.7);
+  display:flex;
+  font-size:12px;
+  font-weight:500;
+  justify-content:space-between;
+  padding:14px 28px 0;
+}
+.status-icons { display:flex; gap:7px; }
+.status-icons svg { fill:none; height:12px; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.6; width:20px; }
+.status-icons svg:last-child { width:24px; }
+.status-icons .battery-fill { fill:currentColor; stroke:none; }
+
+.app-surface {
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding:13px 22px 19px;
+  scrollbar-width:none;
+}
+.app-surface::-webkit-scrollbar { display:none; }
+
+.page {
+  display:none;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .28s ease, transform .28s ease;
+}
+.page.active {
+  display:block;
+  opacity:1;
+  transform:translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .page,
+  #auth-screen,
+  #app-screen,
+  #boot-screen,
+  .toast { animation:none; transition:none; }
+  .page.active { transform:none; }
+}
+
+/* ═══════════════════════════════════════
+   HOME — Quiet companion
+═══════════════════════════════════════ */
+.home-companion {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:4px 4px 20px;
+  min-height:min(560px, calc(100vh - 200px));
+}
+.home-greeting {
+  color:var(--muted-2);
+  font-size:15px;
+  font-weight:500;
+  letter-spacing:-.02em;
+  margin:4px 0 0;
+  width:100%;
+  text-align:left;
+}
+.home-name { display:none; }
+.home-mascot-stage {
+  flex:1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:min(40vh, 320px);
+  max-height:min(50vh, 400px);
+  margin:4px 0 0;
+  position:relative;
+  background:
+    radial-gradient(ellipse 90% 80% at 50% 55%, rgba(58,64,72,.4) 0%, transparent 72%),
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(148,218,177,.06) 0%, transparent 70%);
+}
+.quiet-mascot {
+  position:relative;
+  margin:0;
+}
+.quiet-mascot--hero {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.quiet-mascot-glow {
+  position:absolute;
+  width:min(320px, 88vw);
+  height:min(320px, 88vw);
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.16) 0%, rgba(58,64,72,.22) 30%, transparent 64%),
+    radial-gradient(circle at 50% 62%, rgba(42,47,54,.38) 0%, transparent 58%);
+  filter:blur(20px);
+  z-index:0;
+  pointer-events:none;
+  animation:quiet-glow-pulse 5s ease-in-out infinite;
+  transition:background .45s ease, opacity .45s ease;
+}
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-mascot-glow,
+.quiet-mascot--hero[data-mood="happy"] .quiet-mascot-glow {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(148,218,177,.22) 0%, rgba(58,64,72,.18) 32%, transparent 64%),
+    radial-gradient(circle at 50% 62%, rgba(148,218,177,.08) 0%, transparent 58%);
+}
+.quiet-mascot--hero[data-mood="celebrating"] .quiet-mascot-glow {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.22) 0%, rgba(148,218,177,.12) 35%, transparent 66%);
+  animation:quiet-glow-pulse 1.8s ease-in-out infinite;
+}
+.quiet-mascot--hero[data-mood="reminder"] .quiet-mascot-glow {
+  animation:quiet-glow-pulse 2.2s ease-in-out infinite;
+}
+.quiet-mascot--hero[data-mood="thinking"] .quiet-mascot-glow {
+  opacity:.7;
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-mascot-glow {
+  opacity:.55;
+  animation:none;
+}
+@keyframes quiet-glow-pulse {
+  0%, 100% { opacity:.85; transform:scale(1); }
+  50% { opacity:1; transform:scale(1.04); }
+}
+.quiet-art-wrap {
+  position:relative;
+  display:inline-block;
+  line-height:0;
+  background:transparent;
+}
+.quiet-art {
+  display:block;
+  height:auto;
+  pointer-events:none;
+  user-select:none;
+}
+.quiet-mascot--hero .quiet-art-wrap {
+  position:relative;
+  z-index:1;
+  animation:quiet-breathe 4.5s ease-in-out infinite;
+}
+@keyframes quiet-breathe {
+  0%, 100% { transform:translateY(0) rotate(0deg); }
+  50% { transform:translateY(-10px) rotate(.5deg); }
+}
+.quiet-art--hero {
+  width:min(260px, 74vw);
+  max-height:min(46vh, 340px);
+  object-fit:contain;
+  object-position:center bottom;
+  mix-blend-mode:lighten;
+  filter:
+    brightness(1.1)
+    contrast(1.05)
+    saturate(1.02)
+    drop-shadow(0 28px 52px rgba(0,0,0,.5))
+    drop-shadow(0 0 48px rgba(255,255,255,.12));
+  transition:filter .4s ease, transform .4s ease;
+}
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-art--hero,
+.quiet-mascot--hero[data-mood="happy"] .quiet-art--hero {
+  filter:
+    brightness(1.14)
+    contrast(1.05)
+    drop-shadow(0 28px 52px rgba(0,0,0,.5))
+    drop-shadow(0 0 56px rgba(148,218,177,.18));
+}
+.quiet-mascot--hero[data-mood="celebrating"] .quiet-art--hero {
+  transform:scale(1.03);
+  filter:
+    brightness(1.16)
+    drop-shadow(0 28px 52px rgba(0,0,0,.5))
+    drop-shadow(0 0 64px rgba(255,255,255,.16));
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-art--hero {
+  filter:
+    brightness(.92)
+    contrast(.98)
+    drop-shadow(0 20px 40px rgba(0,0,0,.45));
+  opacity:.92;
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiet-mascot--hero .quiet-art-wrap,
+  .quiet-mascot-glow { animation:none; }
+}
+.quiet-art--session {
+  mix-blend-mode:lighten;
+  width:80px;
+  height:auto;
+  object-fit:contain;
+  filter:
+    brightness(1.08)
+    drop-shadow(0 8px 20px rgba(0,0,0,.45))
+    drop-shadow(0 0 24px rgba(255,255,255,.08));
+}
+.quiet-mascot--sm .quiet-art-wrap {
+  padding:6px;
+  border-radius:18px;
+  background:linear-gradient(165deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.02) 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.quiet-mascot--sm { margin:0; flex-shrink:0; }
+.quiet-badge {
+  position:absolute;
+  top:-6px;
+  right:-10px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--line-2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  opacity:0;
+  transform:scale(.8);
+  transition:opacity .2s ease, transform .2s ease;
+  pointer-events:none;
+  z-index:2;
+}
+.quiet-mascot[data-mood="reminder"] .quiet-badge,
+.quiet-mascot[data-mood="encouraging"] .quiet-badge,
+.quiet-mascot[data-mood="celebrating"] .quiet-badge,
+.quiet-mascot[data-mood="rest"] .quiet-badge {
+  opacity:1;
+  transform:scale(1);
+}
+.quiet-mascot[data-mood="reminder"] .quiet-badge::after { content:"🔔"; font-size:12px; }
+.quiet-mascot[data-mood="encouraging"] .quiet-badge::after { content:"♡"; color:rgba(240,242,247,.85); }
+.quiet-mascot[data-mood="celebrating"] .quiet-badge::after { content:"✦"; }
+.quiet-mascot[data-mood="rest"] .quiet-badge::after { content:"z"; font-size:11px; letter-spacing:-2px; }
+.quiet-mascot[data-mood="celebrating"] .quiet-art {
+  transform:scale(1.03);
+  filter:drop-shadow(0 12px 28px rgba(0,0,0,.5)) drop-shadow(0 0 32px rgba(255,255,255,.1));
+  transition:transform .3s ease, filter .3s ease;
+}
+.quiet-art { transition:transform .3s ease, filter .3s ease; }
+.quiet-screen {
+  width:100%;
+  height:100%;
+  border-radius:28%;
+  background:linear-gradient(165deg, #3A4048 0%, #2E333B 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -6px 14px rgba(0,0,0,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.quiet-face {
+  position:relative;
+  width:72%;
+  height:58%;
+  min-width:32px;
+  min-height:18px;
+}
+.quiet-eye {
+  position:absolute;
+  top:4px;
+  width:12px;
+  height:8px;
+  border-radius:99px;
+  background:#f0f2f7;
+  box-shadow:0 0 10px rgba(240,242,247,.35);
+  transition:all .25s ease;
+}
+.quiet-eye.left { left:5px; }
+.quiet-eye.right { right:5px; }
+.quiet-mouth {
+  position:absolute;
+  left:50%;
+  bottom:3px;
+  transform:translateX(-50%);
+  width:16px;
+  height:3px;
+  border-radius:99px;
+  background:rgba(240,242,247,.9);
+  box-shadow:0 0 8px rgba(240,242,247,.25);
+  transition:all .25s ease;
+}
+/* Focused */
+.quiet-mascot[data-mood="focused"] .quiet-mouth,
+.quiet-mascot[data-mood="idle"] .quiet-mouth,
+.quiet-mascot[data-mood="happy"] .quiet-mouth {
+  width:14px; height:3px; border-radius:0 0 9px 9px; background:transparent;
+  border-bottom:3px solid rgba(240,242,247,.92);
+}
+/* Thinking (drift / pause) */
+.quiet-mascot[data-mood="thinking"] .quiet-eye.right { transform:translateY(-4px) scale(1.05); }
+.quiet-mascot[data-mood="thinking"] .quiet-mouth {
+  width:10px; height:3px; border-radius:99px; background:rgba(240,242,247,.7);
+}
+/* Encouraging */
+.quiet-mascot[data-mood="encouraging"] .quiet-mouth {
+  width:18px; border-bottom-color:rgba(240,242,247,.95);
+}
+/* Celebrating */
+.quiet-mascot[data-mood="celebrating"] .quiet-mouth {
+  width:22px; height:9px; border-radius:0 0 12px 12px; background:transparent;
+  border-bottom:3px solid rgba(240,242,247,.95);
+  box-shadow:0 0 10px rgba(240,242,247,.2);
+}
+.quiet-mascot[data-mood="celebrating"]::before,
+.quiet-mascot[data-mood="celebrating"]::after {
+  content:"✦";
+  position:absolute;
+  color:rgba(255,255,255,.35);
+  font-size:10px;
+  animation:quiet-sparkle 1.2s ease infinite;
+}
+.quiet-mascot[data-mood="celebrating"]::before { top:0; left:8px; }
+.quiet-mascot[data-mood="celebrating"]::after { top:12px; right:4px; animation-delay:.4s; }
+@keyframes quiet-sparkle {
+  0%, 100% { opacity:.3; transform:translateY(0); }
+  50% { opacity:1; transform:translateY(-4px); }
+}
+/* Rest */
+.quiet-mascot[data-mood="rest"] .quiet-eye {
+  height:3px; top:8px; width:14px; border-radius:2px;
+  box-shadow:none;
+}
+.quiet-mascot[data-mood="rest"] .quiet-mouth { opacity:0; }
+/* Reminder */
+.quiet-mascot[data-mood="reminder"] .quiet-mouth {
+  width:12px; height:3px; border-radius:99px; background:rgba(240,242,247,.75);
+  border-bottom:none;
+}
+.home-quiet-title {
+  font-size:22px;
+  font-weight:560;
+  letter-spacing:-.04em;
+  margin:0 0 10px;
+  color:var(--text);
+}
+.home-quiet-copy {
+  color:var(--muted-2);
+  font-size:14px;
+  line-height:1.65;
+  max-width:320px;
+  margin:0 auto 12px;
+}
+.home-quiet-motto {
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  width:100%;
+  font-size:11px;
+  line-height:1.5;
+  color:var(--muted);
+}
+.home-quiet-motto strong { color:var(--muted-2); font-weight:500; }
+.coach-quiet-row {
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  margin:30px 0 20px;
+}
+.coach-quiet-row .coach-quiet-copy { flex:1; min-width:0; }
+.coach-quiet-row .meta-label { margin-bottom:6px; }
+.home-summary {
+  width:100%;
+  margin-bottom:14px;
+}
+.home-summary p {
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+  margin:0 0 4px;
+}
+.home-suggested {
+  width:100%;
+  margin-bottom:14px;
+  padding:14px 14px 12px;
+  border-radius:14px;
+  background:var(--mint-dim);
+  border:1px solid rgba(148,218,177,.2);
+  text-align:left;
+}
+.home-suggested .meta-label { margin-bottom:6px; }
+.home-suggested-title {
+  font-size:14px;
+  font-weight:520;
+  color:var(--text);
+  margin:0 0 6px;
+  line-height:1.35;
+}
+.home-suggested-copy {
+  font-size:12px;
+  line-height:1.5;
+  color:var(--muted-2);
+  margin:0 0 10px;
+}
+.home-suggested-btn {
+  width:100%;
+  min-height:40px;
+  font-size:13px;
+}
+.home-content {
+  width:100%;
+  flex-shrink:0;
+}
+.home-start-btn {
+  width:100%;
+  min-height:50px;
+  margin-bottom:16px;
+  font-size:15px;
+}
+.home-streak-block {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+.home-streak-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 18px;
+  border-radius:999px;
+  background:rgba(42,47,54,.45);
+  border:1px solid rgba(255,255,255,.1);
+  font-size:14px;
+  color:var(--muted-2);
+  box-shadow:0 0 24px rgba(255,255,255,.04);
+}
+.home-streak-pill strong {
+  color:var(--text);
+  font-weight:560;
+  font-size:16px;
+}
+.home-streak-days {
+  display:flex;
+  gap:4px;
+  justify-content:center;
+}
+
+/* Focus setup tab */
+.focus-setup-header {
+  margin:8px 0 12px;
+}
+.focus-setup-title {
+  font-size:22px;
+  font-weight:520;
+  letter-spacing:-.04em;
+}
+.focus-setup-sub {
+  color:var(--muted);
+  font-size:13px;
+  margin-top:6px;
+  line-height:1.45;
+}
+
+.greeting { color:var(--muted); font-size:13px; letter-spacing:.02em; margin-top:10px; }
+.name-input {
+  background:transparent; border:0;
+  color:var(--text);
+  display:block;
+  font-size:31px; font-weight:520;
+  letter-spacing:-.05em; line-height:1.2;
+  margin:8px 0 5px; width:100%;
+}
+.tagline { color:var(--muted); font-size:13px; margin-bottom:24px; }
+.meta-label { color:var(--muted); font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+
+.streak-card {
+  align-items:center;
+  background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.025));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:17px;
+  padding:15px 14px;
+}
+.streak-copy { color:var(--muted-2); font-size:12px; margin-top:7px; }
+.streak-copy strong { color:var(--text); font-size:16px; margin-right:3px; }
+.streak-days { align-items:end; display:flex; gap:4px; }
+.day-bar { background:rgba(255,255,255,.1); border-radius:99px; height:18px; width:5px; }
+.day-bar.done { background:rgba(255,255,255,.7); }
+.day-bar.today { height:24px; }
+.day-bar.today.done { background:#fff; }
+
+.session-builder {
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:22px;
+  margin-bottom:22px;
+  padding:16px;
+}
+.task-input {
+  background:transparent; border:0;
+  border-bottom:1px solid var(--line);
+  color:var(--text); font-size:15px;
+  margin-top:12px; padding-bottom:14px; width:100%;
+}
+.task-input::placeholder { color:var(--muted); }
+
+.duration-picker { border:0; display:flex; gap:7px; margin:15px 0; }
+.duration {
+  background:rgba(255,255,255,.04);
+  border:1px solid transparent;
+  border-radius:11px;
+  color:var(--muted-2);
+  flex:1; font-size:12px; padding:10px 0;
+  transition:background 160ms ease,border 160ms ease,color 160ms ease;
+}
+.duration.selected {
+  background:rgba(255,255,255,.1);
+  border-color:rgba(255,255,255,.14);
+  color:var(--text);
+}
+
+.primary,.secondary {
+  border-radius:14px;
+  font-size:14px;
+  font-weight:520;
+  min-height:48px;
+  transition:opacity 150ms ease,transform 150ms ease;
+}
+.primary:active,.secondary:active { transform:scale(.985); }
+.primary { background:var(--accent); color:var(--accent-ink); }
+.secondary { background:rgba(255,255,255,.065); border:1px solid var(--line); color:var(--muted-2); }
+.start-button { width:100%; }
+
+.row-heading { align-items:center; display:flex; justify-content:space-between; margin-bottom:11px; }
+.text-button { background:transparent; color:var(--muted); font-size:12px; padding:4px; }
+.text-button:hover { color:var(--text); }
+.hidden { visibility:hidden; }
+
+.empty-state { border:1px dashed var(--line); border-radius:15px; color:var(--muted); font-size:12px; line-height:1.55; padding:15px; }
+.last-summary { align-items:center; background:rgba(255,255,255,.035); border-radius:15px; display:flex; justify-content:space-between; padding:14px; }
+.last-task { color:var(--text); font-size:13px; margin-bottom:5px; }
+.last-details { color:var(--muted); font-size:11px; }
+.last-score { color:var(--text); font-size:24px; font-weight:500; }
+
+.coach-note {
+  background:rgba(255,255,255,.032);
+  border-radius:var(--radius);
+  color:var(--muted-2);
+  font-size:13px; line-height:1.6;
+  margin-top:15px; padding:15px;
+}
+.coach-note .meta-label,.coach-live .meta-label,.recap-insight .meta-label { margin-bottom:8px; }
+
+/* cloud sync badge */
+.sync-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:11px;
+  color:var(--success);
+  background:rgba(148,218,177,.08);
+  border:1px solid rgba(148,218,177,.15);
+  border-radius:99px;
+  padding:4px 10px;
+  margin-top:10px;
+}
+
+/* ═══════════════════════════════════════
+   SESSION PAGE (your exact style)
+═══════════════════════════════════════ */
+.session-header { align-items:start; display:flex; justify-content:space-between; margin:9px 0 25px; }
+.session-task { color:var(--text); font-size:14px; margin-top:8px; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.timer-ring {
+  --progress:0deg;
+  align-items:center;
+  background:conic-gradient(#f6f7fb var(--progress),rgba(255,255,255,.065) var(--progress));
+  border-radius:50%;
+  display:flex;
+  height:240px; justify-content:center;
+  margin:0 auto 30px;
+  position:relative; width:240px;
+  transition:background .35s ease;
+}
+.timer-ring::after {
+  background:var(--panel);
+  border-radius:50%;
+  content:"";
+  height:226px; position:absolute; width:226px;
+}
+.timer-center { position:relative; text-align:center; z-index:1; }
+.timer-number { font-size:56px; font-variant-numeric:tabular-nums; font-weight:450; letter-spacing:-.07em; }
+.timer-status { color:var(--muted); font-size:11px; font-weight:600; letter-spacing:.13em; margin-top:7px; text-transform:uppercase; }
+
+.live-metrics,.recap-metrics { display:grid; gap:1px; grid-template-columns:repeat(3,1fr); }
+.live-metrics div,.recap-metrics div { border-right:1px solid var(--line); text-align:center; }
+.live-metrics div:last-child,.recap-metrics div:last-child { border-right:0; }
+.live-metrics strong,.recap-metrics strong { display:block; font-size:23px; font-weight:450; margin-bottom:5px; }
+.live-metrics span,.recap-metrics span { color:var(--muted); display:block; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+
+.coach-live {
+  background:rgba(255,255,255,.045);
+  border-radius:var(--radius);
+  color:var(--muted-2);
+  font-size:13px; line-height:1.55;
+  margin:30px 0 20px; min-height:76px; padding:15px;
+}
+.session-controls { display:grid; gap:8px; grid-template-columns:repeat(2,1fr); }
+.session-controls .primary { grid-column:span 2; }
+
+/* ═══════════════════════════════════════
+   RECAP PAGE (your exact style)
+═══════════════════════════════════════ */
+.recap-header { margin:10px 0 27px; }
+.score-row { align-items:baseline; display:flex; gap:7px; margin:10px 0 7px; }
+.score-row strong { font-size:63px; font-weight:450; letter-spacing:-.065em; line-height:1; }
+.score-row span { color:var(--muted); font-size:15px; }
+.recap-caption { color:var(--muted); font-size:13px; }
+.recap-insight { border-top:1px solid var(--line); color:var(--muted-2); font-size:13px; line-height:1.65; margin-top:28px; padding-top:21px; }
+.timeline { border-top:1px solid var(--line); margin-top:20px; padding-top:21px; }
+.timeline-item { color:var(--muted-2); display:flex; font-size:12px; gap:12px; line-height:1.45; margin-top:14px; }
+.timeline-time { color:var(--muted); flex:0 0 40px; font-variant-numeric:tabular-nums; }
+.timeline-dot { background:rgba(255,255,255,.7); border-radius:50%; flex:0 0 6px; height:6px; margin-top:5px; }
+.timeline-item[data-type="distraction"] .timeline-dot { background:var(--warning); }
+.timeline-item[data-type="refocus"] .timeline-dot,.timeline-item[data-type="complete"] .timeline-dot { background:var(--success); }
+.recap-actions { display:grid; gap:8px; margin-top:25px; }
+
+/* ═══════════════════════════════════════
+   HISTORY PAGE (new)
+═══════════════════════════════════════ */
+.history-header { margin:10px 0 20px; }
+.history-last-card {
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--line);
+}
+.history-title { font-size:22px; font-weight:520; letter-spacing:-.04em; margin-bottom:6px; }
+.history-list { display:flex; flex-direction:column; gap:8px; }
+.history-item {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  cursor:pointer;
+  transition:background .15s;
+}
+.history-item:hover { background:rgba(255,255,255,.06); }
+.hi-task { font-size:13px; color:var(--text); margin-bottom:4px; }
+.hi-meta { font-size:11px; color:var(--muted); }
+.hi-score { font-size:22px; font-weight:480; }
+
+/* ═══════════════════════════════════════
+   ASSIGNMENTS
+═══════════════════════════════════════ */
+.assign-header { margin:8px 0 16px; }
+.assign-title { font-size:22px; font-weight:520; letter-spacing:-.04em; }
+.assign-sub { color:var(--muted); font-size:13px; line-height:1.5; margin-top:6px; }
+.assign-hint { color:var(--muted); font-size:11px; line-height:1.45; margin-top:8px; }
+.push-card {
+  background:rgba(148,218,177,.06);
+  border:1px solid rgba(148,218,177,.18);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:16px;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  justify-content:space-between;
+}
+.push-card.is-enabled {
+  background:rgba(255,255,255,.03);
+  border-color:var(--line);
+}
+.push-card-copy strong { display:block; font-size:13px; font-weight:520; margin-bottom:4px; }
+.push-card-copy p { color:var(--muted-2); font-size:12px; line-height:1.45; margin:0; }
+.push-card-actions { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+.push-card-actions button { min-height:36px; font-size:12px; padding:8px 12px; white-space:nowrap; }
+.push-card-actions .ghost {
+  background:transparent; border:0; color:var(--muted); padding:6px 8px; min-height:auto;
+}
+.assign-form {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:16px;
+}
+.assign-form .auth-input { padding:11px 14px; font-size:14px; }
+.assign-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.assign-section-label {
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin:14px 0 8px;
+}
+.assign-list { display:flex; flex-direction:column; gap:8px; }
+.assign-card {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+}
+.assign-card.is-urgent { border-color:rgba(255,100,100,.35); background:rgba(255,100,100,.06); }
+.assign-card.is-soon { border-color:rgba(255,207,112,.28); }
+.assign-card.is-done { opacity:.55; }
+.assign-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+.assign-name { font-size:14px; font-weight:520; letter-spacing:-.02em; line-height:1.35; }
+.assign-course { color:var(--muted); font-size:11px; margin-top:3px; }
+.assign-badge {
+  flex-shrink:0;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  padding:4px 8px;
+  border-radius:999px;
+  background:var(--mint-dim);
+  color:var(--success);
+}
+.assign-badge.urgent { background:rgba(255,100,100,.15); color:var(--danger); }
+.assign-badge.soon { background:rgba(255,207,112,.12); color:var(--warning); }
+.assign-meta { color:var(--muted-2); font-size:12px; margin-top:8px; line-height:1.45; }
+.assign-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.assign-actions .primary { min-height:40px; font-size:13px; padding:10px; }
+.assign-actions .secondary { min-height:40px; font-size:13px; padding:10px; }
+.assign-scan {
+  margin-top:12px;
+  padding:14px;
+  border:1px dashed var(--line-2);
+  border-radius:14px;
+  text-align:left;
+}
+.assign-scan-title {
+  font-size:13px;
+  font-weight:520;
+  color:var(--text);
+  margin:0 0 4px;
+}
+.assign-scan-sub {
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.45;
+  margin:0 0 12px;
+}
+.assign-scan-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.assign-scan-btn {
+  flex:1 1 auto;
+  min-height:40px;
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--line-2);
+  background:rgba(255,255,255,.04);
+  color:var(--muted-2);
+  font-size:12px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.assign-scan-btn:hover { background:rgba(255,255,255,.07); }
+.assign-scan-btn:disabled { opacity:.5; cursor:not-allowed; }
+.assign-scan-status {
+  margin-top:10px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.45;
+  flex:1;
+}
+.assign-scan-toolbar {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+}
+.assign-scan-cancel {
+  flex:0 0 auto;
+  min-height:34px;
+  padding:6px 14px;
+  border-radius:10px;
+  border:1px solid var(--line-2);
+  background:transparent;
+  color:var(--muted-2);
+  font-size:12px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.assign-scan-cancel:hover { color:var(--text); border-color:rgba(255,255,255,.22); }
+.assign-scan-cancel[hidden] { display:none; }
+.assign-scan-preview {
+  margin-top:12px;
+  display:none;
+}
+.assign-scan-preview.is-visible { display:block; }
+.assign-scan-preview label {
+  display:block;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:10px 0 6px;
+}
+.assign-scan-md {
+  width:100%;
+  min-height:88px;
+  max-height:140px;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(0,0,0,.25);
+  color:var(--muted-2);
+  font-size:11px;
+  font-family:ui-monospace, monospace;
+  line-height:1.45;
+  resize:vertical;
+}
+.assign-scan-results { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.assign-scan-add-all {
+  width:100%; min-height:40px; margin-bottom:4px;
+  border:1px solid rgba(255,255,255,.14); border-radius:12px;
+  background:rgba(255,255,255,.06); color:var(--text); font-size:13px; font-weight:600;
+}
+.assign-scan-add-all:hover { background:rgba(255,255,255,.1); }
+.assign-scan-item {
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+}
+.assign-scan-item strong { display:block; font-size:13px; margin-bottom:4px; }
+.assign-scan-item p { font-size:11px; color:var(--muted); margin:0 0 8px; line-height:1.4; }
+.assign-scan-item button { width:100%; min-height:36px; }
+.due-banner {
+  background:var(--mint-dim);
+  border:1px solid rgba(148,218,177,.22);
+  border-radius:14px;
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+.due-banner.urgent {
+  background:rgba(255,100,100,.08);
+  border-color:rgba(255,100,100,.28);
+}
+.due-banner p { font-size:13px; line-height:1.45; color:var(--muted-2); }
+.due-banner strong { color:var(--text); display:block; margin-bottom:4px; font-size:14px; }
+.due-banner button { margin-top:10px; width:100%; }
+
+.reminder-modal {
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px;
+  background:rgba(0,0,0,.62);
+  backdrop-filter:blur(6px);
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+.reminder-modal.is-visible { opacity:1; visibility:visible; }
+.reminder-sheet {
+  background:var(--panel);
+  border:1px solid var(--line-2);
+  border-radius:22px 22px 18px 18px;
+  padding:22px 18px 18px;
+  width:min(420px,100%);
+  transform:translateY(16px);
+  transition:transform .25s ease;
+}
+.reminder-modal.is-visible .reminder-sheet { transform:translateY(0); }
+.reminder-sheet h2 { font-size:20px; font-weight:520; letter-spacing:-.03em; margin-bottom:6px; }
+.reminder-sheet p { color:var(--muted-2); font-size:14px; line-height:1.5; margin-bottom:16px; }
+.reminder-actions { display:grid; gap:8px; }
+.reminder-actions .primary, .reminder-actions .secondary, .reminder-actions .ghost {
+  min-height:44px; border-radius:12px; font-size:14px; font-weight:500;
+}
+.reminder-actions .ghost {
+  background:transparent; border:0; color:var(--muted); padding:10px;
+}
+
+/* ═══════════════════════════════════════
+   TAB BAR (your exact style)
+═══════════════════════════════════════ */
+.tab-bar {
+  background:rgba(12,14,17,.97);
+  border-top:1px solid var(--line);
+  display:flex;
+  flex-shrink:0;
+  height:68px;
+  padding:8px 18px 7px;
+}
+.tab {
+  align-items:center; background:transparent;
+  color:rgba(238,242,248,.3);
+  display:flex; flex:1; flex-direction:column;
+  gap:4px; transition:color 150ms ease;
+}
+.tab.active { color:var(--text); }
+.tab svg { fill:none; height:21px; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.7; width:21px; }
+.tab span { font-size:10px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; }
+
+/* ═══════════════════════════════════════
+   TOAST (your exact style)
+═══════════════════════════════════════ */
+.toast {
+  background:#f6f7fb;
+  border-radius:999px;
+  bottom:80px;
+  box-shadow:0 12px 26px rgba(0,0,0,.45);
+  color:#0a0b0d;
+  font-size:12px;
+  left:50%;
+  opacity:0;
+  padding:11px 16px;
+  pointer-events:none;
+  position:absolute;
+  transform:translate(-50%,8px);
+  transition:opacity 160ms ease,transform 160ms ease;
+  white-space:nowrap;
+  z-index:4;
+}
+.toast.show { opacity:1; transform:translate(-50%,0); }
+
+.ub-sync {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  color:var(--success);
+  opacity:0;
+  transition:opacity .25s ease;
+}
+.ub-sync.is-active { opacity:1; }
+.ub-sync .spinner { width:14px; height:14px; border-width:1.5px; }
+
+/* ═══════════════════════════════════════
+   RESPONSIVE (your exact)
+═══════════════════════════════════════ */
+@media (max-height:760px) {
+  .app-surface { padding-bottom:12px; padding-top:7px; }
+  .session-header { margin:4px 0 13px; }
+  .timer-ring { height:182px; margin-bottom:15px; width:182px; }
+  .timer-ring::after { height:170px; width:170px; }
+  .timer-number { font-size:46px; }
+  .coach-live { line-height:1.45; margin:16px 0 12px; min-height:0; padding:12px 14px; }
+  .coach-live .meta-label { margin-bottom:5px; }
+  .primary,.secondary { min-height:43px; }
+}
+@media (max-width:850px) { .showcase { padding:18px; } .intro { display:none; } }
+@media (max-width:430px) {
+  body { background:var(--panel); }
+  .showcase { display:block; min-height:100dvh; padding:0; }
+  .device { border:0; border-radius:0; box-shadow:none; min-height:100dvh; padding:0; width:100%; }
+  .device-edge { border-radius:0; height:100dvh; min-height:0; }
+  .user-bar { display:none; }
+}
+
+/* loading spinner */
+.spinner {
+  width:20px; height:20px;
+  border:2px solid var(--line);
+  border-top-color:var(--success);
+  border-radius:50%;
+  animation:spin .6s linear infinite;
+  display:inline-block;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.install-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 300;
+  width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%) translateY(120%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform .35s ease, opacity .35s ease, visibility .35s ease;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+}
+.install-banner.is-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+.install-banner p {
+  color: var(--muted-2);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+.install-banner-actions {
+  display: flex;
+  gap: 8px;
+}
+.install-banner-actions button {
+  flex: 1;
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.install-banner-actions .install-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.install-banner-actions .install-secondary {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--muted-2);
+}
+  </style>
+</head>
+<body>
+
+<div class="install-banner" id="install-banner" hidden>
+  <p id="install-copy">Install Quiet Focus on your home screen for quick access during study sessions.</p>
+  <div class="install-banner-actions">
+    <button type="button" class="install-primary" id="install-accept">Install</button>
+    <button type="button" class="install-secondary" id="install-dismiss">Not now</button>
+  </div>
+</div>
+
+<div id="boot-screen" aria-hidden="true" aria-busy="true">
+  <span class="spinner" aria-label="Loading"></span>
+</div>
+
+<!-- ═══════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════ -->
+<div id="auth-screen" class="is-hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <img src="icons/icon-192.png" width="36" height="36" alt="">
+      </div>
+      <div class="auth-logo-name">Quiet <span>Focus</span></div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign in</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create account</button>
+    </div>
+
+    <div id="auth-error" class="auth-error" role="alert"></div>
+    <div id="auth-success" class="auth-success" role="status"></div>
+
+    <div class="auth-captcha-wrap is-hidden" id="auth-captcha-wrap" aria-label="Security check">
+      <div id="auth-captcha"></div>
+    </div>
+
+    <div class="auth-social" aria-label="Sign in with Google">
+      <button type="button" class="auth-oauth" id="btn-oauth-google" onclick="handleGoogleSignIn()">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+    </div>
+    <div class="auth-divider">or use email</div>
+
+    <!-- SIGN IN FORM -->
+    <form class="auth-form" id="form-signin" onsubmit="handleSignIn(event)">
+      <div class="auth-field">
+        <label class="auth-label" for="si-email">Email</label>
+        <input class="auth-input" id="si-email" type="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="si-password">Password</label>
+        <input class="auth-input" id="si-password" type="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button class="auth-submit" type="submit" id="btn-signin">Sign in</button>
+      <p class="auth-footer">Focus sessions saved securely to your account.<br>No spam. Unsubscribe anytime.</p>
+    </form>
+
+    <!-- SIGN UP FORM -->
+    <form class="auth-form" id="form-signup" style="display:none" onsubmit="handleSignUp(event)">
+      <div class="auth-field">
+        <label class="auth-label" for="su-name">Your name</label>
+        <input class="auth-input" id="su-name" type="text" placeholder="What should we call you?" required maxlength="28" autocomplete="given-name">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="su-email">Email</label>
+        <input class="auth-input" id="su-email" type="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="su-password">Password</label>
+        <input class="auth-input" id="su-password" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+      </div>
+      <button class="auth-submit" type="submit" id="btn-signup">Create account</button>
+      <p class="auth-footer">Your sessions sync across devices.<br>Free forever, no card needed.</p>
+    </form>
+
+    <div class="auth-skip-wrap">
+      <button type="button" class="auth-skip" id="btn-guest-demo" onclick="enterGuestMode()">Continue without account</button>
+      <p class="auth-skip-note">Try the timer now. Sessions save on this device only.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════ -->
+<div id="app-screen">
+
+  <!-- top user bar -->
+  <div class="user-bar">
+    <a href="index.html" class="ub-logo">Quiet <span>Focus</span></a>
+    <div class="ub-right">
+      <a href="index.html" class="ub-home">Home</a>
+      <span class="ub-sync" id="ub-sync" aria-live="polite"><span class="spinner"></span> Syncing</span>
+      <span class="ub-email" id="ub-email"></span>
+      <div class="ub-avatar" id="ub-avatar" title="Account">?</div>
+      <button class="ub-signout" type="button" onclick="handleSignOut()">Sign out</button>
+    </div>
+  </div>
+
+  <main class="showcase" style="padding-top:80px;">
+    <!-- sidebar -->
+    <section class="intro" aria-label="App introduction">
+      <p class="eyebrow">Quiet Focus</p>
+      <h1>Focus, with a calmer coach.</h1>
+      <p class="intro-copy">An AI focus coach and timer: run one session, notice when you drift, get a short recap after — no lecture, just what happened.</p>
+      <div class="feature-list" aria-label="Features">
+        <span>Focus timer</span>
+        <span>Drift counter</span>
+        <span>Coach recap</span>
+      </div>
+      <div class="user-stats" id="user-stats" style="display:none">
+        <p class="us-label">Your progress</p>
+        <div class="us-row">
+          <div class="us-item">
+            <span class="us-num" id="us-sessions">0</span>
+            <span class="us-lbl">sessions</span>
+          </div>
+          <div class="us-item">
+            <span class="us-num" id="us-hours">0h</span>
+            <span class="us-lbl">focused</span>
+          </div>
+          <div class="us-item">
+            <span class="us-num" id="us-streak">0</span>
+            <span class="us-lbl">day streak</span>
+          </div>
+        </div>
+      </div>
+      <div class="sync-badge" id="sync-badge" style="display:none">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#94dab1" stroke-width="1.2"/></svg>
+        Syncing to cloud
+      </div>
+    </section>
+
+    <!-- phone -->
+    <section class="device" aria-label="Quiet Focus application">
+      <div class="device-edge">
+        <header class="phone-header">
+          <div class="island" aria-hidden="true"></div>
+          <div class="status-bar" aria-hidden="true">
+            <span id="clock">9:41</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 4.5C5.5.5 12.5.5 17 4.5M4 7c3-2.5 7-2.5 10 0M7 9.5c1.1-.8 2.9-.8 4 0"/></svg>
+              <svg viewBox="0 0 24 12"><rect x="1" y="1" width="19" height="10" rx="3"/><path d="M22 4v4"/><rect class="battery-fill" x="3" y="3" width="14" height="6" rx="1"/></svg>
+            </span>
+          </div>
+        </header>
+
+        <div class="app-surface">
+
+          <!-- HOME — Quiet companion -->
+          <section class="page active" id="page-home" aria-label="Home">
+            <div class="home-companion">
+              <p class="home-greeting" id="greeting">Good evening</p>
+              <p class="home-name" id="home-display-name" hidden>Your Name</p>
+
+              <div class="home-mascot-stage mascot-hybrid" id="home-mascot-hybrid">
+                <div class="quiet-mascot quiet-mascot--hero" id="quiet-mascot" data-mood="idle" aria-label="Quiet, your focus companion">
+                  <div class="quiet-mascot-glow" aria-hidden="true"></div>
+                  <span class="quiet-badge" aria-hidden="true"></span>
+                  <div class="quiet-art-wrap mascot-hybrid-stage">
+                    <img class="quiet-art quiet-art--hero mascot-hybrid-png" src="icons/quiet-hero.png" width="360" height="400" alt="Quiet, your focus companion">
+                    <model-viewer
+                      class="mascot-hybrid-3d"
+                      alt=""
+                      auto-rotate
+                      rotation-per-second="10deg"
+                      interaction-prompt="none"
+                      shadow-intensity="0.7"
+                      exposure="1.05"
+                      camera-orbit="0deg 72deg 115%"
+                      loading="lazy"
+                      aria-hidden="true">
+                    </model-viewer>
+                  </div>
+                </div>
+              </div>
+
+              <div class="home-content">
+                <h2 class="home-quiet-title">Hi, I'm Quiet.</h2>
+                <p class="home-quiet-copy" id="quiet-intro">I'll help you stay focused through gentle reminders, check-ins, and session summaries.</p>
+
+                <div class="home-summary" id="home-summary" aria-live="polite">
+                  <p id="home-tasks-line" hidden>No tasks due soon.</p>
+                  <p id="home-streak-line" hidden>Start your first focus session today.</p>
+                </div>
+
+                <div class="home-suggested" id="home-suggested" hidden>
+                  <p class="meta-label">Suggested next</p>
+                  <p class="home-suggested-title" id="home-suggested-title"></p>
+                  <p class="home-suggested-copy" id="home-suggested-copy"></p>
+                  <button type="button" class="secondary home-suggested-btn" id="home-suggested-btn">Start focus block</button>
+                </div>
+
+                <button class="primary home-start-btn" type="button" id="home-start-btn">Start focus session</button>
+
+                <div class="home-streak-block">
+                  <div class="home-streak-pill" aria-label="Focus streak">
+                    <span>Streak</span>
+                    <strong id="streak-count">0</strong>
+                    <span>day<span id="streak-plural">s</span></span>
+                  </div>
+                  <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
+                </div>
+
+                <p class="home-quiet-motto">Distraction is not failure. <strong>Return is the practice.</strong></p>
+              </div>
+            </div>
+          </section>
+
+          <!-- FOCUS SETUP -->
+          <section class="page" id="page-focus" aria-label="Focus setup">
+            <div class="focus-setup-header">
+              <p class="meta-label">Focus</p>
+              <p class="focus-setup-title">Ready to focus?</p>
+              <p class="focus-setup-sub">Pick your task and duration. Quiet will check in during your session.</p>
+            </div>
+            <form class="session-builder" id="session-form">
+              <label class="meta-label" for="username">Your name</label>
+              <input class="auth-input" id="username" type="text" maxlength="28" value="Your Name" autocomplete="nickname" style="margin-bottom:12px">
+              <label class="meta-label" for="task-input">Task</label>
+              <input class="task-input" id="task-input" type="text" maxlength="64" placeholder="What needs your attention?" value="Deep work session">
+              <fieldset class="duration-picker">
+                <legend class="sr-only">Choose session duration</legend>
+                <button type="button" class="duration" data-duration="25">25 min</button>
+                <button type="button" class="duration selected" data-duration="45">45 min</button>
+                <button type="button" class="duration" data-duration="60">60 min</button>
+              </fieldset>
+              <button class="primary start-button" type="submit">Start session</button>
+            </form>
+          </section>
+
+          <!-- SESSION (active timer) -->
+          <section class="page session-page" id="page-session" aria-label="Active focus session">
+            <header class="session-header">
+              <div>
+                <p class="meta-label">Focusing on</p>
+                <p class="session-task" id="session-task">Deep work session</p>
+              </div>
+              <button class="text-button" id="finish-session" type="button">Finish</button>
+            </header>
+            <div class="timer-ring" id="timer-ring">
+              <div class="timer-center">
+                <p class="timer-number" id="timer-display">45:00</p>
+                <p class="timer-status" id="timer-status">Remaining</p>
+              </div>
+            </div>
+            <div class="live-metrics" aria-label="Live session metrics">
+              <div><strong id="focused-metric">0</strong><span id="focused-metric-label">focused min</span></div>
+              <div><strong id="distracted-metric">0</strong><span>distractions</span></div>
+              <div><strong id="breaks-metric">0</strong><span>breaks</span></div>
+            </div>
+            <aside class="coach-live">
+              <div class="coach-quiet-row">
+                <div class="quiet-mascot quiet-mascot--sm" id="session-quiet" data-mood="focused" aria-hidden="true">
+                  <span class="quiet-badge" aria-hidden="true"></span>
+                  <div class="quiet-art-wrap">
+                    <img class="quiet-art quiet-art--session" src="icons/quiet-mood-focused.png" width="148" height="158" alt="">
+                  </div>
+                </div>
+                <div class="coach-quiet-copy">
+                  <p class="meta-label">Quiet</p>
+                  <p id="coach-message">Your focus window is open. Keep the next action simple.</p>
+                </div>
+              </div>
+            </aside>
+            <div class="session-controls">
+              <button class="secondary" id="pause-button" type="button">Pause</button>
+              <button class="secondary" id="break-button" type="button">Take a break</button>
+              <button class="primary" id="distraction-button" type="button">I'm distracted</button>
+            </div>
+          </section>
+
+          <!-- RECAP -->
+          <section class="page recap-page" id="page-recap" aria-label="Session recap">
+            <header class="recap-header">
+              <p class="meta-label">Session complete</p>
+              <div class="score-row">
+                <strong id="final-score">100</strong><span>pts</span>
+              </div>
+              <p class="recap-caption" id="recap-caption">Nice work returning to what matters.</p>
+            </header>
+            <div class="recap-metrics" aria-label="Session summary">
+              <div><strong id="recap-focused">0m</strong><span>focused</span></div>
+              <div><strong id="recap-distractions">0</strong><span>distractions</span></div>
+              <div><strong id="recap-breaks">0</strong><span>breaks</span></div>
+            </div>
+            <aside class="recap-insight">
+              <p class="meta-label">Quiet says</p>
+              <p id="recap-insight">Consistency becomes easier one session at a time.</p>
+            </aside>
+            <section class="timeline" aria-label="Timeline">
+              <p class="meta-label">Timeline</p>
+              <div id="timeline"></div>
+            </section>
+            <div class="recap-actions">
+              <button class="primary" id="restart-button" type="button">Start another session</button>
+              <button class="secondary" id="done-button" type="button">Done</button>
+            </div>
+          </section>
+
+          <!-- ASSIGNMENTS -->
+          <section class="page" id="page-assignments" aria-label="Assignments">
+            <div class="due-banner" id="tasks-due-banner" hidden>
+              <strong id="tasks-due-title"></strong>
+              <p id="tasks-due-copy"></p>
+              <button class="primary" type="button" id="tasks-due-start">Start focus session</button>
+            </div>
+            <div class="assign-header">
+              <p class="meta-label">Deadlines</p>
+              <p class="assign-title">Assignments</p>
+              <p class="assign-sub">Add what’s due. Start a focus session when it’s time.</p>
+              <p class="assign-hint">In-app popups when the app is open. Enable phone reminders below for alerts when it is closed.</p>
+            </div>
+
+            <div class="push-card" id="push-card">
+              <div class="push-card-copy">
+                <strong>Phone reminders</strong>
+                <p id="push-status">Notify at 24h, 6h, and 1h before due — even when Quiet Focus is closed.</p>
+              </div>
+              <div class="push-card-actions">
+                <button type="button" class="secondary" id="push-enable-btn">Enable</button>
+                <button type="button" class="ghost hidden" id="push-test-btn">Test</button>
+              </div>
+            </div>
+
+            <form class="assign-form" id="assign-form">
+              <input class="auth-input" id="assign-title" type="text" maxlength="80" placeholder="Assignment name" required>
+              <input class="auth-input" id="assign-course" type="text" maxlength="40" placeholder="Course (optional)">
+              <div class="assign-row">
+                <input class="auth-input" id="assign-due-date" type="date" required aria-label="Due date">
+                <input class="auth-input" id="assign-due-time" type="time" value="23:59" required aria-label="Due time">
+              </div>
+              <div class="assign-row">
+                <input class="auth-input" id="assign-estimate" type="number" min="5" max="480" step="5" value="60" placeholder="Minutes" aria-label="Estimated minutes">
+                <button class="primary" type="submit" style="min-height:46px">Add assignment</button>
+              </div>
+            </form>
+
+            <div class="assign-scan" id="assign-scan">
+              <p class="assign-scan-title">Scan syllabus or assignment</p>
+              <p class="assign-scan-sub">PDF, photo, or .txt — Quiet pulls due dates only (saves AI tokens).</p>
+              <div class="assign-scan-actions">
+                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                  PDF
+                  <input type="file" id="scan-pdf-input" accept="application/pdf,.pdf" hidden>
+                </label>
+                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                  Photo
+                  <input type="file" id="scan-photo-input" accept="image/*,.png,.jpg,.jpeg,.webp" hidden>
+                </label>
+                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                  Text
+                  <input type="file" id="scan-txt-input" accept="text/plain,.txt" hidden>
+                </label>
+              </div>
+              <div class="assign-scan-toolbar">
+                <p class="assign-scan-status" id="scan-status">Works offline with smart date parsing. Sign in for AI extraction.</p>
+                <button type="button" class="assign-scan-cancel" id="scan-cancel-btn" hidden>Cancel</button>
+              </div>
+              <div class="assign-scan-preview" id="scan-preview">
+                <label for="scan-markdown">Extracted notes (markdown)</label>
+                <textarea class="assign-scan-md" id="scan-markdown" readonly aria-label="Extracted markdown"></textarea>
+                <label>Found assignments</label>
+                <div class="assign-scan-results" id="scan-results"></div>
+              </div>
+            </div>
+
+            <p class="assign-section-label">Upcoming</p>
+            <div class="assign-list" id="assign-pending-list">
+              <div class="empty-state">No assignments yet. Add one above.</div>
+            </div>
+
+            <p class="assign-section-label">Completed</p>
+            <div class="assign-list" id="assign-done-list">
+              <div class="empty-state">Finished assignments appear here.</div>
+            </div>
+          </section>
+
+          <!-- HISTORY -->
+          <section class="page" id="page-history" aria-label="Session history">
+            <div class="history-header">
+              <p class="meta-label">Your sessions</p>
+              <p class="history-title">Session history</p>
+            </div>
+            <section class="history-last-card last-card" aria-label="Most recent session">
+              <div class="row-heading">
+                <p class="meta-label">Last session</p>
+                <button class="text-button hidden" type="button" id="clear-history">Clear</button>
+              </div>
+              <div id="last-session" class="empty-state">Your first completed session will appear here.</div>
+            </section>
+            <div class="history-list" id="history-list">
+              <div class="empty-state">Complete sessions to build your history.</div>
+            </div>
+          </section>
+
+        </div><!-- end app-surface -->
+
+        <nav class="tab-bar" aria-label="Primary navigation">
+          <button class="tab active" data-page="home" type="button" aria-current="page">
+            <svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>
+            <span>Home</span>
+          </button>
+          <button class="tab" data-page="assignments" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Tasks</span>
+          </button>
+          <button class="tab" data-page="session" type="button">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span>Focus</span>
+          </button>
+          <button class="tab" data-page="history" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>History</span>
+          </button>
+        </nav>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Due reminder modal (in-app) -->
+<div class="reminder-modal" id="reminder-modal" hidden aria-modal="true" role="dialog" aria-labelledby="reminder-title">
+  <div class="reminder-sheet">
+    <p class="meta-label" id="reminder-label">Reminder</p>
+    <h2 id="reminder-title">Assignment due soon</h2>
+    <p id="reminder-copy"></p>
+    <div class="reminder-actions">
+      <button class="primary" type="button" id="reminder-start">Start focus session</button>
+      <button class="secondary" type="button" id="reminder-done">Mark completed</button>
+      <button class="ghost" type="button" id="reminder-snooze">Remind me in 1 hour</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  SUPABASE INIT
+//  Replace with your actual keys from .env.local
+// ═══════════════════════════════════════
+const cfg = window.APP_CONFIG || {};
+const SUPABASE_URL = cfg.SUPABASE_URL || 'https://pyqnhbuzpagosqxsjvwg.supabase.co';
+const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cW5oYnV6cGFnb3NxeHNqdndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTc1NzksImV4cCI6MjA5NTM3MzU3OX0.XorO-8qaHlgpDsPUqcOv6WDxP0op_hWAQ73rVHf28qo';
+
+if (!window.supabase?.createClient) {
+  throw new Error('Supabase failed to load. Check your network or CDN script.');
+}
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+window.supabaseClient = sb;
+window.FocusAuth = { getSupabase: () => sb };
+
+// ═══════════════════════════════════════
+//  AUTH STATE
+// ═══════════════════════════════════════
+let currentUser = null;
+let bootDone = false;
+let signedInUserId = null;
+let profileLoading = false;
+let signingOut = false;
+let guestMode = false;
+const GUEST_KEY = 'quiet-focus-guest-v1';
+
+function isGuestMode() {
+  return guestMode || sessionStorage.getItem(GUEST_KEY) === '1';
+}
+
+function enterGuestMode() {
+  guestMode = true;
+  sessionStorage.setItem(GUEST_KEY, '1');
+  currentUser = null;
+  signedInUserId = null;
+  clearAuthMessages();
+  showAppScreen();
+  updateGuestBar();
+  renderHome();
+  renderAssignments();
+  renderPushCard();
+  initAssignmentFormDefaults();
+  startReminderPoll();
+  setTimeout(maybeShowDueReminder, 500);
+  hideBootScreen();
+}
+
+function exitGuestMode() {
+  guestMode = false;
+  sessionStorage.removeItem(GUEST_KEY);
+  const signOutBtn = document.querySelector('.ub-signout');
+  if (signOutBtn) signOutBtn.textContent = 'Sign out';
+  showAuthScreen();
+}
+
+function updateGuestBar() {
+  if (!isGuestMode() || currentUser) return;
+  const sync = document.getElementById('ub-sync');
+  document.getElementById('ub-email').textContent = 'Local demo';
+  document.getElementById('ub-avatar').textContent = 'G';
+  if (sync) {
+    sync.innerHTML = 'Local only';
+    sync.classList.remove('spinner');
+  }
+  const signOutBtn = document.querySelector('.ub-signout');
+  if (signOutBtn) signOutBtn.textContent = 'Sign in';
+  const stats = document.getElementById('user-stats');
+  if (stats) stats.style.display = 'none';
+}
+
+function oauthRedirectUrl() {
+  const base = (window.APP_CONFIG?.SITE_URL || window.location.origin).replace(/\/$/, "");
+  return `${base}/live-demo.html`;
+}
+
+function hideBootScreen() {
+  if (bootDone) return;
+  bootDone = true;
+  const boot = document.getElementById('boot-screen');
+  if (boot) {
+    boot.classList.add('is-done');
+    boot.setAttribute('aria-busy', 'false');
+    setTimeout(() => boot.remove(), 450);
+  }
+  // Safety net: never leave a blank screen under the boot overlay
+  const app = document.getElementById('app-screen');
+  const auth = document.getElementById('auth-screen');
+  const appVisible = app && (app.classList.contains('is-visible') || app.style.display === 'block');
+  if (!appVisible && !currentUser && !isGuestMode()) {
+    showAuthScreen();
+  }
+}
+
+// Hide boot quickly even if later init code throws
+setTimeout(hideBootScreen, 4000);
+document.addEventListener('DOMContentLoaded', () => setTimeout(hideBootScreen, 3500));
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (signingOut && session) {
+    hideBootScreen();
+    return;
   }
 
-  function getClient() {
-    return window.FocusAuth?.getSupabase?.() || window.supabaseClient || null;
+  currentUser = session?.user || null;
+
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    signedInUserId = null;
+    stopReminderPoll();
+    hideReminderModal();
+    showAuthScreen();
+    hideBootScreen();
+    return;
   }
 
-  function urlB64ToUint8Array(base64String) {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-    const raw = atob(base64);
-    const arr = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-    return arr;
-  }
-
-  function subscriptionPayload(subscription) {
-    const json = subscription.toJSON();
-    return {
-      endpoint: json.endpoint,
-      p256dh: json.keys?.p256dh || "",
-      auth: json.keys?.auth || ""
-    };
-  }
-
-  async function getRegistration() {
-    if (!("serviceWorker" in navigator)) return null;
-    return navigator.serviceWorker.ready;
-  }
-
-  function isSupported() {
-    return (
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window
-    );
-  }
-
-  function isStandalone() {
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true
-    );
-  }
-
-  function permissionState() {
-    if (!("Notification" in window)) return "unsupported";
-    return Notification.permission;
-  }
-
-  async function subscribe() {
-    const vapidKey = getConfig().VAPID_PUBLIC_KEY;
-    if (!vapidKey) {
-      throw new Error("Push not configured yet — add VAPID_PUBLIC_KEY to config.js");
+  if (currentUser) {
+    if (
+      event === 'SIGNED_IN' ||
+      (event === 'INITIAL_SESSION' && session)
+    ) {
+      cleanAuthRedirectFromUrl();
     }
 
-    const registration = await getRegistration();
-    if (!registration) throw new Error("Service worker not ready");
+    const isNewSignIn =
+      event === 'SIGNED_IN' ||
+      event === 'INITIAL_SESSION' ||
+      currentUser.id !== signedInUserId;
 
-    let subscription = await registration.pushManager.getSubscription();
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(vapidKey)
-      });
+    if (isNewSignIn) {
+      signedInUserId = currentUser.id;
+      await onUserSignedIn();
     }
-
-    await saveSubscription(subscription);
-    return subscription;
+  } else {
+    signedInUserId = null;
+    if (isGuestMode()) {
+      showAppScreen();
+      updateGuestBar();
+      renderHome();
+      startReminderPoll();
+      setTimeout(maybeShowDueReminder, 500);
+    } else {
+      showAuthScreen();
+    }
   }
 
-  async function saveSubscription(subscription) {
-    const supabase = getClient();
-    if (!supabase) throw new Error("Not signed in");
+  hideBootScreen();
+});
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) throw new Error("Not signed in");
-
-    const payload = subscriptionPayload(subscription);
-    const { error } = await supabase.from("push_subscriptions").upsert(
-      {
-        user_id: session.user.id,
-        endpoint: payload.endpoint,
-        p256dh: payload.p256dh,
-        auth: payload.auth,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "endpoint" }
-    );
-
-    if (error) throw error;
-    localStorage.setItem("quiet-focus-push-enabled", "1");
-    return true;
+function cleanAuthRedirectFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const errDesc = params.get("error_description") || hashParams.get("error_description");
+  const errCode = params.get("error") || hashParams.get("error");
+  if (errDesc || errCode) {
+    showAuthError(decodeURIComponent(String(errDesc || errCode).replace(/\+/g, " ")));
   }
-
-  async function enablePushReminders() {
-    if (!isSupported()) {
-      throw new Error("This browser does not support push notifications");
-    }
-
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      throw new Error("Notification permission denied");
-    }
-
-    await subscribe();
-    return permission;
+  const hasHash = window.location.hash.includes("access_token");
+  const hasCode = window.location.search.includes("code=");
+  if (hasHash || hasCode || errDesc || errCode) {
+    history.replaceState(null, "", oauthRedirectUrl());
   }
+}
 
-  async function disablePushReminders() {
-    const registration = await getRegistration();
-    if (!registration) return;
+function formatAuthError(error) {
+  const msg = error?.message || 'Sign in failed.';
+  if (/email not confirmed/i.test(msg)) {
+    return 'Email not confirmed yet. Check your inbox and click the confirmation link, then try again.';
+  }
+  if (/captcha/i.test(msg)) {
+    const captchaOn = window.AuthCaptcha?.isEnabled?.();
+    const hasToken = window.AuthCaptcha?.getToken?.();
+    if (!captchaOn) {
+      return 'Supabase requires a security check, but CAPTCHA is not set up in the app. Either add TURNSTILE_SITE_KEY to config.js, or turn off CAPTCHA in Supabase → Authentication → Attack Protection.';
+    }
+    if (!hasToken) {
+      return 'Complete the security check box above, then try again.';
+    }
+    return 'Security check failed. Complete the CAPTCHA and try again.';
+  }
+  if (/invalid login credentials/i.test(msg)) {
+    return 'Wrong email or password. Double-check and try again.';
+  }
+  if (/redirect|callback|url configuration/i.test(msg)) {
+    return 'Google sign-in redirect mismatch. In Supabase → Authentication → URL Configuration, add: ' + oauthRedirectUrl();
+  }
+  return msg;
+}
 
-    const subscription = await registration.pushManager.getSubscription();
-    if (subscription) {
-      const supabase = getClient();
-      if (supabase) {
-        await supabase
-          .from("push_subscriptions")
-          .delete()
-          .eq("endpoint", subscription.endpoint);
+async function onUserSignedIn() {
+  if (profileLoading) return;
+  profileLoading = true;
+  guestMode = false;
+  sessionStorage.removeItem(GUEST_KEY);
+  const signOutBtn = document.querySelector('.ub-signout');
+  if (signOutBtn) signOutBtn.textContent = 'Sign out';
+  try {
+    showAppScreen();
+    updateUserBar();
+    await loadProfileFromSupabase();
+    await loadAssignmentsFromSupabase();
+    renderAssignments();
+    renderHome();
+    renderPushCard();
+    await window.PushReminders?.syncSubscriptionIfEnabled?.();
+    setTimeout(maybeShowDueReminder, 500);
+    startReminderPoll();
+  } finally {
+    profileLoading = false;
+  }
+}
+
+function showAuthScreen() {
+  if (isGuestMode()) return;
+  const auth = document.getElementById('auth-screen');
+  const app = document.getElementById('app-screen');
+  app.style.display = 'none';
+  app.classList.remove('is-visible');
+  auth.style.display = 'flex';
+  auth.classList.remove('is-hidden');
+  initAuthCaptcha();
+}
+
+async function initAuthCaptcha() {
+  const wrap = document.getElementById('auth-captcha-wrap');
+  if (!window.AuthCaptcha?.isEnabled?.()) {
+    if (wrap) wrap.classList.add('is-hidden');
+    return;
+  }
+  if (wrap) wrap.classList.remove('is-hidden');
+  try {
+    await window.AuthCaptcha.render('auth-captcha');
+  } catch (err) {
+    showAuthError(err.message || 'Could not load security check.');
+  }
+}
+
+function showAppScreen() {
+  const auth = document.getElementById('auth-screen');
+  const app = document.getElementById('app-screen');
+  auth.classList.add('is-hidden');
+  setTimeout(() => {
+    auth.style.display = 'none';
+    app.style.display = 'block';
+    requestAnimationFrame(() => app.classList.add('is-visible'));
+  }, 220);
+}
+
+function updateUserBar() {
+  if (!currentUser) return;
+  const email = currentUser.email || '';
+  const name  = currentUser.user_metadata?.name || email.split('@')[0] || '?';
+  document.getElementById('ub-email').textContent = email;
+  document.getElementById('ub-avatar').textContent = name.charAt(0).toUpperCase();
+}
+
+// ─── AUTH FORMS ───────────────────────
+
+function switchAuthTab(tab) {
+  document.getElementById('form-signin').style.display  = tab === 'signin'  ? 'flex' : 'none';
+  document.getElementById('form-signup').style.display  = tab === 'signup'  ? 'flex' : 'none';
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  clearAuthMessages();
+  window.AuthCaptcha?.reset?.();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  const ok = document.getElementById('auth-success');
+  el.textContent = msg;
+  el.classList.add('is-visible');
+  ok.classList.remove('is-visible');
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  const err = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.add('is-visible');
+  err.classList.remove('is-visible');
+}
+
+function clearAuthMessages() {
+  document.getElementById('auth-error').classList.remove('is-visible');
+  document.getElementById('auth-success').classList.remove('is-visible');
+}
+
+function setOAuthBusy(busy) {
+  document.querySelectorAll('.auth-oauth').forEach(btn => { btn.disabled = busy; });
+  document.querySelectorAll('.auth-submit').forEach(btn => { btn.disabled = busy; });
+}
+
+async function handleSignIn(e) {
+  e.preventDefault();
+  clearAuthMessages();
+  const btn = document.getElementById('btn-signin');
+  const email    = document.getElementById('si-email').value;
+  const password = document.getElementById('si-password').value;
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  try {
+    const options = await window.AuthCaptcha?.authOptions?.();
+    const { error } = await sb.auth.signInWithPassword({ email, password, options });
+    if (error) showAuthError(formatAuthError(error));
+  } catch (err) {
+    showAuthError(err.message || 'Sign in failed.');
+  } finally {
+    window.AuthCaptcha?.afterAttempt?.();
+    btn.textContent = 'Sign in';
+    btn.disabled = false;
+  }
+}
+
+async function handleSignUp(e) {
+  e.preventDefault();
+  clearAuthMessages();
+  const btn = document.getElementById('btn-signup');
+  const name     = document.getElementById('su-name').value;
+  const email    = document.getElementById('su-email').value;
+  const password = document.getElementById('su-password').value;
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  try {
+    const options = await window.AuthCaptcha?.authOptions?.({
+      data: { name },
+      emailRedirectTo: oauthRedirectUrl()
+    });
+    const { error } = await sb.auth.signUp({ email, password, options });
+    if (error) {
+      showAuthError(error.message);
+    } else {
+      showAuthSuccess('Check your email to confirm your account, then sign in.');
+    }
+  } catch (err) {
+    showAuthError(err.message || 'Sign up failed.');
+  } finally {
+    window.AuthCaptcha?.afterAttempt?.();
+    btn.textContent = 'Create account';
+    btn.disabled = false;
+  }
+}
+
+async function handleGoogleSignIn() {
+  clearAuthMessages();
+  setOAuthBusy(true);
+
+  try {
+    const captchaOpts = (await window.AuthCaptcha?.authOptions?.()) || {};
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        ...captchaOpts,
+        redirectTo: oauthRedirectUrl(),
+        queryParams: { prompt: "select_account" }
       }
-      await subscription.unsubscribe();
-    }
-
-    localStorage.removeItem("quiet-focus-push-enabled");
-  }
-
-  async function syncSubscriptionIfEnabled() {
-    if (localStorage.getItem("quiet-focus-push-enabled") !== "1") return;
-    if (permissionState() !== "granted") return;
-    try {
-      await subscribe();
-    } catch (err) {
-      console.warn("Push sync failed:", err.message || err);
-    }
-  }
-
-  async function sendTestNotification() {
-    const registration = await getRegistration();
-    if (!registration) throw new Error("Service worker not ready");
-    if (permissionState() !== "granted") {
-      throw new Error("Allow notifications first");
-    }
-    await registration.showNotification("Quiet Focus", {
-      body: "Push reminders are working. You will get alerts before assignments are due.",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: "quiet-focus-test",
-      data: { url: "./live-demo.html?page=assignments" }
     });
+    if (error) {
+      showAuthError(formatAuthError(error));
+      setOAuthBusy(false);
+      return;
+    }
+    if (data?.url) {
+      window.location.assign(data.url);
+    }
+  } catch (err) {
+    showAuthError(formatAuthError(err) || err.message || "Google sign in failed.");
+    setOAuthBusy(false);
+  } finally {
+    window.AuthCaptcha?.afterAttempt?.();
+  }
+}
+
+async function handleSignOut() {
+  if (isGuestMode() && !currentUser) {
+    exitGuestMode();
+    return;
+  }
+  if (signingOut) return;
+  signingOut = true;
+
+  const btn = document.querySelector('.ub-signout');
+  if (btn) btn.disabled = true;
+
+  currentUser = null;
+  signedInUserId = null;
+  session = null;
+  clearInterval(timerId);
+  profile.activeSession = null;
+  showAuthScreen();
+
+  try {
+    const { error } = await sb.auth.signOut({ scope: 'global' });
+    if (error) console.error('Sign out error:', error);
+    clearSupabaseAuthStorage();
+    profile.history = [];
+    saveProfile();
+    toast('Signed out');
+  } catch (err) {
+    console.error('Sign out error:', err);
+    clearSupabaseAuthStorage();
+    toast('Signed out locally');
+  } finally {
+    signingOut = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+function clearSupabaseAuthStorage() {
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+// ═══════════════════════════════════════
+//  SUPABASE DATA — save / load sessions
+// ═══════════════════════════════════════
+function setSyncUi(active) {
+  const badge = document.getElementById('sync-badge');
+  const bar = document.getElementById('ub-sync');
+  if (badge) badge.style.display = active ? 'inline-flex' : 'none';
+  if (bar) bar.classList.toggle('is-active', active);
+}
+
+async function saveSessionToSupabase(summary) {
+  if (!currentUser) {
+    toast('Saved locally — sign in to sync');
+    return;
   }
 
-  async function showLocalReminder({ title, body, tag, url }) {
-    if (permissionState() !== "granted") return;
-    const registration = await getRegistration();
-    if (!registration) return;
-    await registration.showNotification(title || "Quiet Focus", {
-      body: body || "Assignment reminder",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: tag || "quiet-focus-reminder",
-      data: { url: url || "./live-demo.html?page=assignments" }
-    });
+  setSyncUi(true);
+  try {
+    const result = await window.FocusSessions.save(summary);
+    if (result.ok) {
+      toast('Saved to cloud ✓', 3500);
+      updateSidebarStats();
+    } else {
+      console.error('Cloud save failed:', result);
+      toast(result.message || 'Cloud save failed', 4500);
+    }
+  } catch (err) {
+    console.error('Cloud save error:', err);
+    toast('Cloud save failed — check console');
+  } finally {
+    setSyncUi(false);
+  }
+}
+
+async function loadProfileFromSupabase() {
+  if (!currentUser) return;
+
+  const result = await window.FocusSessions.applyToProfile(profile);
+  if (result.ok) {
+    saveProfile();
+    if (result.count > 0) {
+      toast(`Loaded ${result.count} session${result.count === 1 ? '' : 's'} from cloud`);
+    }
+  } else {
+    console.warn('Could not load sessions:', result.message || result.reason);
+    toast(result.message || 'Could not load cloud sessions — finish a session to save new data');
   }
 
-  window.PushReminders = {
-    isSupported,
-    isStandalone,
-    permissionState,
-    enablePushReminders,
-    disablePushReminders,
-    syncSubscriptionIfEnabled,
-    sendTestNotification,
-    showLocalReminder
+  const name =
+    currentUser.user_metadata?.full_name ||
+    currentUser.user_metadata?.name ||
+    currentUser.user_metadata?.user_name;
+  if (name) {
+    profile.userName = name;
+    saveProfile();
+  }
+
+  renderHome();
+  renderAssignments();
+  updateSidebarStats();
+}
+
+async function updateSidebarStats() {
+  if (!currentUser) return;
+
+  const stats = await window.FocusSessions.loadStats();
+  if (!stats.ok) return;
+
+  document.getElementById('us-sessions').textContent = stats.totalSessions;
+  document.getElementById('us-hours').textContent = (stats.totalMinutes / 60).toFixed(1) + 'h';
+  document.getElementById('us-streak').textContent = calculateStreak();
+  document.getElementById('user-stats').style.display = 'block';
+}
+
+// ═══════════════════════════════════════
+//  YOUR ORIGINAL APP LOGIC (unchanged)
+// ═══════════════════════════════════════
+const STORAGE_KEY   = 'quiet-focus-v1';
+const BREAK_SECONDS = 5 * 60;
+
+const defaults = {
+  userName:        'Your Name',
+  task:            'Deep work session',
+  durationMinutes: 45,
+  streak:          0,
+  history:         [],
+  assignments:     [],
+  activeSession:   null
+};
+
+let profile  = loadProfile();
+let session  = null;
+let timerId  = null;
+let toastId  = null;
+let sessionAssignmentId = null;
+let activeReminderAssignmentId = null;
+let activeReminderMilestone = null;
+let snoozeTimerId = null;
+let reminderPollId = null;
+
+const $     = id => document.getElementById(id);
+const pages = Array.from(document.querySelectorAll('.page'));
+const tabs  = Array.from(document.querySelectorAll('.tab'));
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return {
+      ...defaults,
+      ...saved,
+      history: saved?.history || [],
+      assignments: saved?.assignments || []
+    };
+  } catch { return { ...defaults }; }
+}
+
+function saveProfile() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+}
+
+function persistSession() {
+  profile.activeSession = session && session.mode !== 'complete' ? session : null;
+  saveProfile();
+}
+
+function localDateKey(date = new Date()) {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function dateOffset(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return localDateKey(date);
+}
+
+function formatClock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function formatMinutes(seconds) { return Math.floor(seconds / 60); }
+
+function formatFocusDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  if (total < 60) return total ? `${total}s` : '0s';
+  const minutes = Math.floor(total / 60);
+  const remainder = total % 60;
+  return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+}
+
+function newAssignmentId() {
+  return `a_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function parseDueAt(dateStr, timeStr) {
+  return new Date(`${dateStr}T${timeStr || '23:59'}`);
+}
+
+function getAssignmentById(id) {
+  return (profile.assignments || []).find(a => a.id === id);
+}
+
+function pendingAssignments() {
+  return (profile.assignments || [])
+    .filter(a => !a.completed)
+    .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+}
+
+function classifyAssignmentType(assignment) {
+  const text = `${assignment.title || ''} ${assignment.course || ''}`.toLowerCase();
+  if (/essay|paper|thesis|dissertation|\d+\s*word|report|writing/.test(text)) return 'essay';
+  if (/project|capstone|portfolio|presentation/.test(text)) return 'project';
+  if (/lab\b|practicum|experiment/.test(text)) return 'lab';
+  if (/quiz|exam|midterm|final|\btest\b/.test(text)) return 'quiz';
+  if (/reading|chapter|read\b|\bpages?\b/.test(text)) return 'reading';
+  if (/homework|hw\b|worksheet|problem set|pset/.test(text)) return 'homework';
+  return 'default';
+}
+
+function taskTypeEffortWeight(type) {
+  return {
+    essay: 35,
+    project: 40,
+    lab: 28,
+    reading: 18,
+    homework: 15,
+    quiz: 10,
+    default: 15
+  }[type] || 15;
+}
+
+function computePriorityScore(assignment) {
+  const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  const est = Number(assignment.estimatedMinutes) || 60;
+  const type = classifyAssignmentType(assignment);
+
+  let urgency;
+  if (hours < 0) urgency = 100;
+  else if (hours <= 24) urgency = 88 - Math.min(hours, 24) * 1.8;
+  else if (hours <= 72) urgency = 58 - (hours - 24) * 0.35;
+  else if (hours <= 168) urgency = 42 - (hours - 72) * 0.12;
+  else urgency = Math.max(8, 28 - hours * 0.015);
+
+  const effort = taskTypeEffortWeight(type);
+  const minutesWeight = Math.min(25, est / 8);
+  return urgency + effort + minutesWeight;
+}
+
+function prioritizedPendingAssignments() {
+  return pendingAssignments().slice().sort((a, b) => {
+    const diff = computePriorityScore(b) - computePriorityScore(a);
+    return diff !== 0 ? diff : new Date(a.dueAt) - new Date(b.dueAt);
+  });
+}
+
+function getSuggestedNextAssignment() {
+  return prioritizedPendingAssignments()[0] || null;
+}
+
+function formatDueDayLabel(dueAt) {
+  const due = new Date(dueAt);
+  const now = new Date();
+  const diffDays = Math.ceil((due - now) / 86400000);
+  if (diffDays < 0) return 'overdue';
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  if (diffDays <= 6) {
+    return due.toLocaleDateString([], { weekday: 'long' });
+  }
+  return formatDueDateTime(dueAt);
+}
+
+function buildSuggestedNextCopy(assignment) {
+  const type = classifyAssignmentType(assignment);
+  const dueLabel = formatDueDayLabel(assignment.dueAt);
+  const block = pickDurationForAssignment(assignment);
+  const duePart = dueLabel === 'overdue'
+    ? 'This is overdue. '
+    : `Due ${dueLabel}. `;
+
+  let tip;
+  if (type === 'essay' || type === 'project') {
+    tip = `Start one ${block}-minute block today. Smaller tasks can wait until closer to the due date.`;
+  } else if (type === 'quiz') {
+    tip = `A quick ${block}-minute review now keeps this from stacking with bigger work.`;
+  } else if (type === 'lab' || type === 'reading') {
+    tip = `Block ${block} minutes soon so it does not pile up with heavier work.`;
+  } else {
+    tip = `Start one ${block}-minute block while you still have time.`;
+  }
+
+  return { title: assignment.title, copy: duePart + tip };
+}
+
+function renderHomeSuggested() {
+  const wrap = $('home-suggested');
+  const next = getSuggestedNextAssignment();
+  if (!wrap) return;
+
+  if (!next) {
+    wrap.hidden = true;
+    return;
+  }
+
+  const msg = buildSuggestedNextCopy(next);
+  $('home-suggested-title').textContent = msg.title;
+  $('home-suggested-copy').textContent = msg.copy;
+  $('home-suggested-btn').textContent = `Start ${pickDurationForAssignment(next)}-min block`;
+  wrap.hidden = false;
+
+  const btn = $('home-suggested-btn');
+  btn.onclick = () => startFocusFromAssignment(next);
+}
+
+function getDueStatus(assignment) {
+  if (!assignment || assignment.completed) return null;
+  const ms = new Date(assignment.dueAt) - Date.now();
+  const hours = ms / 3600000;
+  const label = formatDueRelative(assignment.dueAt);
+  if (ms < 0) return { level: 'urgent', label: 'Overdue', hours };
+  if (hours <= 1) return { level: 'urgent', label, hours };
+  if (hours <= 6) return { level: 'urgent', label, hours };
+  if (hours <= 24) return { level: 'soon', label, hours };
+  return { level: 'normal', label, hours };
+}
+
+function formatDueRelative(dueAt) {
+  const ms = new Date(dueAt) - Date.now();
+  if (ms < 0) return 'Overdue';
+  const totalMinutes = Math.ceil(ms / 60000);
+  if (totalMinutes < 60) return `Due in ${totalMinutes} min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (totalMinutes < 24 * 60) {
+    return minutes ? `Due in ${hours}h ${minutes}m` : `Due in ${hours}h`;
+  }
+  const days = Math.ceil(ms / 86400000);
+  return days === 1 ? 'Due tomorrow' : `Due in ${days} days`;
+}
+
+function primeRemindersForAssignment(assignment) {
+  const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  if (hours < 0) {
+    assignment.remindersShown = { h24: true, h6: true, h1: true, overdue: false };
+    return;
+  }
+  assignment.remindersShown = {
+    h24: hours > 24,
+    h6: hours > 6,
+    h1: hours > 1,
+    overdue: true
   };
+}
+
+function ensureRemindersShown(assignment) {
+  if (!assignment.remindersShown) primeRemindersForAssignment(assignment);
+}
+
+function getActiveReminderMilestone(assignment) {
+  if (!assignment || assignment.completed) return null;
+  ensureRemindersShown(assignment);
+  const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  const shown = assignment.remindersShown;
+  if (hours < 0 && !shown.overdue) return 'overdue';
+  if (hours <= 1 && !shown.h1) return 'h1';
+  if (hours <= 6 && !shown.h6) return 'h6';
+  if (hours <= 24 && !shown.h24) return 'h24';
+  return null;
+}
+
+function formatDueDateTime(dueAt) {
+  return new Intl.DateTimeFormat([], {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  }).format(new Date(dueAt));
+}
+
+function pickDurationForAssignment(assignment) {
+  const est = Number(assignment.estimatedMinutes) || 45;
+  const options = [25, 45, 60];
+  const match = options.find(v => v >= est) || 60;
+  return Math.min(match, 45);
+}
+
+function addAssignment(data) {
+  const dueDate = data.dueAt
+    ? new Date(data.dueAt)
+    : parseDueAt(data.date, data.time);
+  const assignment = {
+    id: newAssignmentId(),
+    title: data.title.trim(),
+    course: (data.course || '').trim(),
+    dueAt: dueDate.toISOString(),
+    estimatedMinutes: Number(data.estimatedMinutes) || 60,
+    completed: false,
+    snoozedUntil: null,
+    remindersShown: null,
+    createdAt: new Date().toISOString()
+  };
+  primeRemindersForAssignment(assignment);
+  profile.assignments = profile.assignments || [];
+  profile.assignments.unshift(assignment);
+  saveProfile();
+  renderAssignments();
+  renderHome();
+  syncAssignmentToCloud(assignment);
+  toast('Assignment added');
+  setTimeout(maybeShowDueReminder, 400);
+  return assignment;
+}
+
+function completedTodayCount() {
+  const today = localDateKey();
+  return (profile.assignments || []).filter(
+    a => a.completed && a.completedAt && localDateKey(new Date(a.completedAt)) === today
+  ).length;
+}
+
+function maybeSendEndOfDayQuiet() {
+  if (new Date().getHours() < 17) return;
+  const key = `quiet-eod-${localDateKey()}`;
+  if (localStorage.getItem(key)) return;
+  const count = completedTodayCount();
+  const msg = window.QuietReminderCopy?.buildEndOfDay?.(count);
+  if (!msg) return;
+  localStorage.setItem(key, '1');
+  window.PushReminders?.showLocalReminder?.({
+    title: msg.title,
+    body: msg.body,
+    tag: 'quiet-eod',
+    url: './live-demo.html?page=assignments'
+  }).catch(() => {});
+}
+
+function completeAssignment(id) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  item.completed = true;
+  item.completedAt = new Date().toISOString();
+  saveProfile();
+  renderAssignments();
+  renderHome();
+  syncAssignmentToCloud(item);
+  hideReminderModal();
+  toast('Marked complete');
+  maybeSendEndOfDayQuiet();
+}
+
+function snoozeAssignment(id, hours = 1) {
+  const item = getAssignmentById(id);
+  if (!item) return;
+  ensureRemindersShown(item);
+  // Undo "already shown" so the reminder can fire again after snooze
+  if (activeReminderMilestone) {
+    item.remindersShown[activeReminderMilestone] = false;
+  }
+  item.snoozedUntil = new Date(Date.now() + hours * 3600000).toISOString();
+  saveProfile();
+  syncAssignmentToCloud(item);
+  hideReminderModal();
+  toast(`Reminder snoozed ${hours}h`);
+
+  if (snoozeTimerId) clearTimeout(snoozeTimerId);
+  snoozeTimerId = setTimeout(() => {
+    snoozeTimerId = null;
+    maybeShowDueReminder();
+  }, hours * 3600000 + 300);
+}
+
+function startFocusFromAssignment(assignment) {
+  if (!assignment) return;
+  profile.task = assignment.title;
+  profile.durationMinutes = pickDurationForAssignment(assignment);
+  $('task-input').value = assignment.title;
+  document.querySelectorAll('.duration').forEach(b => {
+    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes);
+  });
+  sessionAssignmentId = assignment.id;
+  saveProfile();
+  hideReminderModal();
+  startSession();
+}
+
+function renderAssignmentCard(assignment, { showActions = true } = {}) {
+  const status = getDueStatus(assignment);
+  const card = document.createElement('div');
+  card.className = 'assign-card';
+  if (assignment.completed) card.classList.add('is-done');
+  else if (status?.level === 'urgent') card.classList.add('is-urgent');
+  else if (status?.level === 'soon') card.classList.add('is-soon');
+
+  const badge = assignment.completed
+    ? 'Done'
+    : (status?.label || 'Pending');
+  const badgeClass = assignment.completed ? '' : (status?.level === 'urgent' ? 'urgent' : status?.level === 'soon' ? 'soon' : '');
+
+  card.innerHTML = `
+    <div class="assign-top">
+      <div>
+        <p class="assign-name"></p>
+        <p class="assign-course"></p>
+      </div>
+      <span class="assign-badge ${badgeClass}"></span>
+    </div>
+    <p class="assign-meta"></p>
+    ${showActions && !assignment.completed ? `
+      <div class="assign-actions">
+        <button type="button" class="primary assign-start">Start focus</button>
+        <button type="button" class="secondary assign-done">Mark done</button>
+      </div>` : ''}
+  `;
+
+  card.querySelector('.assign-name').textContent = assignment.title;
+  card.querySelector('.assign-course').textContent = assignment.course || 'No course';
+  card.querySelector('.assign-badge').textContent = badge;
+  card.querySelector('.assign-meta').textContent =
+    `${formatDueDateTime(assignment.dueAt)} · Est. ${assignment.estimatedMinutes} min`;
+
+  if (showActions && !assignment.completed) {
+    card.querySelector('.assign-start').addEventListener('click', () => startFocusFromAssignment(assignment));
+    card.querySelector('.assign-done').addEventListener('click', () => completeAssignment(assignment.id));
+  }
+
+  return card;
+}
+
+function renderAssignments() {
+  pendingAssignments().forEach(ensureRemindersShown);
+  const pending = prioritizedPendingAssignments();
+  const done = (profile.assignments || []).filter(a => a.completed);
+
+  const pendingList = $('assign-pending-list');
+  const doneList = $('assign-done-list');
+
+  if (!pending.length) {
+    pendingList.innerHTML = '<div class="empty-state">No assignments yet. Add one above.</div>';
+  } else {
+    pendingList.innerHTML = '';
+    pending.forEach(a => pendingList.appendChild(renderAssignmentCard(a)));
+  }
+
+  if (!done.length) {
+    doneList.innerHTML = '<div class="empty-state">Finished assignments appear here.</div>';
+  } else {
+    doneList.innerHTML = '';
+    done.slice(0, 10).forEach(a => doneList.appendChild(renderAssignmentCard(a, { showActions: false })));
+  }
+  renderTasksDueBanner();
+}
+
+function renderTasksDueBanner() {
+  const banner = $('tasks-due-banner');
+  if (!banner) return;
+  const next = getSuggestedNextAssignment();
+  if (!next) {
+    banner.hidden = true;
+    return;
+  }
+
+  const status = getDueStatus(next);
+  banner.hidden = false;
+  banner.classList.toggle('urgent', status?.level === 'urgent');
+  $('tasks-due-title').textContent = next.title;
+  $('tasks-due-copy').textContent =
+    `${next.course ? next.course + ' · ' : ''}${status?.label || formatDueRelative(next.dueAt)}`;
+  $('tasks-due-start').onclick = () => startFocusFromAssignment(next);
+}
+
+function renderHomeDueBanner() {
+  renderTasksDueBanner();
+}
+
+function findReminderAssignment() {
+  const now = Date.now();
+  return pendingAssignments().find(a => {
+    if (a.snoozedUntil && new Date(a.snoozedUntil) > now) return false;
+    return getActiveReminderMilestone(a);
+  });
+}
+
+function showReminderModal(assignment) {
+  if (!assignment) return;
+  const milestone = getActiveReminderMilestone(assignment);
+  if (!milestone) return;
+
+  activeReminderAssignmentId = assignment.id;
+  activeReminderMilestone = milestone;
+  ensureRemindersShown(assignment);
+  assignment.remindersShown[milestone] = true;
+  saveProfile();
+  setQuietMood('reminder');
+
+  const modal = $('reminder-modal');
+  const msg = window.QuietReminderCopy?.build({
+    title: assignment.title,
+    course: assignment.course,
+    dueAt: assignment.dueAt,
+    milestone
+  }) || {
+    kicker: 'Reminder',
+    title: assignment.title,
+    body: `${formatDueRelative(assignment.dueAt)}.`,
+    modalHint: 'Start a focus session?'
+  };
+  $('reminder-label').textContent = msg.kicker;
+  $('reminder-title').textContent = msg.title;
+  $('reminder-copy').textContent = msg.modalHint
+    ? `${msg.body} ${msg.modalHint}`
+    : msg.body;
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-visible'));
+
+  window.PushReminders?.showLocalReminder?.({
+    title: msg.title,
+    body: msg.body,
+    tag: `assignment-${assignment.id}-${milestone}`,
+    url: './live-demo.html?page=assignments'
+  }).catch(() => {});
+}
+
+function hideReminderModal() {
+  const modal = $('reminder-modal');
+  modal.classList.remove('is-visible');
+  modal.hidden = true;
+  activeReminderAssignmentId = null;
+  activeReminderMilestone = null;
+}
+
+function maybeShowDueReminder() {
+  if ((!currentUser && !isGuestMode()) || $('reminder-modal').classList.contains('is-visible')) return;
+  const assignment = findReminderAssignment();
+  if (assignment) showReminderModal(assignment);
+}
+
+function startReminderPoll() {
+  clearInterval(reminderPollId);
+  reminderPollId = setInterval(maybeShowDueReminder, 60000);
+}
+
+function stopReminderPoll() {
+  clearInterval(reminderPollId);
+  reminderPollId = null;
+}
+
+function initAssignmentFormDefaults() {
+  const dateInput = $('assign-due-date');
+  if (!dateInput) return;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  dateInput.value = tomorrow.toISOString().slice(0, 10);
+}
+
+function syncAssignmentToCloud(assignment) {
+  window.AssignmentSync?.syncOne?.(assignment).catch(() => {});
+}
+
+async function loadAssignmentsFromSupabase() {
+  const sync = window.AssignmentSync;
+  if (!sync?.loadAll) return;
+
+  const result = await sync.loadAll();
+  if (!result.ok) {
+    await sync.syncAll?.(profile.assignments || []);
+    return;
+  }
+
+  const merged = new Map((profile.assignments || []).map(a => [a.id, a]));
+  (result.assignments || []).forEach(a => merged.set(a.id, a));
+  profile.assignments = Array.from(merged.values());
+  saveProfile();
+  await sync.syncAll?.(profile.assignments);
+}
+
+function renderPushCard() {
+  const card = $('push-card');
+  const status = $('push-status');
+  const enableBtn = $('push-enable-btn');
+  const testBtn = $('push-test-btn');
+  if (!card || !window.PushReminders) return;
+
+  if (isGuestMode() && !currentUser) {
+    card.classList.remove('is-enabled');
+    testBtn.classList.add('hidden');
+    status.textContent = 'Sign in to get phone reminders when the app is closed. In-app reminders still work in demo mode.';
+    enableBtn.textContent = 'Sign in';
+    enableBtn.disabled = false;
+    enableBtn.onclick = () => exitGuestMode();
+    return;
+  }
+
+  enableBtn.onclick = null;
+
+  const supported = PushReminders.isSupported();
+  const permission = PushReminders.permissionState();
+  const enabled = localStorage.getItem('quiet-focus-push-enabled') === '1' && permission === 'granted';
+
+  card.classList.toggle('is-enabled', enabled);
+  testBtn.classList.toggle('hidden', !enabled);
+
+  if (!supported) {
+    status.textContent = 'Push not supported in this browser. On iPhone, install the app to Home Screen first (iOS 16.4+).';
+    enableBtn.textContent = 'Unavailable';
+    enableBtn.disabled = true;
+    return;
+  }
+
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (ios && !PushReminders.isStandalone()) {
+    status.textContent = 'On iPhone: Share → Add to Home Screen, open the installed app, then enable reminders here.';
+  } else if (enabled) {
+    status.textContent = 'Phone reminders on. Alerts fire at 24h, 6h, and 1h before due (requires Supabase cron — see below).';
+  } else if (permission === 'denied') {
+    status.textContent = 'Notifications blocked. Allow them in browser or phone settings, then tap Enable again.';
+  } else {
+    status.textContent = 'In-app popups work while the app is open. Phone alerts need Enable + a Supabase cron job on send-reminders.';
+  }
+
+  enableBtn.textContent = enabled ? 'Turn off' : 'Enable';
+  enableBtn.disabled = false;
+}
+
+async function togglePushReminders() {
+  const enabled = localStorage.getItem('quiet-focus-push-enabled') === '1' &&
+    PushReminders.permissionState() === 'granted';
+
+  try {
+    if (enabled) {
+      await PushReminders.disablePushReminders();
+      toast('Phone reminders off');
+    } else {
+      await PushReminders.enablePushReminders();
+      toast('Phone reminders on');
+      await PushReminders.sendTestNotification();
+    }
+    renderPushCard();
+  } catch (err) {
+    toast(err.message || 'Could not update reminders');
+    renderPushCard();
+  }
+}
+
+function nowGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function updateClock() {
+  $('clock').textContent = new Intl.DateTimeFormat([],{hour:'numeric',minute:'2-digit'}).format(new Date());
+}
+
+function completedDates() { return new Set(profile.history.map(i => i.date)); }
+
+function calculateStreak() {
+  const dates = completedDates();
+  let cursor = dates.has(dateOffset(0)) ? 0 : -1, count = 0;
+  while (dates.has(dateOffset(cursor))) { count++; cursor--; }
+  return count;
+}
+
+const QUIET_MOOD_SRC = {
+  idle: 'icons/quiet-mood-focused.png',
+  focused: 'icons/quiet-mood-focused.png',
+  thinking: 'icons/quiet-mood-thinking.png',
+  encouraging: 'icons/quiet-mood-encouraging.png',
+  celebrating: 'icons/quiet-mood-celebrating.png',
+  rest: 'icons/quiet-mood-rest.png',
+  reminder: 'icons/quiet-mood-reminder.png'
+};
+
+function setQuietMood(mood) {
+  const map = {
+    idle: 'idle',
+    focused: 'focused',
+    distracted: 'thinking',
+    thinking: 'thinking',
+    happy: 'encouraging',
+    encouraging: 'encouraging',
+    complete: 'celebrating',
+    celebrating: 'celebrating',
+    break: 'rest',
+    rest: 'rest',
+    reminder: 'reminder'
+  };
+  const m = map[mood] || mood || 'idle';
+  document.querySelectorAll('.quiet-mascot').forEach(el => {
+    el.dataset.mood = m;
+    const img = el.querySelector('.quiet-art');
+    if (!img) return;
+    if (el.classList.contains('quiet-mascot--hero')) {
+      img.src = 'icons/quiet-hero.png';
+      return;
+    }
+    if (el.classList.contains('quiet-mascot--sm')) {
+      img.src = QUIET_MOOD_SRC[m] || QUIET_MOOD_SRC.focused;
+    }
+  });
+}
+
+function countDueSoonTasks() {
+  return pendingAssignments().filter(a => {
+    const hours = (new Date(a.dueAt) - Date.now()) / 3600000;
+    return hours <= 24;
+  }).length;
+}
+
+function renderHome() {
+  profile.streak = calculateStreak();
+  const name = profile.userName || 'Your Name';
+  const firstName = name.split(' ')[0] || name;
+  $('greeting').textContent = `${nowGreeting()}, ${firstName}`;
+  if ($('home-display-name')) $('home-display-name').textContent = firstName;
+  if ($('username')) $('username').value = name;
+  $('streak-count').textContent = profile.streak;
+  const plural = $('streak-plural');
+  if (plural) plural.style.display = profile.streak === 1 ? 'none' : 'inline';
+
+  const dates = completedDates();
+  $('streak-days').innerHTML = '';
+  for (let o = -6; o <= 0; o++) {
+    const bar = document.createElement('span');
+    const done = dates.has(dateOffset(o));
+    bar.className = `day-bar${done?' done':''}${o===0?' today':''}`;
+    $('streak-days').appendChild(bar);
+  }
+
+  const dueSoon = countDueSoonTasks();
+  const next = getSuggestedNextAssignment();
+  const tasksLine = $('home-tasks-line');
+  const streakLine = $('home-streak-line');
+  const intro = $('quiet-intro');
+
+  renderHomeSuggested();
+
+  if (tasksLine) {
+    if (dueSoon && next) {
+      const status = getDueStatus(next);
+      tasksLine.textContent = dueSoon === 1
+        ? `Your next task is due ${(status?.label || formatDueRelative(next.dueAt)).toLowerCase()}.`
+        : `You have ${dueSoon} tasks due soon.`;
+      tasksLine.hidden = false;
+    } else if (pendingAssignments().length) {
+      tasksLine.textContent = `${pendingAssignments().length} upcoming task${pendingAssignments().length === 1 ? '' : 's'}.`;
+      tasksLine.hidden = false;
+    } else {
+      tasksLine.hidden = true;
+    }
+  }
+  if (streakLine) streakLine.hidden = true;
+
+  const last = profile.history[0];
+  if (last) {
+    intro.textContent = last.distractions
+      ? "Welcome back. I'll help you notice drift gently and return without pressure."
+      : "Welcome back. Ready for another calm focus block together?";
+    setQuietMood(getSuggestedNextAssignment() ? 'encouraging' : 'idle');
+  } else if (getSuggestedNextAssignment()) {
+    intro.textContent = "I'll help you focus on what matters most first — one block at a time.";
+    setQuietMood('encouraging');
+  } else {
+    intro.textContent = "I'll help you stay focused through gentle reminders, check-ins, and session summaries.";
+    setQuietMood('idle');
+  }
+
+  document.querySelectorAll('.duration').forEach(b =>
+    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
+  );
+  $('task-input').value = profile.task;
+  renderHistoryLast();
+}
+
+function renderHistoryLast() {
+  const last = profile.history[0];
+  if (!last) {
+    $('last-session').className = 'empty-state';
+    $('last-session').textContent = 'Your first completed session will appear here.';
+    $('clear-history').classList.add('hidden');
+    return;
+  }
+  $('clear-history').classList.remove('hidden');
+  $('last-session').className = 'last-summary';
+  $('last-session').innerHTML = `
+    <div>
+      <p class="last-task"></p>
+      <p class="last-details"></p>
+    </div>
+    <strong class="last-score"></strong>
+  `;
+  $('last-session').querySelector('.last-task').textContent = last.task;
+  $('last-session').querySelector('.last-details').textContent =
+    `${formatFocusDuration(last.focusSeconds ?? last.focusMinutes * 60)} focused · ${last.distractions} distraction${last.distractions===1?'':'s'}`;
+  $('last-session').querySelector('.last-score').textContent = last.score;
+}
+
+function renderHistory() {
+  const list = $('history-list');
+  if (!profile.history.length) {
+    list.innerHTML = '<div class="empty-state">Complete sessions to build your history.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  profile.history.slice(0, 20).forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <div>
+        <p class="hi-task"></p>
+        <p class="hi-meta"></p>
+      </div>
+      <strong class="hi-score"></strong>
+    `;
+    item.querySelector('.hi-task').textContent = s.task;
+    item.querySelector('.hi-meta').textContent =
+      `${s.date} · ${formatFocusDuration(s.focusSeconds ?? s.focusMinutes * 60)} · ${s.distractions} distraction${s.distractions===1?'':'s'}`;
+    item.querySelector('.hi-score').textContent = s.score;
+    item.addEventListener('click', () => { renderRecap(s); showPage('recap'); });
+    list.appendChild(item);
+  });
+}
+
+function showPage(name) {
+  if (name === 'session' && (!session || session.mode === 'complete')) {
+    name = 'focus';
+  }
+
+  const targetId = `page-${name}`;
+  const current = pages.find(p => p.classList.contains('active'));
+  const next = pages.find(p => p.id === targetId);
+  if (current === next) return;
+
+  if (current) current.classList.remove('active');
+  if (next) {
+    next.classList.add('active');
+    void next.offsetWidth;
+  }
+
+  tabs.forEach(t => {
+    const tabPage = t.dataset.page;
+    const sel = tabPage === name ||
+      (tabPage === 'session' && (name === 'focus' || name === 'session'));
+    t.classList.toggle('active', sel);
+    sel ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current');
+  });
+  document.querySelector('.app-surface').scrollTop = 0;
+  if (name === 'history') {
+    renderHistory();
+    renderHistoryLast();
+  }
+  if (name === 'assignments') {
+    renderAssignments();
+    renderPushCard();
+    window.AssignmentScan?.preload?.();
+  }
+  if (name === 'home') {
+    renderHome();
+    setTimeout(maybeShowDueReminder, 200);
+  }
+  if (name === 'focus') {
+    $('task-input').value = profile.task;
+    document.querySelectorAll('.duration').forEach(b =>
+      b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
+    );
+  }
+}
+
+function eventAt(text, type) {
+  if (!session) return;
+  session.events.push({ time: formatClock(session.focusSeconds), text, type });
+}
+
+function startSession() {
+  profile.task = $('task-input').value.trim() || 'Focus session';
+  saveProfile();
+  const durationSeconds = profile.durationMinutes * 60;
+  session = {
+    task: profile.task,
+    assignmentId: sessionAssignmentId || null,
+    durationSeconds,
+    remainingSeconds: durationSeconds,
+    focusSeconds: 0,
+    breakRemaining: 0,
+    distractions: 0,
+    breaks: 0,
+    refocuses: 0,
+    awaitingRefocus: false,
+    mode: 'focus',
+    lastTick: Date.now(),
+    events: []
+  };
+  eventAt('Session started', 'start');
+  persistSession();
+  setQuietMood('focused');
+  $('session-task').textContent = session.task;
+  $('coach-message').textContent = 'Your focus window is open. Keep the next action simple.';
+  $('pause-button').textContent = 'Pause';
+  $('pause-button').disabled = false;
+  $('break-button').textContent = 'Take a break';
+  $('distraction-button').textContent = "I'm distracted";
+  $('distraction-button').disabled = false;
+  renderSession();
+  showPage('session');
+  runTimer();
+}
+
+function runTimer() {
+  clearInterval(timerId);
+  if (session) session.lastTick = Date.now();
+  timerId = setInterval(tick, 250);
+}
+
+function tick() {
+  if (!session || session.mode === 'complete' || session.mode === 'paused') return;
+  const elapsed = Math.floor((Date.now() - session.lastTick) / 1000);
+  if (elapsed < 1) return;
+  session.lastTick += elapsed * 1000;
+  if (session.mode === 'break') {
+    session.breakRemaining = Math.max(0, session.breakRemaining - elapsed);
+    if (session.breakRemaining === 0) endBreak();
+  } else {
+    const counted = Math.min(elapsed, session.remainingSeconds);
+    session.focusSeconds += counted;
+    session.remainingSeconds -= counted;
+    if (session.remainingSeconds === 0) finishSession(true);
+  }
+  if (session.mode !== 'complete') persistSession();
+  renderSession();
+}
+
+function renderSession() {
+  if (!session) return;
+  const isBreak = session.mode === 'break';
+  $('timer-display').textContent = formatClock(isBreak ? session.breakRemaining : session.remainingSeconds);
+  $('timer-status').textContent  = isBreak ? 'Break remaining' : session.mode === 'paused' ? 'Paused' : 'Remaining';
+  const progress = session.focusSeconds / session.durationSeconds;
+  $('timer-ring').style.setProperty('--progress', `${Math.min(360, progress*360)}deg`);
+  $('focused-metric').textContent = session.focusSeconds < 60
+    ? session.focusSeconds
+    : Math.floor(session.focusSeconds / 60);
+  const focusedLabel = $('focused-metric-label');
+  if (focusedLabel) {
+    focusedLabel.textContent = session.focusSeconds < 60 ? 'focused sec' : 'focused min';
+  }
+  $('distracted-metric').textContent = session.distractions;
+  $('breaks-metric').textContent     = session.breaks;
+}
+
+function restoreSessionControls() {
+  if (!session) return;
+  $('pause-button').textContent = session.mode === 'paused' ? 'Resume' : 'Pause';
+  $('pause-button').disabled    = session.mode === 'break';
+  $('break-button').textContent = session.mode === 'break' ? 'End break' : 'Take a break';
+  $('distraction-button').textContent = session.awaitingRefocus ? "I'm refocused" : "I'm distracted";
+  $('distraction-button').disabled = session.mode === 'break';
+  if (session.mode === 'break')
+    $('coach-message').textContent = 'Take a breath, stretch, and return before this break closes.';
+  else if (session.mode === 'paused')
+    $('coach-message').textContent = 'Paused. Resume when you are ready to give this your attention.';
+  else if (session.awaitingRefocus)
+    $('coach-message').textContent = 'No judgment. Close the distraction, then tap when you are back.';
+  else
+    $('coach-message').textContent = 'Your focus window is open. Keep the next action simple.';
+}
+
+function togglePause() {
+  if (!session || session.mode === 'complete' || session.mode === 'break') return;
+  if (session.mode === 'paused') {
+    session.mode = 'focus';
+    session.lastTick = Date.now();
+    $('pause-button').textContent = 'Pause';
+    $('coach-message').textContent = 'You are back in focus. One next action at a time.';
+    toast('Session resumed');
+  } else {
+    tick();
+    session.mode = 'paused';
+    $('pause-button').textContent = 'Resume';
+    $('coach-message').textContent = 'Paused. Resume when you are ready to give this your attention.';
+    toast('Session paused');
+  }
+  persistSession();
+  renderSession();
+}
+
+function startBreak() {
+  if (!session || session.mode === 'complete') return;
+  if (session.mode === 'break') { endBreak(); return; }
+  tick();
+  session.mode = 'break';
+  session.breakRemaining = BREAK_SECONDS;
+  session.breaks += 1;
+  session.lastTick = Date.now();
+  eventAt('Intentional break started','break');
+  setQuietMood('break');
+  $('pause-button').disabled = true;
+  $('break-button').textContent = 'End break';
+  $('distraction-button').disabled = true;
+  $('coach-message').textContent = 'Take a breath, stretch, and return before this break closes.';
+  persistSession();
+  toast('5 minute break started');
+  renderSession();
+}
+
+function endBreak() {
+  if (!session || session.mode !== 'break') return;
+  session.mode = 'focus';
+  session.breakRemaining = 0;
+  session.lastTick = Date.now();
+  eventAt('Break ended - focus resumed','refocus');
+  setQuietMood('focused');
+  $('pause-button').disabled = false;
+  $('break-button').textContent = 'Take a break';
+  $('distraction-button').disabled = false;
+  $('coach-message').textContent = 'Welcome back. Reconnect with the smallest next step.';
+  persistSession();
+  toast('Welcome back');
+  renderSession();
+}
+
+function markDistraction() {
+  if (!session || session.mode !== 'focus') return;
+  if (session.awaitingRefocus) {
+    session.awaitingRefocus = false;
+    session.refocuses += 1;
+    eventAt('Returned to focus','refocus');
+    setQuietMood('happy');
+    $('distraction-button').textContent = "I'm distracted";
+    $('coach-message').textContent = 'Good return. Protect the next few minutes.';
+    persistSession();
+    toast('Refocus recorded');
+    return;
+  }
+  session.distractions += 1;
+  session.awaitingRefocus = true;
+  eventAt('Distraction noticed','distraction');
+  setQuietMood('distracted');
+  $('distraction-button').textContent = "I'm refocused";
+  $('coach-message').textContent = 'No judgment. Close the distraction, then tap when you are back.';
+  persistSession();
+  toast('Distraction noted');
+  renderSession();
+}
+
+function scoreForSession(completedNaturally) {
+  const score = 96 + (completedNaturally?4:0) - (session.distractions*8) + (session.refocuses*4);
+  return Math.max(25, Math.min(100, score));
+}
+
+async function finishSession(completedNaturally = false) {
+  if (!session || session.mode === 'complete') return;
+  tick();
+  clearInterval(timerId);
+  clearTimeout(toastId);
+  $('toast').classList.remove('show');
+  $('toast').textContent = '';
+  session.mode = 'complete';
+  eventAt(completedNaturally ? 'Focus session completed' : 'Session finished','complete');
+
+  const summary = {
+    date:              localDateKey(),
+    task:              session.task,
+    assignmentId:      session.assignmentId || null,
+    focusSeconds:      session.focusSeconds,
+    focusMinutes:      formatMinutes(session.focusSeconds),
+    distractions:      session.distractions,
+    breaks:            session.breaks,
+    refocuses:         session.refocuses,
+    score:             scoreForSession(completedNaturally),
+    completedNaturally,
+    events:            session.events
+  };
+
+  profile.history.unshift(summary);
+  profile.history = profile.history.slice(0, 20);
+  profile.activeSession = null;
+  sessionAssignmentId = null;
+  saveProfile();
+
+  renderRecap(summary);
+  setQuietMood('complete');
+  renderHome();
+  showPage('recap');
+
+  // Sync in background — don't block the recap screen
+  saveSessionToSupabase(summary);
+}
+
+function renderRecap(summary) {
+  $('final-score').textContent = summary.score;
+  $('recap-focused').textContent = formatFocusDuration(summary.focusSeconds ?? summary.focusMinutes * 60);
+  $('recap-distractions').textContent = summary.distractions;
+  $('recap-breaks').textContent = summary.breaks;
+  $('recap-caption').textContent = summary.completedNaturally
+    ? 'Full focus window completed. Nicely done.'
+    : 'Every deliberate minute still counts.';
+
+  let insight = 'You completed a focused block with no recorded distractions. Protect this setup next time.';
+  if (summary.distractions && summary.refocuses === summary.distractions)
+    insight = `You returned after every distraction (${summary.refocuses} of ${summary.distractions}). That recovery skill is real focus.`;
+  else if (summary.distractions)
+    insight = 'Try one small barrier next time: mute notifications or keep only the task tab open.';
+  else if (summary.breaks)
+    insight = 'Your planned break helped preserve a clean session. Use breaks before attention fades.';
+
+  $('recap-insight').textContent = insight;
+  $('timeline').innerHTML = '';
+  summary.events.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'timeline-item';
+    row.dataset.type = entry.type;
+    row.innerHTML = `<span class="timeline-time"></span><span class="timeline-dot" aria-hidden="true"></span><span class="timeline-copy"></span>`;
+    row.querySelector('.timeline-time').textContent = entry.time;
+    row.querySelector('.timeline-copy').textContent = entry.text;
+    $('timeline').appendChild(row);
+  });
+}
+
+function openRecapFromHistory() {
+  const last = profile.history[0];
+  if (!last) { toast('Complete a session to see your recap'); showPage('home'); return; }
+  renderRecap(last);
+  showPage('recap');
+}
+
+function toast(message, duration = 1900) {
+  clearTimeout(toastId);
+  $('toast').textContent = message;
+  $('toast').classList.add('show');
+  toastId = setTimeout(() => $('toast').classList.remove('show'), duration);
+}
+
+// ─── EVENT LISTENERS ─────────────────
+$('username').addEventListener('input', e => {
+  profile.userName = e.target.value || 'Your Name';
+  saveProfile();
+  const n = profile.userName.split(' ')[0] || profile.userName;
+  if ($('home-display-name')) $('home-display-name').textContent = n;
+  if ($('greeting')) $('greeting').textContent = `${nowGreeting()}, ${n}`;
+});
+$('home-start-btn').addEventListener('click', () => showPage('focus'));
+$('task-input').addEventListener('input', e => { profile.task = e.target.value; saveProfile(); });
+
+document.querySelectorAll('.duration').forEach(b => {
+  b.addEventListener('click', () => {
+    profile.durationMinutes = Number(b.dataset.duration);
+    saveProfile();
+    renderHome();
+  });
+});
+
+$('session-form').addEventListener('submit', e => {
+  e.preventDefault();
+  sessionAssignmentId = null;
+  startSession();
+});
+$('assign-form').addEventListener('submit', e => {
+  e.preventDefault();
+  addAssignment({
+    title: $('assign-title').value,
+    course: $('assign-course').value,
+    date: $('assign-due-date').value,
+    time: $('assign-due-time').value,
+    estimatedMinutes: $('assign-estimate').value
+  });
+  $('assign-title').value = '';
+  $('assign-course').value = '';
+  $('assign-estimate').value = '60';
+  initAssignmentFormDefaults();
+});
+$('reminder-start').addEventListener('click', () => {
+  const item = getAssignmentById(activeReminderAssignmentId);
+  if (item) startFocusFromAssignment(item);
+});
+$('reminder-done').addEventListener('click', () => {
+  if (activeReminderAssignmentId) completeAssignment(activeReminderAssignmentId);
+});
+$('reminder-snooze').addEventListener('click', () => {
+  if (activeReminderAssignmentId) snoozeAssignment(activeReminderAssignmentId, 1);
+});
+$('reminder-modal').addEventListener('click', e => {
+  if (e.target === $('reminder-modal')) hideReminderModal();
+});
+$('push-enable-btn').addEventListener('click', togglePushReminders);
+$('push-test-btn').addEventListener('click', async () => {
+  try {
+    await PushReminders.sendTestNotification();
+    toast('Test notification sent');
+  } catch (err) {
+    toast(err.message || 'Test failed');
+  }
+});
+$('pause-button').addEventListener('click', togglePause);
+$('break-button').addEventListener('click', startBreak);
+$('distraction-button').addEventListener('click', markDistraction);
+$('finish-session').addEventListener('click', () => finishSession(false));
+$('restart-button').addEventListener('click', startSession);
+$('done-button').addEventListener('click', () => showPage('home'));
+$('clear-history').addEventListener('click', () => {
+  profile.history = [];
+  saveProfile();
+  renderHome();
+  renderHistoryLast();
+  toast('Session history cleared');
+});
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const page = tab.dataset.page;
+    if (page === 'recap') openRecapFromHistory();
+    else if (page === 'session') {
+      if (session && session.mode !== 'complete') showPage('session');
+      else {
+        sessionAssignmentId = null;
+        showPage('focus');
+      }
+    }
+    else showPage(page);
+  });
+});
+
+initAssignmentFormDefaults();
+renderAssignments();
+
+let lastScanResults = [];
+let scanBusy = false;
+let scanAbortController = null;
+const SCAN_IDLE_STATUS = 'Works offline with smart date parsing. Sign in for AI extraction.';
+
+function setScanCancelVisible(show, mode) {
+  const btn = $('scan-cancel-btn');
+  if (!btn) return;
+  btn.hidden = !show;
+  btn.textContent = mode === 'clear' ? 'Clear scan' : 'Cancel';
+}
+
+function resetAssignmentScan() {
+  if (scanAbortController) {
+    scanAbortController.abort();
+    scanAbortController = null;
+  }
+  lastScanResults = [];
+  $('scan-markdown').value = '';
+  $('scan-results').innerHTML = '';
+  $('scan-preview').classList.remove('is-visible');
+  $('scan-status').textContent = SCAN_IDLE_STATUS;
+  setScanBusy(false);
+  setScanCancelVisible(false);
+}
+
+function cancelAssignmentScan() {
+  if (scanBusy && scanAbortController) {
+    scanAbortController.abort();
+    scanAbortController = null;
+    setScanBusy(false);
+    $('scan-preview').classList.remove('is-visible');
+    $('scan-markdown').value = '';
+    $('scan-results').innerHTML = '';
+    lastScanResults = [];
+    $('scan-status').textContent = 'Scan cancelled.';
+    setScanCancelVisible(false);
+    toast('Scan cancelled');
+    return;
+  }
+  resetAssignmentScan();
+  toast('Scan cleared');
+}
+
+function setScanBusy(busy) {
+  scanBusy = busy;
+  document.querySelectorAll('.assign-scan-btn').forEach(btn => {
+    btn.style.pointerEvents = busy ? 'none' : '';
+    btn.style.opacity = busy ? '0.55' : '';
+  });
+}
+
+function scanStatusMessage(source, aiLimitMessage) {
+  if (aiLimitMessage) return aiLimitMessage;
+  if (source === 'ai') return 'AI extracted key dates. Review and add below.';
+  return 'Dates found locally. Review and add below.';
+}
+
+function renderScanResults(assignments, source, aiLimitMessage) {
+  lastScanResults = assignments || [];
+  const resultsEl = $('scan-results');
+  const preview = $('scan-preview');
+  const status = $('scan-status');
+  resultsEl.innerHTML = '';
+  if (!lastScanResults.length) {
+    resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Try a cropped photo of just the assignment lines.</p>';
+  } else {
+    if (lastScanResults.length > 1) {
+      const addAll = document.createElement('button');
+      addAll.type = 'button';
+      addAll.className = 'assign-scan-add-all';
+      addAll.textContent = `Add all ${lastScanResults.length} assignments`;
+      addAll.addEventListener('click', () => {
+        lastScanResults.forEach(item => {
+          addAssignment({
+            title: item.title,
+            course: item.course,
+            dueAt: item.dueAt,
+            estimatedMinutes: item.estimatedMinutes
+          });
+        });
+        resultsEl.querySelectorAll('.assign-scan-item button').forEach(btn => {
+          btn.textContent = 'Added ✓';
+          btn.disabled = true;
+        });
+        addAll.textContent = 'All added ✓';
+        addAll.disabled = true;
+        toast(`Added ${lastScanResults.length} assignments`);
+      });
+      resultsEl.appendChild(addAll);
+    }
+    lastScanResults.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'assign-scan-item';
+      card.innerHTML = '<strong></strong><p></p><button type="button" class="primary">Add assignment</button>';
+      card.querySelector('strong').textContent = item.title;
+      card.querySelector('p').textContent =
+        `${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)} · Est. ${item.estimatedMinutes} min` +
+        (item.notes ? ` · ${item.notes}` : '');
+      card.querySelector('button').addEventListener('click', () => {
+        addAssignment({
+          title: item.title,
+          course: item.course,
+          dueAt: item.dueAt,
+          estimatedMinutes: item.estimatedMinutes
+        });
+        card.querySelector('button').textContent = 'Added ✓';
+        card.querySelector('button').disabled = true;
+      });
+      resultsEl.appendChild(card);
+    });
+  }
+  preview.classList.add('is-visible');
+  status.textContent = scanStatusMessage(source, aiLimitMessage);
+}
+
+async function handleAssignmentScan(file) {
+  const status = $('scan-status');
+  const preview = $('scan-preview');
+  if (!window.AssignmentScan?.scanFile) {
+    toast('Scan module not loaded');
+    return;
+  }
+  if (scanBusy) return;
+  if (scanAbortController) scanAbortController.abort();
+  scanAbortController = new AbortController();
+  const signal = scanAbortController.signal;
+  setScanBusy(true);
+  setScanCancelVisible(true, 'cancel');
+  status.textContent = 'Starting scan…';
+  preview.classList.remove('is-visible');
+  let showedLocal = false;
+  try {
+    const result = await window.AssignmentScan.scanFile(file, {
+      signal,
+      onProgress: msg => {
+        if (!signal.aborted) status.textContent = msg;
+      },
+      onResults: partial => {
+        if (signal.aborted) return;
+        $('scan-markdown').value = partial.markdown || '';
+        renderScanResults(partial.assignments, partial.source, partial.aiLimitMessage);
+        if (partial.source === 'local' && !partial.aiLimitMessage) {
+          showedLocal = true;
+          status.textContent = 'Checking AI (optional)…';
+        }
+      }
+    });
+    if (signal.aborted) return;
+    $('scan-markdown').value = result.markdown || '';
+    renderScanResults(result.assignments, result.source, result.aiLimitMessage);
+    toast(result.source === 'ai' && showedLocal ? 'AI updated your dates' : 'Scan complete');
+  } catch (err) {
+    if (err.name === 'AbortError' || signal.aborted) return;
+    status.textContent = err.message || 'Scan failed';
+    setScanCancelVisible(true, 'clear');
+    toast(status.textContent, 4500);
+  } finally {
+    if (!signal.aborted) {
+      setScanBusy(false);
+      scanAbortController = null;
+      setScanCancelVisible(true, 'clear');
+    }
+  }
+}
+
+$('scan-cancel-btn')?.addEventListener('click', cancelAssignmentScan);
+
+$('scan-pdf-input')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) handleAssignmentScan(file);
+  e.target.value = '';
+});
+$('scan-photo-input')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) handleAssignmentScan(file);
+  e.target.value = '';
+});
+$('scan-txt-input')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) handleAssignmentScan(file);
+  e.target.value = '';
+});
+
+const pageParam = new URLSearchParams(window.location.search).get('page');
+if (pageParam && document.getElementById(`page-${pageParam}`)) {
+  setTimeout(() => showPage(pageParam), 800);
+}
+
+if (new URLSearchParams(window.location.search).get('demo') === '1') {
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) enterGuestMode();
+  });
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (currentUser || isGuestMode()) && !$('reminder-modal').classList.contains('is-visible')) {
+    maybeShowDueReminder();
+  }
+});
+
+updateClock();
+setInterval(updateClock, 30000);
+
+// restore active session if tab was refreshed mid-session
+try {
+  if (profile.activeSession && profile.activeSession.mode !== 'complete') {
+    session = profile.activeSession;
+    const taskEl = $('session-task');
+    if (taskEl) taskEl.textContent = session.task;
+    tick();
+    if (session.mode !== 'complete') {
+      restoreSessionControls();
+      renderSession();
+      showPage('session');
+      runTimer();
+    }
+  }
+} catch (err) {
+  console.warn('Could not restore session', err);
+  profile.activeSession = null;
+  saveProfile();
+}
+
+// ─── PWA: service worker + install prompt ───
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+(function setupInstallPrompt() {
+  const banner = document.getElementById('install-banner');
+  const copy = document.getElementById('install-copy');
+  const accept = document.getElementById('install-accept');
+  const dismiss = document.getElementById('install-dismiss');
+  if (!banner || !copy || !accept || !dismiss) return;
+
+  const dismissedKey = 'quiet-focus-install-dismissed';
+  let deferredPrompt = null;
+
+  const hideBanner = () => {
+    banner.classList.remove('is-visible');
+    banner.hidden = true;
+  };
+
+  const showBanner = (message) => {
+    if (localStorage.getItem(dismissedKey) === '1') return;
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    copy.textContent = message;
+    banner.hidden = false;
+    requestAnimationFrame(() => banner.classList.add('is-visible'));
+  };
+
+  dismiss.addEventListener('click', () => {
+    localStorage.setItem(dismissedKey, '1');
+    hideBanner();
+  });
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    showBanner('Install Quiet Focus on your home screen for quick access during study sessions.');
+  });
+
+  accept.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      hideBanner();
+      return;
+    }
+
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      showBanner('On iPhone: tap Share, then "Add to Home Screen".');
+      accept.textContent = 'Got it';
+    }
+  });
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !isStandalone && localStorage.getItem(dismissedKey) !== '1') {
+    setTimeout(() => {
+      showBanner('On iPhone: tap Share, then "Add to Home Screen".');
+      accept.textContent = 'Got it';
+    }, 12000);
+  }
 })();
+</script>
+<script src="mascot-hybrid.js" defer></script>
+</body>
+</html>
