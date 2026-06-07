@@ -2504,6 +2504,8 @@ let timerId  = null;
 let toastId  = null;
 let sessionAssignmentId = null;
 let activeReminderAssignmentId = null;
+let activeReminderMilestone = null;
+let snoozeTimerId = null;
 let reminderPollId = null;
 
 const $     = id => document.getElementById(id);
@@ -2788,11 +2790,22 @@ function completeAssignment(id) {
 function snoozeAssignment(id, hours = 1) {
   const item = getAssignmentById(id);
   if (!item) return;
+  ensureRemindersShown(item);
+  // Undo "already shown" so the reminder can fire again after snooze
+  if (activeReminderMilestone) {
+    item.remindersShown[activeReminderMilestone] = false;
+  }
   item.snoozedUntil = new Date(Date.now() + hours * 3600000).toISOString();
   saveProfile();
   syncAssignmentToCloud(item);
   hideReminderModal();
   toast(`Reminder snoozed ${hours}h`);
+
+  if (snoozeTimerId) clearTimeout(snoozeTimerId);
+  snoozeTimerId = setTimeout(() => {
+    snoozeTimerId = null;
+    maybeShowDueReminder();
+  }, hours * 3600000 + 300);
 }
 
 function startFocusFromAssignment(assignment) {
@@ -2912,6 +2925,7 @@ function showReminderModal(assignment) {
   if (!milestone) return;
 
   activeReminderAssignmentId = assignment.id;
+  activeReminderMilestone = milestone;
   ensureRemindersShown(assignment);
   assignment.remindersShown[milestone] = true;
   saveProfile();
@@ -2921,10 +2935,18 @@ function showReminderModal(assignment) {
   const ms = new Date(assignment.dueAt) - Date.now();
   $('reminder-label').textContent = ms <= 3600000 ? 'Urgent' : 'Reminder';
   $('reminder-title').textContent = assignment.title;
-  $('reminder-copy').textContent =
+  const copy =
     `${assignment.course ? assignment.course + ' — ' : ''}${formatDueRelative(assignment.dueAt)}. Start a focus session?`;
+  $('reminder-copy').textContent = copy;
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('is-visible'));
+
+  window.PushReminders?.showLocalReminder?.({
+    title: assignment.title,
+    body: copy.replace('. Start a focus session?', ''),
+    tag: `assignment-${assignment.id}-${milestone}`,
+    url: './live-demo.html?page=assignments'
+  }).catch(() => {});
 }
 
 function hideReminderModal() {
@@ -2932,6 +2954,7 @@ function hideReminderModal() {
   modal.classList.remove('is-visible');
   modal.hidden = true;
   activeReminderAssignmentId = null;
+  activeReminderMilestone = null;
 }
 
 function maybeShowDueReminder() {
