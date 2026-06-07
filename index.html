@@ -9,8 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Quiet Focus">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="mascot-hybrid.css">
 <meta property="og:title" content="Quiet Focus">
 <meta property="og:description" content="A focus timer built around the moment you return.">
@@ -250,8 +251,10 @@ nav {
 }
 
 .nav-mark img {
-  mix-blend-mode: lighten;
-  border-radius: 9px;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ─── PHONE ─── */
@@ -708,7 +711,7 @@ footer {
 <nav>
   <a href="#" class="nav-logo">
     <div class="nav-mark" aria-hidden="true">
-      <img src="icons/icon-192.png" width="32" height="32" alt="" style="width:100%;height:100%;border-radius:8px">
+      <img src="icons/icon-192.png" width="32" height="32" alt="">
     </div>
     <span class="nav-wordmark">Quiet <span>Focus</span></span>
   </a>
@@ -998,6 +1001,7 @@ footer {
   document.getElementById("waitlist-form")?.addEventListener("submit", submitWaitlist);
 })();
 </script>
+<script src="config.js"></script>
 <script src="mascot-hybrid.js" defer></script>
 </body>
 </html>
