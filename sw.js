@@ -1,8 +1,11 @@
-const CACHE = 'quiet-focus-v20';
+const CACHE = 'quiet-focus-v22';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png',
   './icons/quiet-hero.png',
   './icons/quiet-mood-focused.png',
   './icons/quiet-mood-thinking.png',
@@ -23,7 +26,13 @@ const NETWORK_FIRST = [
   './mascot-hybrid.js',
   './mascot-hybrid.css',
   './push-notifications.js',
-  './sw.js'
+  './sw.js',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -84,8 +93,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'Quiet Focus', {
       body: payload.body || 'You have an assignment due soon.',
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
       tag: payload.tag || 'quiet-focus-reminder',
       data: { url: payload.url || './live-demo.html?page=assignments' }
     })
