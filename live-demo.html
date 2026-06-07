@@ -12,6 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="mascot-hybrid.css">
   <script src="config.js"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -576,11 +577,13 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   align-items:center;
   justify-content:center;
   width:100%;
-  min-height:min(42vh, 340px);
-  max-height:min(52vh, 420px);
+  min-height:min(40vh, 320px);
+  max-height:min(50vh, 400px);
   margin:4px 0 0;
   position:relative;
-  background:radial-gradient(ellipse 85% 75% at 50% 48%, rgba(58,64,72,.35) 0%, transparent 68%);
+  background:
+    radial-gradient(ellipse 90% 80% at 50% 55%, rgba(58,64,72,.4) 0%, transparent 72%),
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(148,218,177,.06) 0%, transparent 70%);
 }
 .quiet-mascot {
   position:relative;
@@ -593,16 +596,38 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 }
 .quiet-mascot-glow {
   position:absolute;
-  width:min(360px, 92vw);
-  height:min(360px, 92vw);
+  width:min(320px, 88vw);
+  height:min(320px, 88vw);
   border-radius:50%;
   background:
-    radial-gradient(circle at 50% 45%, rgba(255,255,255,.14) 0%, rgba(58,64,72,.2) 28%, transparent 62%),
-    radial-gradient(circle at 50% 60%, rgba(42,47,54,.35) 0%, transparent 55%);
-  filter:blur(18px);
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.16) 0%, rgba(58,64,72,.22) 30%, transparent 64%),
+    radial-gradient(circle at 50% 62%, rgba(42,47,54,.38) 0%, transparent 58%);
+  filter:blur(20px);
   z-index:0;
   pointer-events:none;
   animation:quiet-glow-pulse 5s ease-in-out infinite;
+  transition:background .45s ease, opacity .45s ease;
+}
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-mascot-glow,
+.quiet-mascot--hero[data-mood="happy"] .quiet-mascot-glow {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(148,218,177,.22) 0%, rgba(58,64,72,.18) 32%, transparent 64%),
+    radial-gradient(circle at 50% 62%, rgba(148,218,177,.08) 0%, transparent 58%);
+}
+.quiet-mascot--hero[data-mood="celebrating"] .quiet-mascot-glow {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.22) 0%, rgba(148,218,177,.12) 35%, transparent 66%);
+  animation:quiet-glow-pulse 1.8s ease-in-out infinite;
+}
+.quiet-mascot--hero[data-mood="reminder"] .quiet-mascot-glow {
+  animation:quiet-glow-pulse 2.2s ease-in-out infinite;
+}
+.quiet-mascot--hero[data-mood="thinking"] .quiet-mascot-glow {
+  opacity:.7;
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-mascot-glow {
+  opacity:.55;
+  animation:none;
 }
 @keyframes quiet-glow-pulse {
   0%, 100% { opacity:.85; transform:scale(1); }
@@ -630,15 +655,40 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   50% { transform:translateY(-10px) rotate(.5deg); }
 }
 .quiet-art--hero {
-  width:min(300px, 82vw);
-  max-height:min(52vh, 400px);
+  width:min(260px, 74vw);
+  max-height:min(46vh, 340px);
   object-fit:contain;
+  object-position:center bottom;
   mix-blend-mode:lighten;
   filter:
-    brightness(1.08)
-    contrast(1.04)
-    drop-shadow(0 24px 48px rgba(0,0,0,.45))
-    drop-shadow(0 0 40px rgba(255,255,255,.1));
+    brightness(1.1)
+    contrast(1.05)
+    saturate(1.02)
+    drop-shadow(0 28px 52px rgba(0,0,0,.5))
+    drop-shadow(0 0 48px rgba(255,255,255,.12));
+  transition:filter .4s ease, transform .4s ease;
+}
+.quiet-mascot--hero[data-mood="encouraging"] .quiet-art--hero,
+.quiet-mascot--hero[data-mood="happy"] .quiet-art--hero {
+  filter:
+    brightness(1.14)
+    contrast(1.05)
+    drop-shadow(0 28px 52px rgba(0,0,0,.5))
+    drop-shadow(0 0 56px rgba(148,218,177,.18));
+}
+.quiet-mascot--hero[data-mood="celebrating"] .quiet-art--hero {
+  transform:scale(1.03);
+  filter:
+    brightness(1.16)
+    drop-shadow(0 28px 52px rgba(0,0,0,.5))
+    drop-shadow(0 0 64px rgba(255,255,255,.16));
+}
+.quiet-mascot--hero[data-mood="rest"] .quiet-art--hero {
+  filter:
+    brightness(.92)
+    contrast(.98)
+    drop-shadow(0 20px 40px rgba(0,0,0,.45));
+  opacity:.92;
 }
 @media (prefers-reduced-motion: reduce) {
   .quiet-mascot--hero .quiet-art-wrap,
@@ -646,12 +696,22 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 }
 .quiet-art--session {
   mix-blend-mode:lighten;
-  width:72px;
+  width:80px;
   height:auto;
   object-fit:contain;
-  filter:drop-shadow(0 6px 16px rgba(0,0,0,.4));
+  filter:
+    brightness(1.08)
+    drop-shadow(0 8px 20px rgba(0,0,0,.45))
+    drop-shadow(0 0 24px rgba(255,255,255,.08));
 }
-.quiet-mascot--sm { margin:0; }
+.quiet-mascot--sm .quiet-art-wrap {
+  padding:6px;
+  border-radius:18px;
+  background:linear-gradient(165deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.02) 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.quiet-mascot--sm { margin:0; flex-shrink:0; }
 .quiet-badge {
   position:absolute;
   top:-6px;
@@ -819,6 +879,34 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   font-size:12px;
   line-height:1.5;
   margin:0 0 4px;
+}
+.home-suggested {
+  width:100%;
+  margin-bottom:14px;
+  padding:14px 14px 12px;
+  border-radius:14px;
+  background:var(--mint-dim);
+  border:1px solid rgba(148,218,177,.2);
+  text-align:left;
+}
+.home-suggested .meta-label { margin-bottom:6px; }
+.home-suggested-title {
+  font-size:14px;
+  font-weight:520;
+  color:var(--text);
+  margin:0 0 6px;
+  line-height:1.35;
+}
+.home-suggested-copy {
+  font-size:12px;
+  line-height:1.5;
+  color:var(--muted-2);
+  margin:0 0 10px;
+}
+.home-suggested-btn {
+  width:100%;
+  min-height:40px;
+  font-size:13px;
 }
 .home-content {
   width:100%;
@@ -1606,12 +1694,24 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <p class="home-greeting" id="greeting">Good evening</p>
               <p class="home-name" id="home-display-name" hidden>Your Name</p>
 
-              <div class="home-mascot-stage">
+              <div class="home-mascot-stage mascot-hybrid" id="home-mascot-hybrid">
                 <div class="quiet-mascot quiet-mascot--hero" id="quiet-mascot" data-mood="idle" aria-label="Quiet, your focus companion">
                   <div class="quiet-mascot-glow" aria-hidden="true"></div>
                   <span class="quiet-badge" aria-hidden="true"></span>
-                  <div class="quiet-art-wrap">
-                    <img class="quiet-art quiet-art--hero" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
+                  <div class="quiet-art-wrap mascot-hybrid-stage">
+                    <img class="quiet-art quiet-art--hero mascot-hybrid-png" src="icons/quiet-hero.png" width="360" height="400" alt="Quiet, your focus companion">
+                    <model-viewer
+                      class="mascot-hybrid-3d"
+                      alt=""
+                      auto-rotate
+                      rotation-per-second="10deg"
+                      interaction-prompt="none"
+                      shadow-intensity="0.7"
+                      exposure="1.05"
+                      camera-orbit="0deg 72deg 115%"
+                      loading="lazy"
+                      aria-hidden="true">
+                    </model-viewer>
                   </div>
                 </div>
               </div>
@@ -1623,6 +1723,13 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <div class="home-summary" id="home-summary" aria-live="polite">
                   <p id="home-tasks-line" hidden>No tasks due soon.</p>
                   <p id="home-streak-line" hidden>Start your first focus session today.</p>
+                </div>
+
+                <div class="home-suggested" id="home-suggested" hidden>
+                  <p class="meta-label">Suggested next</p>
+                  <p class="home-suggested-title" id="home-suggested-title"></p>
+                  <p class="home-suggested-copy" id="home-suggested-copy"></p>
+                  <button type="button" class="secondary home-suggested-btn" id="home-suggested-btn">Start focus block</button>
                 </div>
 
                 <button class="primary home-start-btn" type="button" id="home-start-btn">Start focus session</button>
@@ -2423,6 +2530,112 @@ function pendingAssignments() {
     .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
 }
 
+function classifyAssignmentType(assignment) {
+  const text = `${assignment.title || ''} ${assignment.course || ''}`.toLowerCase();
+  if (/essay|paper|thesis|dissertation|\d+\s*word|report|writing/.test(text)) return 'essay';
+  if (/project|capstone|portfolio|presentation/.test(text)) return 'project';
+  if (/lab\b|practicum|experiment/.test(text)) return 'lab';
+  if (/quiz|exam|midterm|final|\btest\b/.test(text)) return 'quiz';
+  if (/reading|chapter|read\b|\bpages?\b/.test(text)) return 'reading';
+  if (/homework|hw\b|worksheet|problem set|pset/.test(text)) return 'homework';
+  return 'default';
+}
+
+function taskTypeEffortWeight(type) {
+  return {
+    essay: 35,
+    project: 40,
+    lab: 28,
+    reading: 18,
+    homework: 15,
+    quiz: 10,
+    default: 15
+  }[type] || 15;
+}
+
+function computePriorityScore(assignment) {
+  const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  const est = Number(assignment.estimatedMinutes) || 60;
+  const type = classifyAssignmentType(assignment);
+
+  let urgency;
+  if (hours < 0) urgency = 100;
+  else if (hours <= 24) urgency = 88 - Math.min(hours, 24) * 1.8;
+  else if (hours <= 72) urgency = 58 - (hours - 24) * 0.35;
+  else if (hours <= 168) urgency = 42 - (hours - 72) * 0.12;
+  else urgency = Math.max(8, 28 - hours * 0.015);
+
+  const effort = taskTypeEffortWeight(type);
+  const minutesWeight = Math.min(25, est / 8);
+  return urgency + effort + minutesWeight;
+}
+
+function prioritizedPendingAssignments() {
+  return pendingAssignments().slice().sort((a, b) => {
+    const diff = computePriorityScore(b) - computePriorityScore(a);
+    return diff !== 0 ? diff : new Date(a.dueAt) - new Date(b.dueAt);
+  });
+}
+
+function getSuggestedNextAssignment() {
+  return prioritizedPendingAssignments()[0] || null;
+}
+
+function formatDueDayLabel(dueAt) {
+  const due = new Date(dueAt);
+  const now = new Date();
+  const diffDays = Math.ceil((due - now) / 86400000);
+  if (diffDays < 0) return 'overdue';
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  if (diffDays <= 6) {
+    return due.toLocaleDateString([], { weekday: 'long' });
+  }
+  return formatDueDateTime(dueAt);
+}
+
+function buildSuggestedNextCopy(assignment) {
+  const type = classifyAssignmentType(assignment);
+  const dueLabel = formatDueDayLabel(assignment.dueAt);
+  const block = pickDurationForAssignment(assignment);
+  const duePart = dueLabel === 'overdue'
+    ? 'This is overdue. '
+    : `Due ${dueLabel}. `;
+
+  let tip;
+  if (type === 'essay' || type === 'project') {
+    tip = `Start one ${block}-minute block today. Smaller tasks can wait until closer to the due date.`;
+  } else if (type === 'quiz') {
+    tip = `A quick ${block}-minute review now keeps this from stacking with bigger work.`;
+  } else if (type === 'lab' || type === 'reading') {
+    tip = `Block ${block} minutes soon so it does not pile up with heavier work.`;
+  } else {
+    tip = `Start one ${block}-minute block while you still have time.`;
+  }
+
+  return { title: assignment.title, copy: duePart + tip };
+}
+
+function renderHomeSuggested() {
+  const wrap = $('home-suggested');
+  const next = getSuggestedNextAssignment();
+  if (!wrap) return;
+
+  if (!next) {
+    wrap.hidden = true;
+    return;
+  }
+
+  const msg = buildSuggestedNextCopy(next);
+  $('home-suggested-title').textContent = msg.title;
+  $('home-suggested-copy').textContent = msg.copy;
+  $('home-suggested-btn').textContent = `Start ${pickDurationForAssignment(next)}-min block`;
+  wrap.hidden = false;
+
+  const btn = $('home-suggested-btn');
+  btn.onclick = () => startFocusFromAssignment(next);
+}
+
 function getDueStatus(assignment) {
   if (!assignment || assignment.completed) return null;
   const ms = new Date(assignment.dueAt) - Date.now();
@@ -2596,7 +2809,7 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
 
 function renderAssignments() {
   pendingAssignments().forEach(ensureRemindersShown);
-  const pending = pendingAssignments();
+  const pending = prioritizedPendingAssignments();
   const done = (profile.assignments || []).filter(a => a.completed);
 
   const pendingList = $('assign-pending-list');
@@ -2621,7 +2834,7 @@ function renderAssignments() {
 function renderTasksDueBanner() {
   const banner = $('tasks-due-banner');
   if (!banner) return;
-  const next = pendingAssignments()[0];
+  const next = getSuggestedNextAssignment();
   if (!next) {
     banner.hidden = true;
     return;
@@ -2876,10 +3089,12 @@ function renderHome() {
   }
 
   const dueSoon = countDueSoonTasks();
-  const next = pendingAssignments()[0];
+  const next = getSuggestedNextAssignment();
   const tasksLine = $('home-tasks-line');
   const streakLine = $('home-streak-line');
   const intro = $('quiet-intro');
+
+  renderHomeSuggested();
 
   if (tasksLine) {
     if (dueSoon && next) {
@@ -2902,6 +3117,9 @@ function renderHome() {
     intro.textContent = last.distractions
       ? "Welcome back. I'll help you notice drift gently and return without pressure."
       : "Welcome back. Ready for another calm focus block together?";
+    setQuietMood(getSuggestedNextAssignment() ? 'encouraging' : 'idle');
+  } else if (getSuggestedNextAssignment()) {
+    intro.textContent = "I'll help you focus on what matters most first — one block at a time.";
     setQuietMood('encouraging');
   } else {
     intro.textContent = "I'll help you stay focused through gentle reminders, check-ins, and session summaries.";
@@ -3652,5 +3870,6 @@ if ('serviceWorker' in navigator) {
   }
 })();
 </script>
+<script src="mascot-hybrid.js" defer></script>
 </body>
 </html>
