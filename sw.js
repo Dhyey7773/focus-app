@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v23';
+const CACHE = 'quiet-focus-v24';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -6,6 +6,8 @@ const ASSETS = [
   './icons/icon-192-maskable.png',
   './icons/icon-512-maskable.png',
   './icons/apple-touch-icon.png',
+  './icons/apple-touch-icon-152.png',
+  './icons/apple-touch-icon-167.png',
   './icons/quiet-hero.png',
   './icons/quiet-mood-focused.png',
   './icons/quiet-mood-thinking.png',
@@ -32,7 +34,9 @@ const NETWORK_FIRST = [
   './icons/icon-512.png',
   './icons/icon-192-maskable.png',
   './icons/icon-512-maskable.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './icons/apple-touch-icon-152.png',
+  './icons/apple-touch-icon-167.png'
 ];
 
 self.addEventListener('install', (event) => {
