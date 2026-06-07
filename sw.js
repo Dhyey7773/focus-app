@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v24';
+const CACHE = 'quiet-focus-v25';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -8,6 +8,7 @@ const ASSETS = [
   './icons/apple-touch-icon.png',
   './icons/apple-touch-icon-152.png',
   './icons/apple-touch-icon-167.png',
+  './apple-touch-icon.png',
   './icons/quiet-hero.png',
   './icons/quiet-mood-focused.png',
   './icons/quiet-mood-thinking.png',
