@@ -19,6 +19,9 @@ const ASSETS = [
 ];
 
 const NETWORK_FIRST = [
+  './index.html',
+  './privacy.html',
+  './terms.html',
   './live-demo.html',
   './index.html',
   './config.js',
