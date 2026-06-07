@@ -2033,6 +2033,8 @@ function enterGuestMode() {
   renderAssignments();
   renderPushCard();
   initAssignmentFormDefaults();
+  startReminderPoll();
+  setTimeout(maybeShowDueReminder, 500);
   hideBootScreen();
 }
 
@@ -2060,7 +2062,8 @@ function updateGuestBar() {
 }
 
 function oauthRedirectUrl() {
-  return window.location.origin + window.location.pathname;
+  const base = (window.APP_CONFIG?.SITE_URL || window.location.origin).replace(/\/$/, "");
+  return `${base}/live-demo.html`;
 }
 
 function hideBootScreen() {
@@ -2126,6 +2129,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
       showAppScreen();
       updateGuestBar();
       renderHome();
+      startReminderPoll();
+      setTimeout(maybeShowDueReminder, 500);
     } else {
       showAuthScreen();
     }
@@ -2135,10 +2140,17 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 function cleanAuthRedirectFromUrl() {
-  const hasHash = window.location.hash.includes('access_token');
-  const hasCode = window.location.search.includes('code=');
-  if (hasHash || hasCode) {
-    history.replaceState(null, '', window.location.pathname);
+  const params = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const errDesc = params.get("error_description") || hashParams.get("error_description");
+  const errCode = params.get("error") || hashParams.get("error");
+  if (errDesc || errCode) {
+    showAuthError(decodeURIComponent(String(errDesc || errCode).replace(/\+/g, " ")));
+  }
+  const hasHash = window.location.hash.includes("access_token");
+  const hasCode = window.location.search.includes("code=");
+  if (hasHash || hasCode || errDesc || errCode) {
+    history.replaceState(null, "", oauthRedirectUrl());
   }
 }
 
@@ -2160,6 +2172,9 @@ function formatAuthError(error) {
   }
   if (/invalid login credentials/i.test(msg)) {
     return 'Wrong email or password. Double-check and try again.';
+  }
+  if (/redirect|callback|url configuration/i.test(msg)) {
+    return 'Google sign-in redirect mismatch. In Supabase → Authentication → URL Configuration, add: ' + oauthRedirectUrl();
   }
   return msg;
 }
@@ -2325,16 +2340,25 @@ async function handleGoogleSignIn() {
   setOAuthBusy(true);
 
   try {
-    const options = await window.AuthCaptcha?.authOptions?.({
-      redirectTo: oauthRedirectUrl()
+    const captchaOpts = (await window.AuthCaptcha?.authOptions?.()) || {};
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        ...captchaOpts,
+        redirectTo: oauthRedirectUrl(),
+        queryParams: { prompt: "select_account" }
+      }
     });
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options
-    });
-    if (error) showAuthError(error.message);
+    if (error) {
+      showAuthError(formatAuthError(error));
+      setOAuthBusy(false);
+      return;
+    }
+    if (data?.url) {
+      window.location.assign(data.url);
+    }
   } catch (err) {
-    showAuthError(err.message || 'Google sign in failed.');
+    showAuthError(formatAuthError(err) || err.message || "Google sign in failed.");
     setOAuthBusy(false);
   } finally {
     window.AuthCaptcha?.afterAttempt?.();
@@ -2992,11 +3016,11 @@ function renderPushCard() {
   if (ios && !PushReminders.isStandalone()) {
     status.textContent = 'On iPhone: Share → Add to Home Screen, open the installed app, then enable reminders here.';
   } else if (enabled) {
-    status.textContent = 'Phone reminders are on. You will get alerts before assignments are due.';
+    status.textContent = 'Phone reminders on. Alerts fire at 24h, 6h, and 1h before due (requires Supabase cron — see below).';
   } else if (permission === 'denied') {
     status.textContent = 'Notifications blocked. Allow them in browser or phone settings, then tap Enable again.';
   } else {
-    status.textContent = 'Notify at 24h, 6h, and 1h before due — even when Quiet Focus is closed.';
+    status.textContent = 'In-app popups work while the app is open. Phone alerts need Enable + a Supabase cron job on send-reminders.';
   }
 
   enableBtn.textContent = enabled ? 'Turn off' : 'Enable';
