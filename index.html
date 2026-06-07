@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="mascot-hybrid.css">
 <meta property="og:title" content="Quiet Focus">
 <meta property="og:description" content="A focus timer built around the moment you return.">
 <meta property="og:type" content="website">
@@ -193,10 +194,30 @@ nav {
   width: 100%;
   padding: 8px 0 4px;
   position: relative;
-  background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(58,64,72,.32) 0%, transparent 70%);
+  background:
+    radial-gradient(ellipse 85% 75% at 50% 55%, rgba(58,64,72,.38) 0%, transparent 72%),
+    radial-gradient(ellipse 55% 45% at 50% 42%, rgba(148,218,177,.07) 0%, transparent 70%);
+}
+
+.hero-mascot-glow {
+  position: absolute;
+  inset: 8% 10% auto;
+  height: 75%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.12) 0%, transparent 68%);
+  filter: blur(24px);
+  pointer-events: none;
+  animation: hero-glow-pulse 5s ease-in-out infinite;
+}
+
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: .75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
 }
 
 .hero-mascot-float {
+  position: relative;
+  z-index: 1;
   animation: hero-mascot-breathe 4.5s ease-in-out infinite;
 }
 
@@ -206,16 +227,18 @@ nav {
 }
 
 .hero-mascot {
-  width: min(260px, 72%);
+  width: min(240px, 68%);
   height: auto;
   display: block;
   margin: 0 auto;
   mix-blend-mode: lighten;
   object-fit: contain;
+  object-position: center bottom;
   filter:
-    brightness(1.06)
-    drop-shadow(0 20px 44px rgba(0,0,0,.5))
-    drop-shadow(0 0 36px rgba(255,255,255,.08));
+    brightness(1.1)
+    contrast(1.04)
+    drop-shadow(0 24px 48px rgba(0,0,0,.52))
+    drop-shadow(0 0 44px rgba(255,255,255,.1));
 }
 
 .hero-mascot-caption {
@@ -708,9 +731,23 @@ footer {
   </div>
 
   <div class="hero-visual">
-  <div class="hero-mascot-wrap">
-    <div class="hero-mascot-float">
-      <img class="hero-mascot" src="icons/quiet-hero.png" width="300" height="400" alt="Quiet, your focus companion">
+  <div class="hero-mascot-wrap mascot-hybrid" id="hero-mascot-hybrid">
+    <div class="hero-mascot-glow" aria-hidden="true"></div>
+    <div class="hero-mascot-float mascot-hybrid-stage">
+      <img class="hero-mascot mascot-hybrid-png" src="icons/quiet-hero.png" width="360" height="400" alt="Quiet, your focus companion">
+      <model-viewer
+        class="mascot-hybrid-3d"
+        alt="Quiet 3D mascot"
+        camera-controls
+        auto-rotate
+        rotation-per-second="12deg"
+        interaction-prompt="none"
+        shadow-intensity="0.8"
+        exposure="1.05"
+        camera-orbit="0deg 72deg 115%"
+        loading="lazy"
+        aria-hidden="true">
+      </model-viewer>
     </div>
     <p class="hero-mascot-caption">Meet Quiet</p>
   </div>
@@ -961,5 +998,6 @@ footer {
   document.getElementById("waitlist-form")?.addEventListener("submit", submitWaitlist);
 })();
 </script>
+<script src="mascot-hybrid.js" defer></script>
 </body>
 </html>
