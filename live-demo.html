@@ -23,6 +23,7 @@
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
+  <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <style>
 /* ═══════════════════════════════════════
@@ -2711,10 +2712,15 @@ function formatDueRelative(dueAt) {
 
 function primeRemindersForAssignment(assignment) {
   const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  if (hours < 0) {
+    assignment.remindersShown = { h24: true, h6: true, h1: true, overdue: false };
+    return;
+  }
   assignment.remindersShown = {
     h24: hours > 24,
     h6: hours > 6,
-    h1: hours > 1
+    h1: hours > 1,
+    overdue: true
   };
 }
 
@@ -2727,6 +2733,7 @@ function getActiveReminderMilestone(assignment) {
   ensureRemindersShown(assignment);
   const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
   const shown = assignment.remindersShown;
+  if (hours < 0 && !shown.overdue) return 'overdue';
   if (hours <= 1 && !shown.h1) return 'h1';
   if (hours <= 6 && !shown.h6) return 'h6';
   if (hours <= 24 && !shown.h24) return 'h24';
@@ -2774,6 +2781,29 @@ function addAssignment(data) {
   return assignment;
 }
 
+function completedTodayCount() {
+  const today = localDateKey();
+  return (profile.assignments || []).filter(
+    a => a.completed && a.completedAt && localDateKey(new Date(a.completedAt)) === today
+  ).length;
+}
+
+function maybeSendEndOfDayQuiet() {
+  if (new Date().getHours() < 17) return;
+  const key = `quiet-eod-${localDateKey()}`;
+  if (localStorage.getItem(key)) return;
+  const count = completedTodayCount();
+  const msg = window.QuietReminderCopy?.buildEndOfDay?.(count);
+  if (!msg) return;
+  localStorage.setItem(key, '1');
+  window.PushReminders?.showLocalReminder?.({
+    title: msg.title,
+    body: msg.body,
+    tag: 'quiet-eod',
+    url: './live-demo.html?page=assignments'
+  }).catch(() => {});
+}
+
 function completeAssignment(id) {
   const item = getAssignmentById(id);
   if (!item) return;
@@ -2785,6 +2815,7 @@ function completeAssignment(id) {
   syncAssignmentToCloud(item);
   hideReminderModal();
   toast('Marked complete');
+  maybeSendEndOfDayQuiet();
 }
 
 function snoozeAssignment(id, hours = 1) {
@@ -2932,18 +2963,28 @@ function showReminderModal(assignment) {
   setQuietMood('reminder');
 
   const modal = $('reminder-modal');
-  const ms = new Date(assignment.dueAt) - Date.now();
-  $('reminder-label').textContent = ms <= 3600000 ? 'Urgent' : 'Reminder';
-  $('reminder-title').textContent = assignment.title;
-  const copy =
-    `${assignment.course ? assignment.course + ' — ' : ''}${formatDueRelative(assignment.dueAt)}. Start a focus session?`;
-  $('reminder-copy').textContent = copy;
+  const msg = window.QuietReminderCopy?.build({
+    title: assignment.title,
+    course: assignment.course,
+    dueAt: assignment.dueAt,
+    milestone
+  }) || {
+    kicker: 'Reminder',
+    title: assignment.title,
+    body: `${formatDueRelative(assignment.dueAt)}.`,
+    modalHint: 'Start a focus session?'
+  };
+  $('reminder-label').textContent = msg.kicker;
+  $('reminder-title').textContent = msg.title;
+  $('reminder-copy').textContent = msg.modalHint
+    ? `${msg.body} ${msg.modalHint}`
+    : msg.body;
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('is-visible'));
 
   window.PushReminders?.showLocalReminder?.({
-    title: assignment.title,
-    body: copy.replace('. Start a focus session?', ''),
+    title: msg.title,
+    body: msg.body,
     tag: `assignment-${assignment.id}-${milestone}`,
     url: './live-demo.html?page=assignments'
   }).catch(() => {});
