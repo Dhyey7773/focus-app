@@ -153,6 +153,19 @@
     });
   }
 
+  async function showLocalReminder({ title, body, tag, url }) {
+    if (permissionState() !== "granted") return;
+    const registration = await getRegistration();
+    if (!registration) return;
+    await registration.showNotification(title || "Quiet Focus", {
+      body: body || "Assignment reminder",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: tag || "quiet-focus-reminder",
+      data: { url: url || "./live-demo.html?page=assignments" }
+    });
+  }
+
   window.PushReminders = {
     isSupported,
     isStandalone,
@@ -160,6 +173,7 @@
     enablePushReminders,
     disablePushReminders,
     syncSubscriptionIfEnabled,
-    sendTestNotification
+    sendTestNotification,
+    showLocalReminder
   };
 })();
