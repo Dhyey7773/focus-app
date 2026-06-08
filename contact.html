@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "x40i38u978");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R9S0676XRS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R9S0676XRS');
+</script>
+<title>Contact & Support — Quiet Focus</title>
+<meta name="description" content="Get help with Quiet Focus — focus timer, assignments, reminders, and account questions.">
+<meta name="theme-color" content="#07080a">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root {
+  --bg: #07080a;
+  --panel: #0c0e11;
+  --panel-2: #12151a;
+  --line: rgba(255,255,255,0.08);
+  --line-2: rgba(255,255,255,0.14);
+  --muted: rgba(238,242,248,0.42);
+  --muted-2: rgba(238,242,248,0.68);
+  --text: #f0f2f7;
+  --mint: #94dab1;
+  --mint-dim: rgba(148,218,177,0.1);
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--mint); text-decoration: none; }
+a:hover { opacity: 0.9; }
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 4vw, 48px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(7,8,10,0.92);
+  backdrop-filter: blur(16px);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+}
+.nav-logo span { color: var(--mint); }
+.nav-back { font-size: 13px; color: var(--muted-2); }
+.nav-back:hover { color: var(--text); }
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px clamp(20px, 4vw, 48px) 72px;
+}
+.meta {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.lede {
+  color: var(--muted-2);
+  margin-bottom: 32px;
+  font-size: 15px;
+  max-width: 52ch;
+}
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.help-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.help-card strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.help-card p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.contact-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 28px clamp(20px, 4vw, 28px);
+}
+.contact-panel h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.contact-panel .sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 22px;
+}
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  transition: border-color 0.15s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: rgba(148,218,177,0.4);
+}
+.field textarea { min-height: 140px; resize: vertical; }
+.field select { cursor: pointer; }
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-primary:disabled { opacity: 0.5; cursor: wait; }
+.btn-ghost {
+  background: transparent;
+  color: var(--muted-2);
+  border: 1px solid var(--line);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--line-2); }
+.form-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 14px;
+}
+.success-box {
+  display: none;
+  margin-top: 20px;
+  padding: 18px 20px;
+  background: var(--mint-dim);
+  border: 1px solid rgba(148,218,177,0.22);
+  border-radius: 14px;
+}
+.success-box p { margin: 0; color: var(--muted-2); font-size: 14px; }
+.success-box p:first-child { color: var(--text); font-weight: 500; margin-bottom: 6px; }
+.email-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.email-row p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.email-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--muted-2);
+}
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px clamp(20px, 4vw, 48px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+}
+.footer-links { display: flex; flex-wrap: wrap; gap: 20px; }
+.footer-links a { color: var(--muted); text-decoration: none; }
+.footer-links a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">Quiet <span>Focus</span></a>
+  <a href="live-demo.html" class="nav-back">Open app →</a>
+</nav>
+
+<main>
+  <p class="meta">Support</p>
+  <h1>How can we help?</h1>
+  <p class="lede">Questions about focus sessions, assignments, reminders, or your account — send a message here. We usually reply within 1–2 business days.</p>
+
+  <div class="help-grid">
+    <div class="help-card">
+      <strong>Try the demo</strong>
+      <p>Timer, drift tracking, and assignment reminders work in the <a href="live-demo.html?demo=1">web app</a>.</p>
+    </div>
+    <div class="help-card">
+      <strong>Privacy & data</strong>
+      <p>Read our <a href="privacy.html">Privacy Policy</a> or request account deletion here.</p>
+    </div>
+    <div class="help-card">
+      <strong>Report a bug</strong>
+      <p>Choose “Bug report” below and tell us what device and browser you use.</p>
+    </div>
+  </div>
+
+  <div class="contact-panel">
+    <h2>Send a message</h2>
+    <p class="sub">No mail app needed — we’ll get this in our support inbox.</p>
+
+    <form id="contact-form">
+      <div class="field">
+        <label for="contact-name">Name</label>
+        <input id="contact-name" name="name" type="text" placeholder="Your name" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="contact-email">Email</label>
+        <input id="contact-email" name="email" type="email" placeholder="you@email.com" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="contact-topic">Topic</label>
+        <select id="contact-topic" name="topic" required>
+          <option value="general">General question</option>
+          <option value="bug">Bug report</option>
+          <option value="account">Account & privacy</option>
+          <option value="feature">Feature idea</option>
+          <option value="other">Something else</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="contact-message">Message</label>
+        <textarea id="contact-message" name="message" placeholder="Tell us what’s going on…" required maxlength="2000"></textarea>
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="contact-submit">Send message</button>
+      </div>
+      <p class="form-note">By submitting, you agree we may email you back about this request. See our <a href="privacy.html">Privacy Policy</a>.</p>
+    </form>
+
+    <div class="success-box" id="contact-success">
+      <p>Message sent ✓</p>
+      <p>Thanks — we received your note and will reply to the email you provided.</p>
+    </div>
+
+    <div class="email-row">
+      <p>Need the address?</p>
+      <span class="email-chip" id="support-email-chip">support@quietfocusai.com</span>
+      <button type="button" class="btn btn-ghost" id="copy-email-btn">Copy email</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div>&copy; 2026 Quiet Focus</div>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+    <a href="live-demo.html?demo=1">Demo</a>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  "use strict";
+
+  const cfg = window.APP_CONFIG || {};
+  const SUPABASE_URL = cfg.SUPABASE_URL || "https://pyqnhbuzpagosqxsjvwg.supabase.co";
+  const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY || "";
+  const SUPPORT_EMAIL = cfg.SUPPORT_EMAIL || "quietfocusai@gmail.com";
+  const SUPPORT_DISPLAY = cfg.SUPPORT_DISPLAY || "support@quietfocusai.com";
+
+  const chip = document.getElementById("support-email-chip");
+  if (chip) chip.textContent = SUPPORT_DISPLAY;
+
+  document.getElementById("copy-email-btn")?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(SUPPORT_EMAIL);
+      const btn = document.getElementById("copy-email-btn");
+      if (btn) {
+        btn.textContent = "Copied ✓";
+        setTimeout(() => { btn.textContent = "Copy email"; }, 2000);
+      }
+    } catch {
+      window.prompt("Copy our support email:", SUPPORT_EMAIL);
+    }
+  });
+
+  document.getElementById("contact-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const btn = document.getElementById("contact-submit");
+    const form = event.target;
+    const email = document.getElementById("contact-email")?.value?.trim().toLowerCase();
+    const name = document.getElementById("contact-name")?.value?.trim() || "";
+    const topic = document.getElementById("contact-topic")?.value || "general";
+    const message = document.getElementById("contact-message")?.value?.trim() || "";
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("Enter a valid email.");
+      return;
+    }
+    if (message.length < 8) {
+      alert("Please add a bit more detail.");
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+
+    if (!window.supabase?.createClient || !SUPABASE_ANON_KEY) {
+      alert("Could not connect. Try again later or copy our email.");
+      if (btn) { btn.disabled = false; btn.textContent = "Send message"; }
+      return;
+    }
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { error } = await supabase.from("contact_messages").insert([{
+      name,
+      email,
+      topic,
+      message
+    }]);
+
+    if (error) {
+      console.error(error);
+      alert(/contact_messages|relation|does not exist/i.test(error.message)
+        ? "Support form is being set up — use Copy email for now."
+        : (error.message || "Could not send. Try again."));
+      if (btn) { btn.disabled = false; btn.textContent = "Send message"; }
+      return;
+    }
+
+    form.style.display = "none";
+    document.getElementById("contact-success").style.display = "block";
+  });
+})();
+</script>
+</body>
+</html>
