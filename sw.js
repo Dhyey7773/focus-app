@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v32';
+const CACHE = 'quiet-focus-v33';
 
 const ASSETS = [
   './live-demo.html',
@@ -15,6 +15,7 @@ const ASSETS = [
   './sw-update.js',
   './manifest.webmanifest',
   './contact.html',
+  './about-quiet.html',
   './privacy.html',
   './terms.html',
   './icons/icon-192.png',
@@ -38,6 +39,7 @@ const NETWORK_FIRST = new Set([
   'index.html',
   'live-demo.html',
   'contact.html',
+  'about-quiet.html',
   'privacy.html',
   'terms.html',
   'config.js',
