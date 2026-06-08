@@ -1,269 +1,129 @@
-(function () {
-  function getClient() {
-    return window.FocusAuth?.getSupabase?.() || window.supabaseClient || null;
-  }
+const CACHE = 'quiet-focus-v27';
+const ASSETS = [
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png',
+  './icons/apple-touch-icon-152.png',
+  './icons/apple-touch-icon-167.png',
+  './apple-touch-icon.png',
+  './icons/quiet-hero.png',
+  './icons/quiet-mood-focused.png',
+  './icons/quiet-mood-thinking.png',
+  './icons/quiet-mood-encouraging.png',
+  './icons/quiet-mood-celebrating.png',
+  './icons/quiet-mood-reminder.png',
+  './icons/quiet-mood-rest.png'
+];
 
-  function isColumnError(error) {
-    const msg = error?.message || "";
-    return /does not exist|schema cache|PGRST204|column/i.test(msg);
-  }
+const NETWORK_FIRST = [
+  './index.html',
+  './privacy.html',
+  './terms.html',
+  './live-demo.html',
+  './index.html',
+  './config.js',
+  './auth-captcha.js',
+  './supabase-sessions.js',
+  './supabase-assignments.js',
+  './assignment-scan.js',
+  './quiet-reminder-copy.js',
+  './mascot-hybrid.js',
+  './mascot-hybrid.css',
+  './push-notifications.js',
+  './sw.js',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png',
+  './icons/apple-touch-icon-152.png',
+  './icons/apple-touch-icon-167.png'
+];
 
-  function rowToHistoryItem(row) {
-    const created = row.created_at ? new Date(row.created_at) : new Date();
-    const offset = created.getTimezoneOffset() * 60000;
-    const date =
-      row.date || new Date(created.getTime() - offset).toISOString().slice(0, 10);
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => Promise.allSettled(ASSETS.map((url) => cache.add(url))))
+      .then(() => self.skipWaiting())
+  );
+});
 
-    const focusSeconds = row.focus_seconds ?? (row.focus_minutes ?? row.duration ?? 0) * 60;
-    const focusMinutes = row.focus_minutes ?? row.duration ?? Math.floor(focusSeconds / 60);
-    const distractions = row.distractions ?? row.interruptions ?? 0;
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
 
-    return {
-      date,
-      task: row.task || "Focus session",
-      focusMinutes,
-      focusSeconds,
-      distractions,
-      breaks: row.breaks ?? 0,
-      refocuses: row.refocuses ?? 0,
-      score: row.score ?? 0,
-      completedNaturally: !!(row.completed_naturally ?? row.completed),
-      events: Array.isArray(row.events) ? row.events : []
-    };
-  }
+function isNetworkFirst(url) {
+  const path = url.pathname.replace(/\/$/, '') || '/';
+  const file = path.slice(path.lastIndexOf('/') + 1) || 'index.html';
+  return NETWORK_FIRST.some((entry) => entry.endsWith(file));
+}
 
-  function formatSaveError(error) {
-    const msg = error?.message || "Could not save session";
-    if (/row-level security|policy/i.test(msg)) {
-      return "Save blocked — run supabase-schema.sql in Supabase SQL Editor.";
-    }
-    if (isColumnError(msg)) {
-      return "Table columns missing — run supabase-schema.sql in Supabase SQL Editor.";
-    }
-    if (/JWT|session|not authenticated|401/i.test(msg)) {
-      return "Session expired — sign out and sign in again.";
-    }
-    if (/email not confirmed/i.test(msg)) {
-      return "Confirm your email, then sign in again.";
-    }
-    return msg;
-  }
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
 
-  async function getAuthSession(supabase) {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    if (session?.user) return session;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
-    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError) throw refreshError;
-    return refreshed.session;
-  }
-
-  function focusSecondsFromSummary(summary) {
-    if (summary.focusSeconds != null) return Math.max(0, Math.round(Number(summary.focusSeconds)));
-    return Math.max(0, Math.round(Number(summary.focusMinutes) || 0) * 60);
-  }
-
-  function buildFullRow(userId, summary) {
-    const focusSeconds = focusSecondsFromSummary(summary);
-    return {
-      user_id: userId,
-      task: summary.task || "Focus session",
-      focus_minutes: Math.floor(focusSeconds / 60),
-      focus_seconds: focusSeconds,
-      distractions: Number(summary.distractions) || 0,
-      breaks: Number(summary.breaks) || 0,
-      refocuses: Number(summary.refocuses) || 0,
-      score: Number(summary.score) || 0,
-      completed_naturally: Boolean(summary.completedNaturally),
-      events: summary.events || [],
-      date: summary.date || new Date().toISOString().slice(0, 10)
-    };
-  }
-
-  function buildLegacyRow(summary) {
-    return {
-      duration: Number(summary.focusMinutes) || 0,
-      interruptions: Number(summary.distractions) || 0,
-      completed: Boolean(summary.completedNaturally)
-    };
-  }
-
-  async function saveFocusSession(summary) {
-    const supabase = getClient();
-    if (!supabase) {
-      return { ok: false, reason: "no-client", message: "Supabase client missing." };
-    }
-
-    let session;
-    try {
-      session = await getAuthSession(supabase);
-    } catch (err) {
-      return { ok: false, reason: "auth-error", message: formatSaveError(err) };
-    }
-
-    if (!session?.user) {
-      return { ok: false, reason: "not-signed-in", message: "Sign in to sync sessions." };
-    }
-
-    const fullRow = buildFullRow(session.user.id, summary);
-    let { error } = await supabase.from("focus_sessions").insert([fullRow]);
-
-    if (error && isColumnError(error) && fullRow.focus_seconds != null) {
-      const { focus_seconds, ...rowWithoutSeconds } = fullRow;
-      const retry = await supabase.from("focus_sessions").insert([rowWithoutSeconds]);
-      error = retry.error;
-    }
-
-    if (error && isColumnError(error)) {
-      const legacyRow = buildLegacyRow(summary);
-      const retry = await supabase.from("focus_sessions").insert([legacyRow]);
-      error = retry.error;
-    }
-
-    if (error) {
-      console.error("focus_sessions insert failed:", error, fullRow);
-      if (/row-level security|policy|permission denied|42501/i.test(error.message || "")) {
-        return {
-          ok: false,
-          error,
-          message: "Cloud save blocked — re-run supabase-schema.sql in Supabase SQL Editor."
-        };
-      }
-      return { ok: false, error, message: formatSaveError(error) };
-    }
-
-    return { ok: true };
-  }
-
-  async function loadFocusSessions(limit = 20) {
-    const supabase = getClient();
-    if (!supabase) return { ok: false, sessions: [], reason: "no-client" };
-
-    let session;
-    try {
-      session = await getAuthSession(supabase);
-    } catch (err) {
-      return { ok: false, sessions: [], error: err, message: formatSaveError(err) };
-    }
-
-    if (!session?.user) {
-      return { ok: false, sessions: [], reason: "not-signed-in" };
-    }
-
-    const fullSelect =
-      "id, task, focus_minutes, distractions, breaks, refocuses, score, completed_naturally, events, date, created_at";
-
-    let { data, error } = await supabase
-      .from("focus_sessions")
-      .select(fullSelect + ", focus_seconds")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error && isColumnError(error)) {
-      const fallback = await supabase
-        .from("focus_sessions")
-        .select(fullSelect)
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-      data = fallback.data;
-      error = fallback.error;
-    }
-
-    if (error) {
-      console.error("focus_sessions load error:", error);
-      return { ok: false, sessions: [], error, message: formatSaveError(error) };
-    }
-
-    return { ok: true, sessions: data || [] };
-  }
-
-  async function loadSessionStats() {
-    const supabase = getClient();
-    if (!supabase) return { ok: false, totalSessions: 0, totalMinutes: 0 };
-
-    let session;
-    try {
-      session = await getAuthSession(supabase);
-    } catch {
-      return { ok: false, totalSessions: 0, totalMinutes: 0 };
-    }
-
-    if (!session?.user) return { ok: false, totalSessions: 0, totalMinutes: 0 };
-
-    let { data, error } = await supabase
-      .from("focus_sessions")
-      .select("focus_minutes, focus_seconds")
-      .eq("user_id", session.user.id);
-
-    if (error && isColumnError(error)) {
-      const fallback = await supabase
-        .from("focus_sessions")
-        .select("focus_minutes")
-        .eq("user_id", session.user.id);
-      data = fallback.data;
-      error = fallback.error;
-    }
-
-    if (error || !data) return { ok: false, totalSessions: 0, totalMinutes: 0, totalSeconds: 0 };
-
-    const totalSeconds = data.reduce(
-      (s, r) => s + (r.focus_seconds ?? (r.focus_minutes || 0) * 60),
-      0
+  if (isNetworkFirst(url)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
-    return {
-      ok: true,
-      totalSessions: data.length,
-      totalMinutes: totalSeconds / 60,
-      totalSeconds
-    };
+    return;
   }
 
-  function sessionHistoryKey(item) {
-    const seconds = item.focusSeconds ?? (Number(item.focusMinutes) || 0) * 60;
-    return `${item.date}|${item.task}|${seconds}|${item.score ?? 0}`;
-  }
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request);
+    })
+  );
+});
 
-  function mergeSessionHistory(localItems, cloudItems) {
-    const merged = new Map();
-    (cloudItems || []).forEach((item) => {
-      merged.set(sessionHistoryKey(item), { ...item, syncedToCloud: true });
-    });
-    (localItems || []).forEach((item) => {
-      const key = sessionHistoryKey(item);
-      if (!merged.has(key)) {
-        merged.set(key, item);
-        return;
+self.addEventListener('push', (event) => {
+  let payload = { title: 'Quiet Focus', body: 'Assignment reminder', url: './live-demo.html?page=assignments' };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch (_) { /* use defaults */ }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'Quiet Focus', {
+      body: payload.body || 'You have an assignment due soon.',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: payload.tag || 'quiet-focus-reminder',
+      data: { url: payload.url || './live-demo.html?page=assignments' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || './live-demo.html?page=assignments';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
       }
-      const existing = merged.get(key);
-      if (!existing.syncedToCloud && item.syncedToCloud) {
-        merged.set(key, { ...existing, syncedToCloud: true });
-      }
-    });
-    return Array.from(merged.values()).sort((a, b) => {
-      if (a.date !== b.date) return String(b.date).localeCompare(String(a.date));
-      const bs = b.focusSeconds ?? (b.focusMinutes || 0) * 60;
-      const as = a.focusSeconds ?? (a.focusMinutes || 0) * 60;
-      return bs - as;
-    });
-  }
-
-  async function applySessionsToProfile(profile) {
-    const result = await loadFocusSessions(20);
-    if (!result.ok) return result;
-    const cloudItems = result.sessions.map(rowToHistoryItem);
-    profile.history = mergeSessionHistory(profile.history || [], cloudItems).slice(0, 20);
-    return { ok: true, count: profile.history.length, cloudCount: cloudItems.length };
-  }
-
-  window.FocusSessions = {
-    save: saveFocusSession,
-    load: loadFocusSessions,
-    loadStats: loadSessionStats,
-    applyToProfile: applySessionsToProfile,
-    mergeSessionHistory,
-    rowToHistoryItem
-  };
-})();
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    })
+  );
+});
