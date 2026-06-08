@@ -2471,6 +2471,11 @@ async function loadProfileFromSupabase() {
     saveProfile();
     if (result.cloudCount > 0) {
       toast(`Loaded ${result.cloudCount} session${result.cloudCount === 1 ? '' : 's'} from cloud`);
+    } else if (result.cloudUnavailable && result.loadError) {
+      console.warn('Cloud history unavailable:', result.loadError);
+      if (profile.history.length) {
+        toast('Using sessions saved on this device', 3500);
+      }
     }
     await syncLocalHistoryToCloud();
   } else {
@@ -2548,7 +2553,18 @@ function loadProfile() {
 }
 
 function saveProfile() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    return true;
+  } catch (err) {
+    console.error('Local profile save failed:', err);
+    toast('Could not save on this device — check browser storage settings', 5000);
+    return false;
+  }
+}
+
+function newSessionId() {
+  return `s_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
 function persistSession() {
@@ -3550,6 +3566,8 @@ async function finishSession(completedNaturally = false) {
   eventAt(completedNaturally ? 'Focus session completed' : 'Session finished','complete');
 
   const summary = {
+    id:                newSessionId(),
+    savedAt:             new Date().toISOString(),
     date:              localDateKey(),
     task:              session.task,
     assignmentId:      session.assignmentId || null,
@@ -3560,19 +3578,25 @@ async function finishSession(completedNaturally = false) {
     refocuses:         session.refocuses,
     score:             scoreForSession(completedNaturally),
     completedNaturally,
-    events:            session.events
+    events:            session.events.slice(0, 40)
   };
 
   profile.history.unshift(summary);
   profile.history = profile.history.slice(0, 20);
   profile.activeSession = null;
+  session = null;
   sessionAssignmentId = null;
-  saveProfile();
+  const savedLocal = saveProfile();
 
   renderRecap(summary);
   setQuietMood('complete');
   renderHome();
+  renderHistoryLast();
   showPage('recap');
+
+  if (savedLocal) {
+    toast('Session logged ✓', 2200);
+  }
 
   // Sync in background — don't block the recap screen
   saveSessionToSupabase(summary);
