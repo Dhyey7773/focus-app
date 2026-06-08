@@ -258,8 +258,8 @@
   }
 
   async function applySessionsToProfile(profile) {
-    const localItems = (profile.history || []).slice();
     const result = await loadFocusSessions(20);
+    const localItems = (profile.history || []).slice();
     if (!result.ok) {
       profile.history = localItems;
       return {
