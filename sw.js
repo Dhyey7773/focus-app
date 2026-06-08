@@ -1,6 +1,22 @@
-const CACHE = 'quiet-focus-v31';
+const CACHE = 'quiet-focus-v32';
+
 const ASSETS = [
+  './live-demo.html',
+  './index.html',
+  './config.js',
+  './auth-captcha.js',
+  './supabase-sessions.js',
+  './supabase-assignments.js',
+  './assignment-scan.js',
+  './quiet-reminder-copy.js',
+  './mascot-hybrid.js',
+  './mascot-hybrid.css',
+  './push-notifications.js',
+  './sw-update.js',
   './manifest.webmanifest',
+  './contact.html',
+  './privacy.html',
+  './terms.html',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-192-maskable.png',
@@ -18,32 +34,75 @@ const ASSETS = [
   './icons/quiet-mood-rest.png'
 ];
 
-const NETWORK_FIRST = [
-  './index.html',
-  './privacy.html',
-  './terms.html',
-  './contact.html',
-  './live-demo.html',
-  './index.html',
-  './config.js',
-  './auth-captcha.js',
-  './supabase-sessions.js',
-  './supabase-assignments.js',
-  './assignment-scan.js',
-  './quiet-reminder-copy.js',
-  './mascot-hybrid.js',
-  './mascot-hybrid.css',
-  './push-notifications.js',
-  './sw.js',
-  './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-192-maskable.png',
-  './icons/icon-512-maskable.png',
-  './icons/apple-touch-icon.png',
-  './icons/apple-touch-icon-152.png',
-  './icons/apple-touch-icon-167.png'
-];
+const NETWORK_FIRST = new Set([
+  'index.html',
+  'live-demo.html',
+  'contact.html',
+  'privacy.html',
+  'terms.html',
+  'config.js',
+  'auth-captcha.js',
+  'supabase-sessions.js',
+  'supabase-assignments.js',
+  'assignment-scan.js',
+  'quiet-reminder-copy.js',
+  'mascot-hybrid.js',
+  'mascot-hybrid.css',
+  'push-notifications.js',
+  'sw-update.js',
+  'manifest.webmanifest',
+  'sw.js'
+]);
+
+function fileName(url) {
+  const path = url.pathname.replace(/\/$/, '') || '/';
+  return path.slice(path.lastIndexOf('/') + 1) || 'index.html';
+}
+
+function isAppShell(url) {
+  return NETWORK_FIRST.has(fileName(url));
+}
+
+async function putCache(request, response) {
+  if (!response || response.status !== 200 || response.type !== 'basic') return;
+  const cache = await caches.open(CACHE);
+  await cache.put(request, response.clone());
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then((response) => {
+      putCache(request, response);
+      return response;
+    })
+    .catch(() => null);
+
+  if (cached) {
+    networkPromise.catch(() => {});
+    return cached;
+  }
+
+  const fresh = await networkPromise;
+  if (fresh) return fresh;
+  return cache.match(request);
+}
+
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    await putCache(request, response);
+    return response;
+  } catch {
+    return cached;
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -55,17 +114,23 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+      .then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'QF_CACHE_READY', version: CACHE });
+        });
+      })
   );
 });
 
-function isNetworkFirst(url) {
-  const path = url.pathname.replace(/\/$/, '') || '/';
-  const file = path.slice(path.lastIndexOf('/') + 1) || 'index.html';
-  return NETWORK_FIRST.some((entry) => entry.endsWith(file));
-}
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
@@ -73,27 +138,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (isNetworkFirst(url)) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
+  if (isAppShell(url)) {
+    event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request);
-    })
-  );
+  event.respondWith(cacheFirst(event.request));
 });
 
 self.addEventListener('push', (event) => {
