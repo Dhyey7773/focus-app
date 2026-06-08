@@ -262,10 +262,27 @@ nav {
 
 .hero-mascot-caption {
   margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,218,177,0.28);
+  background: rgba(148,218,177,0.08);
   font-size: 12px;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--mint);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.hero-mascot-caption:hover {
+  background: rgba(148,218,177,0.14);
+  border-color: rgba(148,218,177,0.45);
+  transform: translateY(-1px);
+  opacity: 1;
 }
 
 .nav-mark img {
@@ -770,7 +787,7 @@ footer {
         aria-hidden="true">
       </model-viewer>
     </div>
-    <p class="hero-mascot-caption">Meet Quiet</p>
+    <a href="about-quiet.html" class="hero-mascot-caption">Meet Quiet →</a>
   </div>
   <div class="phone" aria-hidden="true">
     <div class="phone-inner">
@@ -941,6 +958,7 @@ footer {
     <a href="#how">How it works</a>
     <a href="privacy.html">Privacy</a>
     <a href="terms.html">Terms</a>
+    <a href="about-quiet.html">About Quiet</a>
     <a href="contact.html">Contact</a>
   </div>
   <div class="footer-copy">&copy; 2026 Quiet Focus</div>
