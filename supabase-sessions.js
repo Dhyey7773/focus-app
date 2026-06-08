@@ -46,6 +46,9 @@
     if (/email not confirmed/i.test(msg)) {
       return "Confirm your email, then sign in again.";
     }
+    if (/too many sessions saved/i.test(msg)) {
+      return "Session saved on this device. Cloud sync paused — try again in an hour.";
+    }
     return msg;
   }
 
@@ -81,11 +84,14 @@
     };
   }
 
-  function buildLegacyRow(summary) {
+  function buildLegacyRow(userId, summary) {
     return {
-      duration: Number(summary.focusMinutes) || 0,
-      interruptions: Number(summary.distractions) || 0,
-      completed: Boolean(summary.completedNaturally)
+      user_id: userId,
+      task: summary.task || "Focus session",
+      focus_minutes: Number(summary.focusMinutes) || 0,
+      distractions: Number(summary.distractions) || 0,
+      completed_naturally: Boolean(summary.completedNaturally),
+      date: summary.date || new Date().toISOString().slice(0, 10)
     };
   }
 
@@ -116,7 +122,7 @@
     }
 
     if (error && isColumnError(error)) {
-      const legacyRow = buildLegacyRow(summary);
+      const legacyRow = buildLegacyRow(session.user.id, summary);
       const retry = await supabase.from("focus_sessions").insert([legacyRow]);
       error = retry.error;
     }
@@ -222,8 +228,9 @@
   }
 
   function sessionHistoryKey(item) {
+    if (item.id) return item.id;
     const seconds = item.focusSeconds ?? (Number(item.focusMinutes) || 0) * 60;
-    return `${item.date}|${item.task}|${seconds}|${item.score ?? 0}`;
+    return `${item.date}|${item.task}|${seconds}|${item.score ?? 0}|${item.savedAt || ""}`;
   }
 
   function mergeSessionHistory(localItems, cloudItems) {
@@ -251,10 +258,20 @@
   }
 
   async function applySessionsToProfile(profile) {
+    const localItems = (profile.history || []).slice();
     const result = await loadFocusSessions(20);
-    if (!result.ok) return result;
+    if (!result.ok) {
+      profile.history = localItems;
+      return {
+        ok: true,
+        count: localItems.length,
+        cloudCount: 0,
+        cloudUnavailable: true,
+        loadError: result.message || result.reason
+      };
+    }
     const cloudItems = result.sessions.map(rowToHistoryItem);
-    profile.history = mergeSessionHistory(profile.history || [], cloudItems).slice(0, 20);
+    profile.history = mergeSessionHistory(localItems, cloudItems).slice(0, 20);
     return { ok: true, count: profile.history.length, cloudCount: cloudItems.length };
   }
 
