@@ -221,11 +221,41 @@
     };
   }
 
+  function sessionHistoryKey(item) {
+    const seconds = item.focusSeconds ?? (Number(item.focusMinutes) || 0) * 60;
+    return `${item.date}|${item.task}|${seconds}|${item.score ?? 0}`;
+  }
+
+  function mergeSessionHistory(localItems, cloudItems) {
+    const merged = new Map();
+    (cloudItems || []).forEach((item) => {
+      merged.set(sessionHistoryKey(item), { ...item, syncedToCloud: true });
+    });
+    (localItems || []).forEach((item) => {
+      const key = sessionHistoryKey(item);
+      if (!merged.has(key)) {
+        merged.set(key, item);
+        return;
+      }
+      const existing = merged.get(key);
+      if (!existing.syncedToCloud && item.syncedToCloud) {
+        merged.set(key, { ...existing, syncedToCloud: true });
+      }
+    });
+    return Array.from(merged.values()).sort((a, b) => {
+      if (a.date !== b.date) return String(b.date).localeCompare(String(a.date));
+      const bs = b.focusSeconds ?? (b.focusMinutes || 0) * 60;
+      const as = a.focusSeconds ?? (a.focusMinutes || 0) * 60;
+      return bs - as;
+    });
+  }
+
   async function applySessionsToProfile(profile) {
     const result = await loadFocusSessions(20);
     if (!result.ok) return result;
-    profile.history = result.sessions.map(rowToHistoryItem);
-    return { ok: true, count: profile.history.length };
+    const cloudItems = result.sessions.map(rowToHistoryItem);
+    profile.history = mergeSessionHistory(profile.history || [], cloudItems).slice(0, 20);
+    return { ok: true, count: profile.history.length, cloudCount: cloudItems.length };
   }
 
   window.FocusSessions = {
@@ -233,6 +263,7 @@
     load: loadFocusSessions,
     loadStats: loadSessionStats,
     applyToProfile: applySessionsToProfile,
+    mergeSessionHistory,
     rowToHistoryItem
   };
 })();
