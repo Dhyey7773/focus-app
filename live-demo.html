@@ -3,6 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "x40i38u978");
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R9S0676XRS"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-R9S0676XRS');
+  </script>
   <title>Quiet Focus</title>
   <meta name="description" content="A distraction-aware focus timer. Notice when you drift, come back gently.">
   <meta name="theme-color" content="#07080a">
@@ -2454,14 +2469,18 @@ async function syncLocalHistoryToCloud() {
   if (!currentUser || !profile.history?.length) return;
   let synced = 0;
   for (const item of profile.history) {
-    if (item.syncedToCloud) continue;
+    if (item.syncedToCloud || !item.id) continue;
     const result = await saveSessionToSupabase(item, { silent: true });
-    if (result?.ok) synced++;
+    if (result?.ok) {
+      item.syncedToCloud = true;
+      synced++;
+    }
   }
   if (synced > 0) {
+    saveSessionHistory(profile.history);
     saveProfile();
     updateSidebarStats();
-    toast(`Synced ${synced} session${synced === 1 ? '' : 's'} to cloud ✓`, 3500);
+    toast(`Synced ${synced} new session${synced === 1 ? '' : 's'} to cloud ✓`, 3500);
   }
 }
 
@@ -2473,7 +2492,9 @@ async function loadProfileFromSupabase() {
     saveSessionHistory(profile.history);
     saveProfile();
     if (result.cloudCount > 0) {
-      toast(`Loaded ${result.cloudCount} session${result.cloudCount === 1 ? '' : 's'} from cloud`);
+      toast(result.cloudCount > 5
+        ? 'Loaded your focus history from cloud'
+        : `Loaded ${result.cloudCount} session${result.cloudCount === 1 ? '' : 's'} from cloud`);
     } else if (result.cloudUnavailable && result.loadError) {
       console.warn('Cloud history unavailable:', result.loadError);
       if (profile.history.length) {
