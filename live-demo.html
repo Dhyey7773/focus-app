@@ -2389,6 +2389,7 @@ async function handleSignOut() {
     if (error) console.error('Sign out error:', error);
     clearSupabaseAuthStorage();
     profile.history = [];
+    saveSessionHistory([]);
     saveProfile();
     toast('Signed out');
   } catch (err) {
@@ -2431,6 +2432,7 @@ async function saveSessionToSupabase(summary, options) {
     const result = await window.FocusSessions.save(summary);
     if (result.ok) {
       summary.syncedToCloud = true;
+      saveSessionHistory(profile.history);
       saveProfile();
       if (!options.silent) toast('Saved to cloud ✓', 3500);
       updateSidebarStats();
@@ -2468,6 +2470,7 @@ async function loadProfileFromSupabase() {
 
   const result = await window.FocusSessions.applyToProfile(profile);
   if (result.ok) {
+    saveSessionHistory(profile.history);
     saveProfile();
     if (result.cloudCount > 0) {
       toast(`Loaded ${result.cloudCount} session${result.cloudCount === 1 ? '' : 's'} from cloud`);
@@ -2514,6 +2517,8 @@ async function updateSidebarStats() {
 //  YOUR ORIGINAL APP LOGIC (unchanged)
 // ═══════════════════════════════════════
 const STORAGE_KEY   = 'quiet-focus-v1';
+const HISTORY_KEY   = 'quiet-focus-history-v1';
+const MAX_HISTORY   = 20;
 const BREAK_SECONDS = 5 * 60;
 
 const defaults = {
@@ -2540,21 +2545,70 @@ const $     = id => document.getElementById(id);
 const pages = Array.from(document.querySelectorAll('.page'));
 const tabs  = Array.from(document.querySelectorAll('.tab'));
 
+function loadSessionHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_HISTORY) : [];
+  } catch (err) {
+    console.warn('Session history load failed:', err);
+    return [];
+  }
+}
+
+function saveSessionHistory(history) {
+  try {
+    const list = (history || []).slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    return true;
+  } catch (err) {
+    console.error('Session history save failed:', err);
+    return false;
+  }
+}
+
+function mergeLocalHistory(fromProfile, dedicated) {
+  if (window.FocusSessions?.mergeSessionHistory) {
+    return window.FocusSessions.mergeSessionHistory(fromProfile || [], dedicated || []);
+  }
+  const seen = new Set();
+  return [...(fromProfile || []), ...(dedicated || [])].filter(item => {
+    const key = item?.id || `${item?.date}|${item?.task}|${item?.score}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, MAX_HISTORY);
+}
+
+function setProfileHistory(history) {
+  profile.history = (history || []).slice(0, MAX_HISTORY);
+  const historyOk = saveSessionHistory(profile.history);
+  const profileOk = saveProfile();
+  return historyOk && profileOk;
+}
+
 function loadProfile() {
+  const dedicated = loadSessionHistory();
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const fromProfile = saved?.history || [];
+    const history = mergeLocalHistory(fromProfile, dedicated);
     return {
       ...defaults,
       ...saved,
-      history: saved?.history || [],
+      history,
       assignments: saved?.assignments || []
     };
-  } catch { return { ...defaults }; }
+  } catch {
+    return { ...defaults, history: dedicated };
+  }
 }
 
 function saveProfile() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    const payload = { ...profile };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     return true;
   } catch (err) {
     console.error('Local profile save failed:', err);
@@ -3556,7 +3610,10 @@ function scoreForSession(completedNaturally) {
 }
 
 async function finishSession(completedNaturally = false) {
-  if (!session || session.mode === 'complete') return;
+  if (!session || session.mode === 'complete') {
+    toast('Start a session first');
+    return;
+  }
   tick();
   clearInterval(timerId);
   clearTimeout(toastId);
@@ -3582,11 +3639,11 @@ async function finishSession(completedNaturally = false) {
   };
 
   profile.history.unshift(summary);
-  profile.history = profile.history.slice(0, 20);
+  profile.history = profile.history.slice(0, MAX_HISTORY);
   profile.activeSession = null;
   session = null;
   sessionAssignmentId = null;
-  const savedLocal = saveProfile();
+  const savedLocal = setProfileHistory(profile.history);
 
   renderRecap(summary);
   setQuietMood('complete');
@@ -3714,8 +3771,10 @@ $('restart-button').addEventListener('click', startSession);
 $('done-button').addEventListener('click', () => showPage('home'));
 $('clear-history').addEventListener('click', () => {
   profile.history = [];
+  saveSessionHistory([]);
   saveProfile();
   renderHome();
+  renderHistory();
   renderHistoryLast();
   toast('Session history cleared');
 });
