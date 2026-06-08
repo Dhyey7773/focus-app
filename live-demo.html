@@ -40,6 +40,7 @@
   <script src="assignment-scan.js"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
+  <script src="sw-update.js"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -4044,11 +4045,7 @@ try {
 }
 
 // ─── PWA: service worker + install prompt ───
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
+// Registration handled by sw-update.js (cache + update banner)
 
 (function setupInstallPrompt() {
   const banner = document.getElementById('install-banner');
