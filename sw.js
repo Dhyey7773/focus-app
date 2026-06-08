@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v29';
+const CACHE = 'quiet-focus-v31';
 const ASSETS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -22,6 +22,7 @@ const NETWORK_FIRST = [
   './index.html',
   './privacy.html',
   './terms.html',
+  './contact.html',
   './live-demo.html',
   './index.html',
   './config.js',
