@@ -2419,27 +2419,47 @@ function setSyncUi(active) {
   if (bar) bar.classList.toggle('is-active', active);
 }
 
-async function saveSessionToSupabase(summary) {
+async function saveSessionToSupabase(summary, options) {
+  options = options || {};
   if (!currentUser) {
-    toast('Saved locally — sign in to sync');
-    return;
+    if (!options.silent) toast('Saved locally — sign in to sync');
+    return { ok: false, reason: 'not-signed-in' };
   }
 
   setSyncUi(true);
   try {
     const result = await window.FocusSessions.save(summary);
     if (result.ok) {
-      toast('Saved to cloud ✓', 3500);
+      summary.syncedToCloud = true;
+      saveProfile();
+      if (!options.silent) toast('Saved to cloud ✓', 3500);
       updateSidebarStats();
     } else {
       console.error('Cloud save failed:', result);
-      toast(result.message || 'Cloud save failed', 4500);
+      if (!options.silent) toast(result.message || 'Cloud save failed', 4500);
     }
+    return result;
   } catch (err) {
     console.error('Cloud save error:', err);
-    toast('Cloud save failed — check console');
+    if (!options.silent) toast('Cloud save failed — check console');
+    return { ok: false, error: err };
   } finally {
     setSyncUi(false);
+  }
+}
+
+async function syncLocalHistoryToCloud() {
+  if (!currentUser || !profile.history?.length) return;
+  let synced = 0;
+  for (const item of profile.history) {
+    if (item.syncedToCloud) continue;
+    const result = await saveSessionToSupabase(item, { silent: true });
+    if (result?.ok) synced++;
+  }
+  if (synced > 0) {
+    saveProfile();
+    updateSidebarStats();
+    toast(`Synced ${synced} session${synced === 1 ? '' : 's'} to cloud ✓`, 3500);
   }
 }
 
@@ -2449,12 +2469,14 @@ async function loadProfileFromSupabase() {
   const result = await window.FocusSessions.applyToProfile(profile);
   if (result.ok) {
     saveProfile();
-    if (result.count > 0) {
-      toast(`Loaded ${result.count} session${result.count === 1 ? '' : 's'} from cloud`);
+    if (result.cloudCount > 0) {
+      toast(`Loaded ${result.cloudCount} session${result.cloudCount === 1 ? '' : 's'} from cloud`);
     }
+    await syncLocalHistoryToCloud();
   } else {
     console.warn('Could not load sessions:', result.message || result.reason);
-    toast(result.message || 'Could not load cloud sessions — finish a session to save new data');
+    toast(result.message || 'Could not load cloud sessions — saved on this device only');
+    await syncLocalHistoryToCloud();
   }
 
   const name =
