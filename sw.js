@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v36';
+const CACHE = 'quiet-focus-v37';
 
 const ASSETS = [
   './live-demo.html',
@@ -26,6 +26,7 @@ const ASSETS = [
   './icons/apple-touch-icon-152.png',
   './icons/apple-touch-icon-167.png',
   './apple-touch-icon.png',
+  './icons/quiet-3quarter.png',
   './icons/quiet-hero.png',
   './icons/quiet-mood-focused.png',
   './icons/quiet-mood-thinking.png',
