@@ -685,7 +685,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   width:min(260px, 74vw);
   max-height:min(46vh, 340px);
   object-fit:contain;
-  object-position:center bottom;
+  object-position: center center;
   mix-blend-mode:lighten;
   filter:
     brightness(1.1)
@@ -1723,7 +1723,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div class="quiet-mascot-glow" aria-hidden="true"></div>
                   <span class="quiet-badge" aria-hidden="true"></span>
                   <div class="quiet-art-wrap mascot-hybrid-stage">
-                    <img class="quiet-art quiet-art--hero mascot-hybrid-png" src="icons/quiet-hero.png" width="360" height="400" alt="Quiet, your focus companion">
+                    <img class="quiet-art quiet-art--hero mascot-hybrid-png" src="icons/quiet-hero.png?v=4" width="360" height="400" alt="Quiet, your focus companion">
                     <model-viewer
                       class="mascot-hybrid-3d"
                       alt=""
@@ -3276,7 +3276,7 @@ function setQuietMood(mood) {
     const img = el.querySelector('.quiet-art');
     if (!img) return;
     if (el.classList.contains('quiet-mascot--hero')) {
-      img.src = 'icons/quiet-hero.png';
+      img.src = 'icons/quiet-hero.png?v=4';
       return;
     }
     if (el.classList.contains('quiet-mascot--sm')) {
