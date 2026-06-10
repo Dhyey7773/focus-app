@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=47"></script>
+  <script src="config.js?v=49"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js?v=6"></script>
+  <script src="stay-ahead-planning.js?v=8"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -1646,6 +1646,182 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .stay-ahead-plan {
   display:none;
 }
+
+.week-founder-block[hidden] { display:none; }
+.assign-basic-header-hidden { display:none; }
+.week-header { margin:4px 0 18px; }
+.week-title {
+  font-size:20px;
+  font-weight:520;
+  letter-spacing:-.03em;
+  margin:4px 0 6px;
+}
+.week-sub {
+  font-size:12px;
+  color:var(--muted-2);
+  line-height:1.5;
+  margin:0;
+}
+.week-planner {
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  margin-bottom:16px;
+}
+.week-category[hidden] { display:none; }
+.week-cat-label {
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin:0 0 10px;
+  color:var(--muted);
+}
+.week-cat-label.do-first { color:var(--danger); }
+.week-cat-label.do-next { color:var(--warning); }
+.week-cat-label.can-wait { color:var(--success); }
+.week-rec-list {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.week-rec-card {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+}
+.week-rec-card.is-high { border-color:rgba(255,100,100,.3); }
+.week-rec-card.is-medium { border-color:rgba(255,207,112,.25); }
+.week-rec-top {
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  margin-bottom:6px;
+}
+.week-rec-icon { font-size:16px; line-height:1.2; }
+.week-rec-name {
+  flex:1;
+  font-size:14px;
+  font-weight:520;
+  letter-spacing:-.02em;
+  line-height:1.35;
+}
+.week-rec-priority {
+  flex-shrink:0;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  padding:3px 7px;
+  border-radius:999px;
+}
+.week-rec-priority.high { background:rgba(255,100,100,.15); color:var(--danger); }
+.week-rec-priority.medium { background:rgba(255,207,112,.12); color:var(--warning); }
+.week-rec-priority.low { background:var(--mint-dim); color:var(--success); }
+.week-rec-start {
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.1em;
+  color:var(--success);
+  margin:0 0 8px;
+}
+.week-rec-meta {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.week-rec-meta span {
+  font-size:10px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  color:var(--muted-2);
+}
+.week-rec-why {
+  margin:0 0 10px;
+  font-size:12px;
+}
+.week-rec-why summary {
+  cursor:pointer;
+  color:var(--muted-2);
+  font-weight:520;
+  list-style:none;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.week-rec-why summary::-webkit-details-marker { display:none; }
+.week-rec-why summary::before {
+  content:'▸';
+  font-size:10px;
+  transition:transform .15s ease;
+}
+.week-rec-why[open] summary::before { transform:rotate(90deg); }
+.week-rec-why ul {
+  margin:8px 0 0;
+  padding:0 0 0 16px;
+  color:var(--muted-2);
+  line-height:1.55;
+}
+.week-rec-why li { margin-bottom:4px; }
+.week-rec-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.week-rec-actions button {
+  flex:1;
+  min-width:120px;
+  min-height:36px;
+  font-size:11px;
+}
+.week-empty {
+  padding:20px 12px;
+  text-align:center;
+  font-size:13px;
+}
+.week-panel-details {
+  margin:12px 0;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  overflow:hidden;
+}
+.week-panel-details > summary {
+  padding:14px 16px;
+  font-size:13px;
+  font-weight:520;
+  cursor:pointer;
+  list-style:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.week-panel-details > summary::-webkit-details-marker { display:none; }
+.week-panel-details > summary::after {
+  content:'▾';
+  font-size:12px;
+  color:var(--muted);
+  transition:transform .15s ease;
+}
+.week-panel-details[open] > summary::after { transform:rotate(180deg); }
+.week-panel-body {
+  padding:0 16px 16px;
+  border-top:1px solid var(--line);
+}
+.week-panel-body .smart-plan-sub { margin-top:12px; }
+.all-tasks-panel { margin-top:8px; }
+.all-tasks-panel > summary { font-weight:600; }
+.all-tasks-count {
+  font-weight:500;
+  color:var(--muted-2);
+  font-size:12px;
+}
+.all-tasks-body .assign-section-label { margin-top:14px; }
+.all-tasks-body .assign-section-label:first-child { margin-top:12px; }
 .assign-plan-note {
   margin-top:10px;
   padding:10px 12px;
@@ -2246,17 +2422,47 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
           <!-- ASSIGNMENTS -->
           <section class="page" id="page-assignments" aria-label="Assignments">
-            <div class="due-banner" id="tasks-due-banner" hidden>
-              <strong id="tasks-due-title"></strong>
-              <p id="tasks-due-copy"></p>
-              <button class="primary" type="button" id="tasks-due-start">Start focus session</button>
+            <div class="week-founder-block" id="week-founder-block" hidden>
+              <header class="week-header">
+                <p class="meta-label">This week</p>
+                <h2 class="week-title">Work on first</h2>
+                <p class="week-sub">Quiet picks what matters most — by deadline, effort, and your schedule.</p>
+              </header>
+
+              <div class="week-planner" id="week-planner" aria-live="polite">
+                <section class="week-category" id="week-do-first">
+                  <h3 class="week-cat-label do-first">Do first</h3>
+                  <div class="week-rec-list" id="week-do-first-list"></div>
+                </section>
+                <section class="week-category" id="week-do-next">
+                  <h3 class="week-cat-label do-next">Do next</h3>
+                  <div class="week-rec-list" id="week-do-next-list"></div>
+                </section>
+                <section class="week-category" id="week-can-wait">
+                  <h3 class="week-cat-label can-wait">Can wait</h3>
+                  <div class="week-rec-list" id="week-can-wait-list"></div>
+                </section>
+                <p class="empty-state week-empty" id="week-empty" hidden>No assignments yet. Add coursework below.</p>
+              </div>
+
+              <details class="week-panel-details" id="schedule-panel">
+                <summary>My schedule</summary>
+                <div class="week-panel-body">
+                  <p class="smart-plan-sub">Tell Quiet your work, class, and study days. Plans fit around your real week.</p>
+                  <div id="schedule-editor"></div>
+                  <div class="stay-ahead-actions">
+                    <button type="button" class="secondary" id="save-schedule-btn">Save schedule</button>
+                    <button type="button" class="ghost" id="refresh-plans-btn">Refresh with AI</button>
+                  </div>
+                </div>
+              </details>
             </div>
-            <div class="assign-header">
+
+            <header class="assign-header" id="assign-basic-header">
               <p class="meta-label">Deadlines</p>
               <p class="assign-title">Assignments</p>
-              <p class="assign-sub">Upload coursework or add deadlines manually. Quiet shows what to work on first.</p>
-              <p class="assign-hint">Reminders while you're in the app. Enable phone alerts below for when it's closed.</p>
-            </div>
+              <p class="assign-sub">Upload coursework or add deadlines manually. Quiet reminds you before things are due.</p>
+            </header>
 
             <div class="push-card" id="push-card">
               <div class="push-card-copy">
@@ -2269,73 +2475,68 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               </div>
             </div>
 
-            <div class="stay-ahead-founder" id="stay-ahead-founder" hidden>
-              <p class="smart-plan-title">Smart Planning</p>
-              <p class="smart-plan-sub">Tell Quiet your schedule. It recommends when to start — not just when things are due.</p>
-              <div class="work-on-first" id="work-on-first" hidden>
-                <p class="work-on-first-label">Work on first</p>
-                <ol class="work-on-first-list" id="work-on-first-list"></ol>
-              </div>
-              <div id="schedule-editor"></div>
-              <div class="stay-ahead-actions">
-                <button type="button" class="secondary" id="save-schedule-btn">Save schedule</button>
-                <button type="button" class="ghost" id="refresh-plans-btn">Refresh plans</button>
-              </div>
-              <div class="stay-ahead-plans" id="stay-ahead-plans"></div>
-            </div>
-            <p class="assign-hint" id="founder-hint" hidden style="margin-top:12px"></p>
+            <p class="assign-hint" id="founder-hint" hidden style="margin-top:8px"></p>
 
-            <form class="assign-form" id="assign-form">
-              <input class="auth-input" id="assign-title" type="text" maxlength="80" placeholder="Assignment name" required>
-              <input class="auth-input" id="assign-course" type="text" maxlength="40" placeholder="Course (optional)">
-              <div class="assign-row">
-                <input class="auth-input" id="assign-due-date" type="date" required aria-label="Due date">
-                <input class="auth-input" id="assign-due-time" type="time" value="23:59" required aria-label="Due time">
-              </div>
-              <div class="assign-row">
-                <input class="auth-input" id="assign-estimate" type="number" min="5" max="480" step="5" value="60" placeholder="Minutes" aria-label="Estimated minutes">
-                <button class="primary" type="submit" style="min-height:46px">Add assignment</button>
-              </div>
-            </form>
+            <details class="week-panel-details" id="add-assign-panel">
+              <summary>Add assignments</summary>
+              <div class="week-panel-body">
+                <form class="assign-form" id="assign-form">
+                  <input class="auth-input" id="assign-title" type="text" maxlength="80" placeholder="Assignment name" required>
+                  <input class="auth-input" id="assign-course" type="text" maxlength="40" placeholder="Course (optional)">
+                  <div class="assign-row">
+                    <input class="auth-input" id="assign-due-date" type="date" required aria-label="Due date">
+                    <input class="auth-input" id="assign-due-time" type="time" value="23:59" required aria-label="Due time">
+                  </div>
+                  <div class="assign-row">
+                    <input class="auth-input" id="assign-estimate" type="number" min="5" max="480" step="5" value="60" placeholder="Minutes" aria-label="Estimated minutes">
+                    <button class="primary" type="submit" style="min-height:46px">Add assignment</button>
+                  </div>
+                </form>
 
-            <div class="assign-scan" id="assign-scan">
-              <p class="assign-scan-title">Upload coursework</p>
-              <p class="assign-scan-sub">Drop a PDF, photo, or screenshot from Canvas or email.</p>
-              <div class="assign-scan-actions">
-                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
-                  PDF
-                  <input type="file" id="scan-pdf-input" accept="application/pdf,.pdf" hidden>
-                </label>
-                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
-                  Photo
-                  <input type="file" id="scan-photo-input" accept="image/*,.png,.jpg,.jpeg,.webp" hidden>
-                </label>
-                <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
-                  Text
-                  <input type="file" id="scan-txt-input" accept="text/plain,.txt" hidden>
-                </label>
+                <div class="assign-scan" id="assign-scan">
+                  <p class="assign-scan-title">Upload coursework</p>
+                  <p class="assign-scan-sub">Drop a PDF, photo, or screenshot from Canvas or email.</p>
+                  <div class="assign-scan-actions">
+                    <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                      PDF
+                      <input type="file" id="scan-pdf-input" accept="application/pdf,.pdf" hidden>
+                    </label>
+                    <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                      Photo
+                      <input type="file" id="scan-photo-input" accept="image/*,.png,.jpg,.jpeg,.webp" hidden>
+                    </label>
+                    <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+                      Text
+                      <input type="file" id="scan-txt-input" accept="text/plain,.txt" hidden>
+                    </label>
+                  </div>
+                  <div class="assign-scan-toolbar">
+                    <p class="assign-scan-status" id="scan-status">Choose a file — Quiet finds due dates for you.</p>
+                    <button type="button" class="assign-scan-cancel" id="scan-cancel-btn" hidden>Cancel</button>
+                  </div>
+                  <div class="assign-scan-preview" id="scan-preview">
+                    <label for="scan-markdown">Preview</label>
+                    <textarea class="assign-scan-md" id="scan-markdown" readonly aria-label="File preview"></textarea>
+                    <label>Deadlines found</label>
+                    <div class="assign-scan-results" id="scan-results"></div>
+                  </div>
+                </div>
               </div>
-              <div class="assign-scan-toolbar">
-                <p class="assign-scan-status" id="scan-status">Choose a file — Quiet finds due dates for you.</p>
-                <button type="button" class="assign-scan-cancel" id="scan-cancel-btn" hidden>Cancel</button>
-              </div>
-              <div class="assign-scan-preview" id="scan-preview">
-                <label for="scan-markdown">Preview</label>
-                <textarea class="assign-scan-md" id="scan-markdown" readonly aria-label="File preview"></textarea>
-                <label>Deadlines found</label>
-                <div class="assign-scan-results" id="scan-results"></div>
-              </div>
-            </div>
+            </details>
 
-            <p class="assign-section-label">Upcoming</p>
-            <div class="assign-list" id="assign-pending-list">
-              <div class="empty-state">No assignments yet. Upload coursework or add one above.</div>
-            </div>
-
-            <p class="assign-section-label">Completed</p>
-            <div class="assign-list" id="assign-done-list">
-              <div class="empty-state">Finished assignments appear here.</div>
-            </div>
+            <details class="week-panel-details all-tasks-panel" id="all-tasks-panel">
+              <summary>All tasks <span class="all-tasks-count" id="all-tasks-count">(0)</span></summary>
+              <div class="week-panel-body all-tasks-body">
+                <p class="assign-section-label">Upcoming</p>
+                <div class="assign-list" id="assign-pending-list">
+                  <div class="empty-state">No assignments yet. Upload coursework or add one above.</div>
+                </div>
+                <p class="assign-section-label">Completed</p>
+                <div class="assign-list" id="assign-done-list">
+                  <div class="empty-state">Finished assignments appear here.</div>
+                </div>
+              </div>
+            </details>
           </section>
 
           <!-- HISTORY -->
@@ -3202,28 +3403,36 @@ function readScheduleFromEditor() {
 }
 
 function saveScheduleFromEditor() {
-  if (!window.StayAheadPlanning) return;
+  if (!isFounderUser() || !window.StayAheadPlanning) return;
   window.StayAheadPlanning.saveScheduleToProfile(profile, readScheduleFromEditor());
   saveProfile();
   refreshStayAheadPlans(false);
   toast('Schedule saved');
 }
 
+function rebuildStayAheadPlans() {
+  if (!isFounderUser() || !window.StayAheadPlanning) {
+    stayAheadPlans = [];
+    stayAheadPlansHydrated = false;
+    return;
+  }
+  stayAheadPlans = window.StayAheadPlanning.buildStayAheadPlans(
+    profile.assignments || [],
+    getStayAheadSchedule()
+  );
+  stayAheadPlansHydrated = true;
+}
+
 async function refreshStayAheadPlans(useAi = false) {
   if (!isFounderUser() || !window.StayAheadPlanning) return;
   if (stayAheadBusy) return;
 
-  const plansEl = $('stay-ahead-plans');
   stayAheadBusy = true;
-
-  if (plansEl) {
-    plansEl.innerHTML = '<p class="empty-state" style="padding:8px">Building your stay-ahead plan…</p>';
-  }
 
   try {
     const schedule = getStayAheadSchedule();
     let plans = window.StayAheadPlanning.buildStayAheadPlans(profile.assignments || [], schedule);
-    if (useAi && currentUser) {
+    if (useAi && isFounderUser() && currentUser) {
       plans = await window.StayAheadPlanning.polishPlansWithAi(plans, schedule);
       const usedAi = plans.some(p => p.source === 'ai');
       toast(usedAi ? 'Quiet AI — plans updated' : 'Local plans (AI unavailable)', usedAi ? 2500 : 4500);
@@ -3241,8 +3450,7 @@ async function refreshStayAheadPlans(useAi = false) {
     stayAheadPlansHydrated = true;
   }
 
-  renderStayAheadPlans();
-  renderWorkOnFirst();
+  renderWeeklyPlanner();
   renderAssignmentLists();
   renderHomeSuggested();
 }
@@ -3253,95 +3461,128 @@ function riskClass(risk) {
   return 'low';
 }
 
-function renderWorkOnFirst() {
-  const wrap = $('work-on-first');
-  const list = $('work-on-first-list');
-  if (!wrap || !list) return;
+function priorityClass(level) {
+  return (level || 'Medium').toLowerCase();
+}
 
-  if (!stayAheadPlans.length) {
-    wrap.hidden = true;
+function recIcon(plan) {
+  if (plan.urgent || plan.priorityLevel === 'High') return '🔥';
+  if (plan.priorityLevel === 'Medium') return '📌';
+  return '📋';
+}
+
+function renderWeeklyRecCard(plan) {
+  const card = document.createElement('article');
+  const level = priorityClass(plan.priorityLevel);
+  card.className = `week-rec-card is-${level}`;
+
+  const bullets = plan.whyBullets?.length
+    ? plan.whyBullets
+    : (plan.reason ? [plan.reason] : []);
+
+  const effortText = plan.effortLabel || plan.taskLabel || '';
+  const founder = isFounderUser();
+
+  card.innerHTML = `
+    <div class="week-rec-top">
+      <span class="week-rec-icon" aria-hidden="true"></span>
+      <span class="week-rec-name"></span>
+      <span class="week-rec-priority ${level}"></span>
+    </div>
+    <p class="week-rec-start"></p>
+    <div class="week-rec-meta">
+      <span class="week-rec-due"></span>
+      <span class="week-rec-effort"></span>
+    </div>
+    <details class="week-rec-why">
+      <summary>Why?</summary>
+      <ul class="week-rec-why-list"></ul>
+    </details>
+    <div class="week-rec-actions">
+      <button type="button" class="primary week-rec-start-btn">Start focus</button>
+      ${founder ? '<button type="button" class="secondary week-rec-how-btn">How do I start?</button>' : ''}
+    </div>
+  `;
+
+  card.querySelector('.week-rec-icon').textContent = recIcon(plan);
+  card.querySelector('.week-rec-name').textContent = plan.assignment.title;
+  card.querySelector('.week-rec-priority').textContent = `${plan.priorityLevel || 'Medium'} Priority`;
+  card.querySelector('.week-rec-start').textContent = plan.startHeadline || 'START SOON';
+  card.querySelector('.week-rec-due').textContent = plan.dueLabel || '';
+  card.querySelector('.week-rec-effort').textContent = effortText;
+
+  const list = card.querySelector('.week-rec-why-list');
+  bullets.forEach(text => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    list.appendChild(li);
+  });
+  if (!bullets.length) card.querySelector('.week-rec-why').hidden = true;
+
+  card.querySelector('.week-rec-start-btn').addEventListener('click', () => {
+    startFocusFromAssignment(plan.assignment);
+  });
+  const howBtn = card.querySelector('.week-rec-how-btn');
+  if (howBtn) {
+    howBtn.addEventListener('click', () => openHowToStartModal(plan.assignment));
+  }
+
+  return card;
+}
+
+function renderWeeklyCategory(sectionId, listId, plans) {
+  const section = $(sectionId);
+  const list = $(listId);
+  if (!section || !list) return;
+
+  if (!plans.length) {
+    section.hidden = true;
+    list.innerHTML = '';
     return;
   }
 
-  wrap.hidden = false;
+  section.hidden = false;
   list.innerHTML = '';
-  stayAheadPlans.slice(0, 5).forEach(plan => {
-    const li = document.createElement('li');
-    li.className = 'work-on-first-item';
-    const level = (plan.priorityLevel || 'Medium').toLowerCase();
-    li.innerHTML = `
-      <span class="work-on-first-rank">${plan.priorityRank}.</span>
-      <span class="work-on-first-name"></span>
-      <span class="work-on-first-badge ${level}"></span>
-    `;
-    li.querySelector('.work-on-first-name').textContent = plan.assignment.title;
-    li.querySelector('.work-on-first-badge').textContent = `${plan.priorityLevel} Priority`;
-    list.appendChild(li);
-  });
+  plans.forEach(plan => list.appendChild(renderWeeklyRecCard(plan)));
 }
 
-function renderPlanCard(plan) {
-  const card = document.createElement('article');
-  card.className = `plan-card is-${riskClass(plan.risk)}`;
+function renderWeeklyPlanner() {
+  if (!isFounderUser()) return;
+  if (!stayAheadPlansHydrated) rebuildStayAheadPlans();
 
-  const sessionsHtml = plan.multiSession && plan.sessions?.length
-    ? `<div class="plan-sessions">
-        <p class="plan-sessions-label">Recommended plan</p>
-        ${plan.sessions.map(s => `
-          <div class="plan-session-day">
-            <p class="plan-session-day-name">${s.dayName}</p>
-            ${s.tasks.map(t => `<p class="plan-session-task">${t.label} (${window.StayAheadPlanning?.formatSessionBlock?.(t.minutes) || t.minutes + ' min'})</p>`).join('')}
-          </div>
-        `).join('')}
-        <p class="plan-card-goal">Goal: ${plan.goal || ''}</p>
-      </div>`
-    : '';
+  const empty = $('week-empty');
+  const pending = pendingAssignments();
 
-  card.innerHTML = `
-    <p class="plan-card-headline"></p>
-    <p class="plan-card-title"></p>
-    <div class="plan-card-meta">
-      <span class="plan-pill plan-due"></span>
-      <span class="plan-pill plan-effort"></span>
-      <span class="plan-pill plan-risk"></span>
-    </div>
-    <div class="plan-card-details">
-      <p class="plan-detail-row"><strong>Reason</strong><span class="plan-reason-text"></span></p>
-      <p class="plan-detail-row plan-effort-row"><strong>Estimated effort</strong><span class="plan-effort-text"></span></p>
-      <p class="plan-detail-row plan-risk-row"><strong>Risk</strong><span class="plan-risk-text"></span></p>
-    </div>
-    ${sessionsHtml}
-    <button type="button" class="plan-why-btn">Why this recommendation?</button>
-  `;
-
-  card.querySelector('.plan-card-headline').textContent = plan.startHeadline || 'START SOON';
-  card.querySelector('.plan-card-title').textContent = plan.assignment.title;
-  card.querySelector('.plan-due').textContent = plan.dueLabel || '';
-  card.querySelector('.plan-effort').textContent = plan.taskLabel || plan.effortLabel || '';
-  const riskEl = card.querySelector('.plan-risk');
-  riskEl.textContent = `${plan.risk || 'Low'} Risk`;
-  riskEl.classList.add(`risk-${riskClass(plan.risk)}`);
-  card.querySelector('.plan-reason-text').textContent = plan.reason || '';
-  card.querySelector('.plan-effort-text').textContent = plan.effortDetail?.replace('Estimated effort: ', '') || plan.effortLabel || '';
-  card.querySelector('.plan-risk-text').textContent = plan.risk || 'Low';
-
-  if (plan.multiSession) {
-    card.querySelector('.plan-effort-row').style.display = '';
-    card.querySelector('.plan-risk-row').style.display = 'none';
-  } else {
-    card.querySelector('.plan-effort-row').style.display = 'none';
-    card.querySelector('.plan-risk-row').style.display = 'none';
+  if (!pending.length) {
+    ['week-do-first', 'week-do-next', 'week-can-wait'].forEach(id => {
+      const el = $(id);
+      if (el) el.hidden = true;
+    });
+    if (empty) empty.hidden = false;
+    return;
   }
 
-  card.querySelector('.plan-why-btn').addEventListener('click', () => openPlanWhyModal(plan));
-  return card;
+  if (empty) empty.hidden = true;
+
+  const buckets = window.StayAheadPlanning?.categorizeWeeklyPlans?.(stayAheadPlans) || {
+    doFirst: stayAheadPlans.slice(0, 2),
+    doNext: stayAheadPlans.slice(2, 5),
+    canWait: stayAheadPlans.slice(5)
+  };
+
+  renderWeeklyCategory('week-do-first', 'week-do-first-list', buckets.doFirst);
+  renderWeeklyCategory('week-do-next', 'week-do-next-list', buckets.doNext);
+  renderWeeklyCategory('week-can-wait', 'week-can-wait-list', buckets.canWait);
 }
 
 function openPlanWhyModal(plan) {
   const modal = $('plan-why-modal');
   if (!modal || !plan) return;
   $('plan-why-title').textContent = plan.assignment.title;
-  $('plan-why-body').textContent = plan.whyDetailed || plan.reason || '';
+  const body = plan.whyBullets?.length
+    ? plan.whyBullets.map(b => `• ${b}`).join('\n')
+    : (plan.whyDetailed || plan.reason || '');
+  $('plan-why-body').textContent = body;
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('is-visible'));
 }
@@ -3353,41 +3594,41 @@ function hidePlanWhyModal() {
   modal.hidden = true;
 }
 
-function renderStayAheadPlans() {
-  const wrap = $('stay-ahead-plans');
-  if (!wrap) return;
-
-  if (!stayAheadPlans.length) {
-    wrap.innerHTML = '<p class="empty-state" style="padding:8px">Add assignments to see your personalized plan.</p>';
-    renderWorkOnFirst();
-    return;
-  }
-
-  wrap.innerHTML = '';
-  stayAheadPlans.forEach(plan => wrap.appendChild(renderPlanCard(plan)));
-  renderWorkOnFirst();
-}
-
 function getStayAheadPlanForAssignment(assignmentId) {
   return stayAheadPlans.find(p => p.assignmentId === assignmentId) || null;
 }
 
 function toggleFounderFeatures() {
   const founder = isFounderUser();
-  const block = $('stay-ahead-founder');
+  const founderBlock = $('week-founder-block');
+  const basicHeader = $('assign-basic-header');
+  const allTasksPanel = $('all-tasks-panel');
   const hint = $('founder-hint');
-  if (block) block.hidden = !founder;
+
+  if (founderBlock) founderBlock.hidden = !founder;
+  if (basicHeader) basicHeader.hidden = founder;
+
+  if (allTasksPanel) {
+    if (founder) allTasksPanel.removeAttribute('open');
+    else allTasksPanel.setAttribute('open', '');
+  }
 
   if (hint) {
-    if (currentUser && !founder) {
+    if (founder && !window.StayAheadPlanning) {
+      hint.textContent = 'Planning failed to load. Hard refresh, or re-upload stay-ahead-planning.js.';
+      hint.hidden = false;
+    } else if (currentUser && !founder) {
       const email = resolveUserEmail(currentUser) || 'unknown';
       if (email.toLowerCase() === 'quietfocusai@gmail.com') {
         hint.textContent =
-          'Founder email recognized, but Stay Ahead failed to load. Hard refresh, or re-upload config.js and stay-ahead-planning.js.';
+          'Founder email recognized, but weekly planning failed to load. Hard refresh, or re-upload config.js and stay-ahead-planning.js.';
       } else {
         hint.textContent =
-          `Stay Ahead Planning is founder-only. You're signed in as ${email}. Sign in with quietfocusai@gmail.com to enable it.`;
+          'Weekly planning is founder-only preview. Sign in with quietfocusai@gmail.com to try it.';
       }
+      hint.hidden = false;
+    } else if (!founder && !currentUser) {
+      hint.textContent = 'Weekly planning is a founder preview — sign in to try it.';
       hint.hidden = false;
     } else {
       hint.hidden = true;
@@ -3397,7 +3638,15 @@ function toggleFounderFeatures() {
   if (founder) {
     renderScheduleEditor();
     if (!stayAheadPlansHydrated) void refreshStayAheadPlans(false);
-    else renderStayAheadPlans();
+    else {
+      renderWeeklyPlanner();
+      renderAssignmentLists();
+    }
+  } else {
+    stayAheadPlans = [];
+    stayAheadPlansHydrated = false;
+    renderAssignmentLists();
+    renderHomeSuggested();
   }
 }
 
@@ -3513,7 +3762,7 @@ function prioritizedPendingAssignments() {
 }
 
 function getSuggestedNextAssignment() {
-  if (stayAheadPlans.length) return stayAheadPlans[0].assignment;
+  if (isFounderUser() && stayAheadPlans.length) return stayAheadPlans[0].assignment;
   return prioritizedPendingAssignments()[0] || null;
 }
 
@@ -3672,7 +3921,6 @@ function addAssignment(data) {
   saveProfile();
   renderAssignments();
   renderHome();
-  if (isFounderUser()) refreshStayAheadPlans(false);
   syncAssignmentToCloud(assignment);
   toast('Assignment added');
   setTimeout(maybeShowDueReminder, 400);
@@ -3710,7 +3958,6 @@ function completeAssignment(id) {
   saveProfile();
   renderAssignments();
   renderHome();
-  if (isFounderUser()) refreshStayAheadPlans(false);
   syncAssignmentToCloud(item);
   hideReminderModal();
   toast('Marked complete');
@@ -3812,9 +4059,15 @@ function renderAssignmentLists() {
   pendingAssignments().forEach(ensureRemindersShown);
   const pending = prioritizedPendingAssignments();
   const done = (profile.assignments || []).filter(a => a.completed);
+  const total = (profile.assignments || []).length;
 
   const pendingList = $('assign-pending-list');
   const doneList = $('assign-done-list');
+  const countEl = $('all-tasks-count');
+
+  if (countEl) countEl.textContent = `(${total})`;
+
+  if (!pendingList || !doneList) return;
 
   if (!pending.length) {
     pendingList.innerHTML = '<div class="empty-state">No assignments yet. Upload coursework or add one above.</div>';
@@ -3829,35 +4082,19 @@ function renderAssignmentLists() {
     doneList.innerHTML = '';
     done.slice(0, 10).forEach(a => doneList.appendChild(renderAssignmentCard(a, { showActions: false })));
   }
-  renderTasksDueBanner();
 }
 
 function renderAssignments() {
-  renderAssignmentLists();
-}
-
-function renderTasksDueBanner() {
-  const banner = $('tasks-due-banner');
-  if (!banner) return;
-  const next = getSuggestedNextAssignment();
-  if (!next) {
-    banner.hidden = true;
-    return;
+  if (isFounderUser()) {
+    rebuildStayAheadPlans();
+    renderWeeklyPlanner();
   }
-
-  const status = getDueStatus(next);
-  const plan = getStayAheadPlanForAssignment(next.id);
-  banner.hidden = false;
-  banner.classList.toggle('urgent', status?.level === 'urgent');
-  $('tasks-due-title').textContent = next.title;
-  $('tasks-due-copy').textContent = plan?.cardSummary || plan?.reason ||
-    `${next.course ? next.course + ' · ' : ''}${status?.label || formatDueRelative(next.dueAt)}`;
-  $('tasks-due-start').onclick = () => startFocusFromAssignment(next);
+  renderAssignmentLists();
+  renderHomeSuggested();
 }
 
-function renderHomeDueBanner() {
-  renderTasksDueBanner();
-}
+function renderTasksDueBanner() {}
+function renderHomeDueBanner() {}
 
 function findReminderAssignment() {
   const now = Date.now();
