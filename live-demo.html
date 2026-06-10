@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=46"></script>
+  <script src="config.js?v=47"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js?v=5"></script>
+  <script src="stay-ahead-planning.js?v=6"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -1528,6 +1528,24 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   color:var(--muted-2);
   line-height:1.55;
   margin:0 0 10px;
+}
+.plan-card-details {
+  margin-bottom:10px;
+}
+.plan-detail-row {
+  font-size:12px;
+  color:var(--muted-2);
+  line-height:1.55;
+  margin:0 0 8px;
+}
+.plan-detail-row strong {
+  display:block;
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:600;
+  margin-bottom:4px;
 }
 .plan-card-reason strong {
   display:block;
@@ -3272,10 +3290,10 @@ function renderPlanCard(plan) {
         ${plan.sessions.map(s => `
           <div class="plan-session-day">
             <p class="plan-session-day-name">${s.dayName}</p>
-            ${s.tasks.map(t => `<p class="plan-session-task">${t.label} (${window.StayAheadPlanning?.formatEffort?.(t.minutes) || t.minutes + ' min'})</p>`).join('')}
+            ${s.tasks.map(t => `<p class="plan-session-task">${t.label} (${window.StayAheadPlanning?.formatSessionBlock?.(t.minutes) || t.minutes + ' min'})</p>`).join('')}
           </div>
         `).join('')}
-        <p class="plan-card-goal">${plan.goal || ''}</p>
+        <p class="plan-card-goal">Goal: ${plan.goal || ''}</p>
       </div>`
     : '';
 
@@ -3287,7 +3305,11 @@ function renderPlanCard(plan) {
       <span class="plan-pill plan-effort"></span>
       <span class="plan-pill plan-risk"></span>
     </div>
-    <p class="plan-card-reason"><strong>Reason</strong><span class="plan-reason-text"></span></p>
+    <div class="plan-card-details">
+      <p class="plan-detail-row"><strong>Reason</strong><span class="plan-reason-text"></span></p>
+      <p class="plan-detail-row plan-effort-row"><strong>Estimated effort</strong><span class="plan-effort-text"></span></p>
+      <p class="plan-detail-row plan-risk-row"><strong>Risk</strong><span class="plan-risk-text"></span></p>
+    </div>
     ${sessionsHtml}
     <button type="button" class="plan-why-btn">Why this recommendation?</button>
   `;
@@ -3295,11 +3317,21 @@ function renderPlanCard(plan) {
   card.querySelector('.plan-card-headline').textContent = plan.startHeadline || 'START SOON';
   card.querySelector('.plan-card-title').textContent = plan.assignment.title;
   card.querySelector('.plan-due').textContent = plan.dueLabel || '';
-  card.querySelector('.plan-effort').textContent = `Est. ${plan.effortLabel || ''}`;
+  card.querySelector('.plan-effort').textContent = plan.taskLabel || plan.effortLabel || '';
   const riskEl = card.querySelector('.plan-risk');
-  riskEl.textContent = `${plan.risk || 'Low'} risk`;
+  riskEl.textContent = `${plan.risk || 'Low'} Risk`;
   riskEl.classList.add(`risk-${riskClass(plan.risk)}`);
   card.querySelector('.plan-reason-text').textContent = plan.reason || '';
+  card.querySelector('.plan-effort-text').textContent = plan.effortDetail?.replace('Estimated effort: ', '') || plan.effortLabel || '';
+  card.querySelector('.plan-risk-text').textContent = plan.risk || 'Low';
+
+  if (plan.multiSession) {
+    card.querySelector('.plan-effort-row').style.display = '';
+    card.querySelector('.plan-risk-row').style.display = 'none';
+  } else {
+    card.querySelector('.plan-effort-row').style.display = 'none';
+    card.querySelector('.plan-risk-row').style.display = 'none';
+  }
 
   card.querySelector('.plan-why-btn').addEventListener('click', () => openPlanWhyModal(plan));
   return card;
