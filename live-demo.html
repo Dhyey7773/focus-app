@@ -38,6 +38,7 @@
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
+  <script src="stay-ahead-planning.js"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -1371,6 +1372,195 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .assign-scan-item strong { display:block; font-size:13px; margin-bottom:4px; }
 .assign-scan-item p { font-size:11px; color:var(--muted); margin:0 0 8px; line-height:1.4; }
 .assign-scan-item button { width:100%; min-height:36px; }
+
+.stay-ahead-founder {
+  margin:16px 0;
+  padding:16px;
+  border:1px solid rgba(148,218,177,.22);
+  border-radius:16px;
+  background:rgba(148,218,177,.05);
+}
+.stay-ahead-founder[hidden] { display:none; }
+.stay-ahead-title {
+  font-size:16px;
+  font-weight:520;
+  letter-spacing:-.03em;
+  margin:4px 0 6px;
+}
+.stay-ahead-sub {
+  font-size:12px;
+  color:var(--muted-2);
+  line-height:1.5;
+  margin:0 0 14px;
+}
+.schedule-block { margin-bottom:14px; }
+.schedule-block-label {
+  display:block;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.schedule-days {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.schedule-day {
+  min-width:42px;
+  min-height:34px;
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid var(--line-2);
+  background:rgba(255,255,255,.03);
+  color:var(--muted-2);
+  font-size:11px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.schedule-day.is-on {
+  border-color:rgba(148,218,177,.45);
+  background:rgba(148,218,177,.14);
+  color:var(--text);
+}
+.stay-ahead-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:12px 0 14px;
+}
+.stay-ahead-actions button { min-height:38px; font-size:12px; }
+.stay-ahead-plans {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.stay-ahead-plan {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px 14px;
+}
+.stay-ahead-plan strong {
+  display:block;
+  font-size:13px;
+  font-weight:520;
+  margin-bottom:6px;
+}
+.stay-ahead-plan p {
+  font-size:12px;
+  color:var(--muted-2);
+  line-height:1.55;
+  margin:0;
+}
+.stay-ahead-plan-meta {
+  margin-top:8px;
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--success);
+}
+.assign-plan-note {
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(148,218,177,.18);
+  background:rgba(148,218,177,.06);
+  font-size:11px;
+  color:var(--muted-2);
+  line-height:1.5;
+}
+.assign-actions.has-founder {
+  grid-template-columns:1fr 1fr;
+}
+.assign-how-start { grid-column:1 / -1; }
+.how-start-modal {
+  position:fixed;
+  inset:0;
+  z-index:400;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px;
+  background:rgba(0,0,0,.55);
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+.how-start-modal.is-visible {
+  opacity:1;
+  visibility:visible;
+}
+.how-start-modal[hidden] { display:none; }
+.how-start-sheet {
+  width:min(420px,100%);
+  max-height:min(78vh,560px);
+  overflow:auto;
+  background:var(--panel);
+  border:1px solid var(--line-2);
+  border-radius:20px 20px 14px 14px;
+  padding:18px 16px 16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.45);
+}
+.how-start-sheet h2 {
+  font-size:18px;
+  font-weight:520;
+  letter-spacing:-.03em;
+  margin:6px 0 12px;
+}
+.how-start-steps {
+  list-style:none;
+  margin:0 0 14px;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.how-start-steps li {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  font-size:13px;
+  color:var(--muted-2);
+  line-height:1.45;
+}
+.how-start-steps span {
+  flex:0 0 22px;
+  height:22px;
+  border-radius:999px;
+  background:var(--mint-dim);
+  color:var(--success);
+  font-size:11px;
+  font-weight:600;
+  display:grid;
+  place-items:center;
+}
+.how-start-first {
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid rgba(148,218,177,.22);
+  background:rgba(148,218,177,.08);
+  font-size:13px;
+  line-height:1.55;
+  color:var(--text);
+  margin-bottom:14px;
+}
+.how-start-first strong {
+  display:block;
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--success);
+  margin-bottom:6px;
+}
+.how-start-actions {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.how-start-actions .primary { grid-column:1 / -1; }
 .due-banner {
   background:var(--mint-dim);
   border:1px solid rgba(148,218,177,.22);
@@ -1887,6 +2077,18 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               </div>
             </div>
 
+            <div class="stay-ahead-founder" id="stay-ahead-founder" hidden>
+              <p class="meta-label">Founder preview</p>
+              <p class="stay-ahead-title">Stay Ahead Planning</p>
+              <p class="stay-ahead-sub">Tell Quiet when you're busy. It suggests when to start — not just when things are due.</p>
+              <div id="schedule-editor"></div>
+              <div class="stay-ahead-actions">
+                <button type="button" class="secondary" id="save-schedule-btn">Save schedule</button>
+                <button type="button" class="ghost" id="refresh-plans-btn">Refresh plans</button>
+              </div>
+              <div class="stay-ahead-plans" id="stay-ahead-plans"></div>
+            </div>
+
             <form class="assign-form" id="assign-form">
               <input class="auth-input" id="assign-title" type="text" maxlength="80" placeholder="Assignment name" required>
               <input class="auth-input" id="assign-course" type="text" maxlength="40" placeholder="Course (optional)">
@@ -1999,6 +2201,22 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   </div>
 </div>
 
+<div class="how-start-modal" id="how-start-modal" hidden aria-modal="true" role="dialog" aria-labelledby="how-start-title">
+  <div class="how-start-sheet">
+    <p class="meta-label">How do I start?</p>
+    <h2 id="how-start-title">Assignment</h2>
+    <ol class="how-start-steps" id="how-start-steps"></ol>
+    <div class="how-start-first">
+      <strong>Suggested first 15 minutes</strong>
+      <p id="how-start-first"></p>
+    </div>
+    <div class="how-start-actions">
+      <button class="primary" type="button" id="how-start-focus">Start 15-min block</button>
+      <button class="secondary" type="button" id="how-start-close">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 //  SUPABASE INIT
@@ -2051,6 +2269,7 @@ function enterGuestMode() {
   renderPushCard();
   initAssignmentFormDefaults();
   startReminderPoll();
+  toggleFounderFeatures();
   setTimeout(maybeShowDueReminder, 500);
   hideBootScreen();
 }
@@ -2212,6 +2431,7 @@ async function onUserSignedIn() {
     renderHome();
     renderPushCard();
     await window.PushReminders?.syncSubscriptionIfEnabled?.();
+    toggleFounderFeatures();
     setTimeout(maybeShowDueReminder, 500);
     startReminderPoll();
   } finally {
@@ -2562,6 +2782,9 @@ let activeReminderAssignmentId = null;
 let activeReminderMilestone = null;
 let snoozeTimerId = null;
 let reminderPollId = null;
+let stayAheadPlans = [];
+let howStartAssignmentId = null;
+let stayAheadBusy = false;
 
 const $     = id => document.getElementById(id);
 const pages = Array.from(document.querySelectorAll('.page'));
@@ -2686,6 +2909,192 @@ function getAssignmentById(id) {
   return (profile.assignments || []).find(a => a.id === id);
 }
 
+function isFounderUser() {
+  const email = currentUser?.email || '';
+  return window.StayAheadPlanning?.isFounder?.(email) || false;
+}
+
+function getStayAheadSchedule() {
+  return window.StayAheadPlanning?.getScheduleFromProfile?.(profile) ||
+    window.StayAheadPlanning?.DEFAULT_SCHEDULE ||
+    { workDays: [], classDays: [], busyDays: [], preferredStudyDays: [] };
+}
+
+function scheduleFieldLabels() {
+  return [
+    { key: 'workDays', label: 'Work days' },
+    { key: 'classDays', label: 'Class days' },
+    { key: 'busyDays', label: 'Busy days' },
+    { key: 'preferredStudyDays', label: 'Preferred study days' }
+  ];
+}
+
+function renderScheduleEditor() {
+  const wrap = $('schedule-editor');
+  if (!wrap || !window.StayAheadPlanning) return;
+
+  const schedule = getStayAheadSchedule();
+  const labels = window.StayAheadPlanning.DAY_LABELS || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  wrap.innerHTML = scheduleFieldLabels().map(({ key, label }) => {
+    const selected = new Set(schedule[key] || []);
+    const chips = labels.map((dayLabel, index) =>
+      `<button type="button" class="schedule-day${selected.has(index) ? ' is-on' : ''}" data-field="${key}" data-day="${index}" aria-pressed="${selected.has(index)}">${dayLabel}</button>`
+    ).join('');
+    return `<div class="schedule-block"><span class="schedule-block-label">${label}</span><div class="schedule-days">${chips}</div></div>`;
+  }).join('');
+
+  wrap.querySelectorAll('.schedule-day').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('is-on');
+      btn.setAttribute('aria-pressed', btn.classList.contains('is-on') ? 'true' : 'false');
+    });
+  });
+}
+
+function readScheduleFromEditor() {
+  const schedule = {
+    workDays: [],
+    classDays: [],
+    busyDays: [],
+    preferredStudyDays: []
+  };
+
+  $('schedule-editor')?.querySelectorAll('.schedule-day.is-on').forEach(btn => {
+    const field = btn.dataset.field;
+    const day = Number(btn.dataset.day);
+    if (schedule[field] && !schedule[field].includes(day)) schedule[field].push(day);
+  });
+
+  return window.StayAheadPlanning?.normalizeSchedule?.(schedule) || schedule;
+}
+
+function saveScheduleFromEditor() {
+  if (!window.StayAheadPlanning) return;
+  window.StayAheadPlanning.saveScheduleToProfile(profile, readScheduleFromEditor());
+  saveProfile();
+  refreshStayAheadPlans(false);
+  toast('Schedule saved');
+}
+
+async function refreshStayAheadPlans(useAi = false) {
+  if (!isFounderUser() || !window.StayAheadPlanning) return;
+
+  const plansEl = $('stay-ahead-plans');
+  if (stayAheadBusy) return;
+  stayAheadBusy = true;
+
+  if (plansEl) {
+    plansEl.innerHTML = '<p class="empty-state" style="padding:8px">Building your stay-ahead plan…</p>';
+  }
+
+  try {
+    const schedule = getStayAheadSchedule();
+    let plans = window.StayAheadPlanning.buildStayAheadPlans(profile.assignments || [], schedule);
+    if (useAi && currentUser) {
+      plans = await window.StayAheadPlanning.polishPlansWithAi(plans, schedule);
+    }
+    stayAheadPlans = plans;
+  } catch (err) {
+    console.warn('Stay ahead planning failed', err);
+    stayAheadPlans = window.StayAheadPlanning.buildStayAheadPlans(
+      profile.assignments || [],
+      getStayAheadSchedule()
+    );
+  } finally {
+    stayAheadBusy = false;
+  }
+
+  renderStayAheadPlans();
+  renderAssignments();
+  renderHomeSuggested();
+}
+
+function renderStayAheadPlans() {
+  const wrap = $('stay-ahead-plans');
+  if (!wrap) return;
+
+  if (!stayAheadPlans.length) {
+    wrap.innerHTML = '<p class="empty-state" style="padding:8px">Add assignments to see when Quiet recommends starting each one.</p>';
+    return;
+  }
+
+  wrap.innerHTML = '';
+  stayAheadPlans.forEach(plan => {
+    const card = document.createElement('div');
+    card.className = 'stay-ahead-plan';
+    const days = plan.startDayNames?.length
+      ? `Start: ${plan.startDayNames.join(', ')}`
+      : 'Start soon';
+    card.innerHTML = `
+      <strong></strong>
+      <p></p>
+      <div class="stay-ahead-plan-meta"></div>
+    `;
+    card.querySelector('strong').textContent = plan.assignment.title;
+    card.querySelector('p').textContent = plan.message;
+    card.querySelector('.stay-ahead-plan-meta').textContent = days;
+    wrap.appendChild(card);
+  });
+}
+
+function getStayAheadPlanForAssignment(assignmentId) {
+  return stayAheadPlans.find(p => p.assignmentId === assignmentId) || null;
+}
+
+function toggleFounderFeatures() {
+  const founder = isFounderUser();
+  const block = $('stay-ahead-founder');
+  if (block) block.hidden = !founder;
+
+  if (founder) {
+    renderScheduleEditor();
+    if (!stayAheadPlans.length) refreshStayAheadPlans(Boolean(currentUser));
+    else renderStayAheadPlans();
+  }
+}
+
+function hideHowToStartModal() {
+  const modal = $('how-start-modal');
+  if (!modal) return;
+  modal.classList.remove('is-visible');
+  modal.hidden = true;
+  howStartAssignmentId = null;
+}
+
+async function openHowToStartModal(assignment) {
+  if (!assignment || !isFounderUser()) return;
+
+  const modal = $('how-start-modal');
+  const stepsEl = $('how-start-steps');
+  const firstEl = $('how-start-first');
+  if (!modal || !stepsEl || !firstEl) return;
+
+  howStartAssignmentId = assignment.id;
+  $('how-start-title').textContent = assignment.title;
+  stepsEl.innerHTML = '<li><span>…</span>Thinking through the first steps…</li>';
+  firstEl.textContent = '';
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-visible'));
+
+  let result;
+  try {
+    result = currentUser
+      ? await window.StayAheadPlanning.fetchHowToStart(assignment)
+      : window.StayAheadPlanning.buildHowToStartLocal(assignment);
+  } catch {
+    result = window.StayAheadPlanning.buildHowToStartLocal(assignment);
+  }
+
+  stepsEl.innerHTML = '';
+  (result.steps || []).forEach((step, index) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${index + 1}</span>${step}`;
+    stepsEl.appendChild(li);
+  });
+  firstEl.textContent = result.firstTask || 'Spend 15 minutes on the smallest first step.';
+}
+
 function pendingAssignments() {
   return (profile.assignments || [])
     .filter(a => !a.completed)
@@ -2757,6 +3166,11 @@ function formatDueDayLabel(dueAt) {
 }
 
 function buildSuggestedNextCopy(assignment) {
+  const plan = getStayAheadPlanForAssignment(assignment.id);
+  if (plan?.message) {
+    return { title: assignment.title, copy: plan.message };
+  }
+
   const type = classifyAssignmentType(assignment);
   const dueLabel = formatDueDayLabel(assignment.dueAt);
   const block = pickDurationForAssignment(assignment);
@@ -2889,6 +3303,7 @@ function addAssignment(data) {
   saveProfile();
   renderAssignments();
   renderHome();
+  if (isFounderUser()) refreshStayAheadPlans(false);
   syncAssignmentToCloud(assignment);
   toast('Assignment added');
   setTimeout(maybeShowDueReminder, 400);
@@ -2926,6 +3341,7 @@ function completeAssignment(id) {
   saveProfile();
   renderAssignments();
   renderHome();
+  if (isFounderUser()) refreshStayAheadPlans(false);
   syncAssignmentToCloud(item);
   hideReminderModal();
   toast('Marked complete');
@@ -2969,6 +3385,8 @@ function startFocusFromAssignment(assignment) {
 
 function renderAssignmentCard(assignment, { showActions = true } = {}) {
   const status = getDueStatus(assignment);
+  const plan = getStayAheadPlanForAssignment(assignment.id);
+  const founder = isFounderUser();
   const card = document.createElement('div');
   card.className = 'assign-card';
   if (assignment.completed) card.classList.add('is-done');
@@ -2989,10 +3407,12 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
       <span class="assign-badge ${badgeClass}"></span>
     </div>
     <p class="assign-meta"></p>
+    ${plan && founder && !assignment.completed ? `<p class="assign-plan-note"></p>` : ''}
     ${showActions && !assignment.completed ? `
-      <div class="assign-actions">
+      <div class="assign-actions${founder ? ' has-founder' : ''}">
         <button type="button" class="primary assign-start">Start focus</button>
         <button type="button" class="secondary assign-done">Mark done</button>
+        ${founder ? '<button type="button" class="secondary assign-how-start">How do I start?</button>' : ''}
       </div>` : ''}
   `;
 
@@ -3002,9 +3422,16 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
   card.querySelector('.assign-meta').textContent =
     `${formatDueDateTime(assignment.dueAt)} · Est. ${assignment.estimatedMinutes} min`;
 
+  if (plan && founder && !assignment.completed) {
+    const note = card.querySelector('.assign-plan-note');
+    if (note) note.textContent = plan.message;
+  }
+
   if (showActions && !assignment.completed) {
     card.querySelector('.assign-start').addEventListener('click', () => startFocusFromAssignment(assignment));
     card.querySelector('.assign-done').addEventListener('click', () => completeAssignment(assignment.id));
+    const howBtn = card.querySelector('.assign-how-start');
+    if (howBtn) howBtn.addEventListener('click', () => openHowToStartModal(assignment));
   }
 
   return card;
@@ -3032,6 +3459,7 @@ function renderAssignments() {
     done.slice(0, 10).forEach(a => doneList.appendChild(renderAssignmentCard(a, { showActions: false })));
   }
   renderTasksDueBanner();
+  toggleFounderFeatures();
 }
 
 function renderTasksDueBanner() {
@@ -3044,10 +3472,11 @@ function renderTasksDueBanner() {
   }
 
   const status = getDueStatus(next);
+  const plan = getStayAheadPlanForAssignment(next.id);
   banner.hidden = false;
   banner.classList.toggle('urgent', status?.level === 'urgent');
   $('tasks-due-title').textContent = next.title;
-  $('tasks-due-copy').textContent =
+  $('tasks-due-copy').textContent = plan?.message ||
     `${next.course ? next.course + ' · ' : ''}${status?.label || formatDueRelative(next.dueAt)}`;
   $('tasks-due-start').onclick = () => startFocusFromAssignment(next);
 }
@@ -3986,6 +4415,20 @@ async function handleAssignmentScan(file) {
 }
 
 $('scan-cancel-btn')?.addEventListener('click', cancelAssignmentScan);
+
+$('save-schedule-btn')?.addEventListener('click', saveScheduleFromEditor);
+$('refresh-plans-btn')?.addEventListener('click', () => refreshStayAheadPlans(Boolean(currentUser)));
+$('how-start-close')?.addEventListener('click', hideHowToStartModal);
+$('how-start-modal')?.addEventListener('click', e => {
+  if (e.target === $('how-start-modal')) hideHowToStartModal();
+});
+$('how-start-focus')?.addEventListener('click', () => {
+  const assignment = getAssignmentById(howStartAssignmentId);
+  hideHowToStartModal();
+  if (!assignment) return;
+  profile.durationMinutes = 15;
+  startFocusFromAssignment(assignment);
+});
 
 $('scan-pdf-input')?.addEventListener('change', e => {
   const file = e.target.files?.[0];
