@@ -15,7 +15,7 @@ window.APP_CONFIG = {
   // Founder-only features (Stay Ahead Planning). Not shown on Contact page.
   FOUNDER_EMAILS: ["quietfocusai@gmail.com", "dhyeypatel430@gmail.com"],
   // Optional: add your Supabase user UUID if email matching fails (Dashboard → Authentication → Users)
-  FOUNDER_USER_IDS: [],
+  FOUNDER_USER_IDS: [731978f8b36b, fa9aa6f76373],
   // Bump when deploying — should match sw.js CACHE suffix (quiet-focus-v32 → "32")
   APP_CACHE_VERSION: "43"
 };
