@@ -5,7 +5,7 @@ window.APP_CONFIG = {
   SUPABASE_ANON_KEY:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cW5oYnV6cGFnb3NxeHNqdndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTc1NzksImV4cCI6MjA5NTM3MzU3OX0.XorO-8qaHlgpDsPUqcOv6WDxP0op_hWAQ73rVHf28qo",
   SUPPORT_EMAIL: "quietfocusai@gmail.com",
-  SUPPORT_DISPLAY: "quietfocusai@gmail.com",
+  SUPPORT_DISPLAY: quietfocusai@gmail.com",
   // Public site key only — secret goes in Supabase Auth → Bot and Abuse Protection
   TURNSTILE_SITE_KEY: "",
   // Web Push (public key). Private key → Supabase Edge Function secrets as VAPID_PRIVATE_KEY
@@ -14,6 +14,8 @@ window.APP_CONFIG = {
   QUIET_GLB_URL: "",
   // Founder-only features (Stay Ahead Planning). Not shown on Contact page.
   FOUNDER_EMAILS: ["quietfocusai@gmail.com"],
+  // Optional: add your Supabase user UUID if email matching fails (Dashboard → Authentication → Users)
+  FOUNDER_USER_IDS: [],
   // Bump when deploying — should match sw.js CACHE suffix (quiet-focus-v32 → "32")
-  APP_CACHE_VERSION: "42"
+  APP_CACHE_VERSION: "43"
 };
