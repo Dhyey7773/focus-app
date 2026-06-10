@@ -88,14 +88,14 @@
       throw new Error("PDF is too large. Try the first few pages or a photo instead.");
     }
 
-    onProgress("Loading PDF reader…");
+    onProgress("Opening file…");
     throwIfAborted(signal);
     await loadScript(PDF_JS, () => window.pdfjsLib);
     const pdfjs = window.pdfjsLib;
     if (!pdfjs) throw new Error("PDF reader failed to load");
     pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER;
 
-    onProgress("Reading PDF…");
+    onProgress("Reading your file…");
     const data = new Uint8Array(await file.arrayBuffer());
     const pdf = await pdfjs.getDocument({ data, disableAutoFetch: true, disableStream: true }).promise;
     const pageCount = Math.min(pdf.numPages, MAX_PDF_PAGES);
@@ -146,7 +146,7 @@
     throwIfAborted(signal);
     const imageFile = await prepareImageForOcr(file);
 
-    onProgress("Loading OCR…");
+    onProgress("Reading screenshot…");
     throwIfAborted(signal);
     await loadScript(TESSERACT_JS, () => window.Tesseract);
     if (!window.Tesseract) throw new Error("OCR failed to load");
@@ -154,7 +154,7 @@
     onProgress("Reading photo…");
     const ocr = window.Tesseract.recognize(imageFile, "eng", {
       logger: (m) => {
-        if (m.status === "loading language traineddata") onProgress("Downloading OCR data (once)…");
+        if (m.status === "loading language traineddata") onProgress("Getting ready (first time only)…");
         else if (m.status === "recognizing text" && typeof m.progress === "number") {
           onProgress(`Reading photo… ${Math.round(m.progress * 100)}%`);
         }
@@ -452,7 +452,7 @@
       const { data, error } = await withTimeout(invoke, AI_TIMEOUT_MS, "AI timeout");
       throwIfAborted(signal);
       if (data?.limited || data?.error) {
-        return { limited: true, message: data.error || "AI scan limit reached." };
+        return { limited: true, message: data.error || "Daily upload limit reached. Deadlines found so far are still below." };
       }
       if (error || !data?.assignments?.length) return null;
       return data;
