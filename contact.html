@@ -345,8 +345,8 @@ footer {
   const cfg = window.APP_CONFIG || {};
   const SUPABASE_URL = cfg.SUPABASE_URL || "https://pyqnhbuzpagosqxsjvwg.supabase.co";
   const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY || "";
-  const SUPPORT_EMAIL = cfg.SUPPORT_EMAIL || "quietfocusai@gmail.com";
-  const SUPPORT_DISPLAY = cfg.SUPPORT_DISPLAY || "support@quietfocusai.com";
+  const SUPPORT_EMAIL = cfg.SUPPORT_EMAIL || "support@quietfocusai.com";
+  const SUPPORT_DISPLAY = cfg.SUPPORT_DISPLAY || SUPPORT_EMAIL;
 
   const chip = document.getElementById("support-email-chip");
   if (chip) chip.textContent = SUPPORT_DISPLAY;
