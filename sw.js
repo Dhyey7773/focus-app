@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v47';
+const CACHE = 'quiet-focus-v49';
 
 const ASSETS = [
   './live-demo.html',
