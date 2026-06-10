@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=45"></script>
+  <script src="config.js?v=46"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js?v=4"></script>
+  <script src="stay-ahead-planning.js?v=5"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -1381,18 +1381,66 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   background:rgba(148,218,177,.05);
 }
 .stay-ahead-founder[hidden] { display:none; }
-.stay-ahead-title {
+.smart-plan-title {
   font-size:16px;
   font-weight:520;
   letter-spacing:-.03em;
-  margin:4px 0 6px;
+  margin:0 0 6px;
 }
-.stay-ahead-sub {
+.smart-plan-sub {
   font-size:12px;
   color:var(--muted-2);
   line-height:1.5;
   margin:0 0 14px;
 }
+.work-on-first {
+  margin-bottom:16px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+}
+.work-on-first-label {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--success);
+  margin-bottom:10px;
+}
+.work-on-first-list {
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.work-on-first-item {
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+  line-height:1.4;
+}
+.work-on-first-rank {
+  flex:0 0 20px;
+  font-weight:600;
+  color:var(--muted);
+}
+.work-on-first-name { flex:1; font-weight:520; }
+.work-on-first-badge {
+  flex-shrink:0;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  padding:3px 7px;
+  border-radius:999px;
+}
+.work-on-first-badge.high { background:rgba(255,100,100,.15); color:var(--danger); }
+.work-on-first-badge.medium { background:rgba(255,207,112,.12); color:var(--warning); }
+.work-on-first-badge.low { background:var(--mint-dim); color:var(--success); }
 .schedule-block { margin-bottom:14px; }
 .schedule-block-label {
   display:block;
@@ -1435,32 +1483,150 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .stay-ahead-plans {
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:12px;
 }
-.stay-ahead-plan {
+.plan-card {
   background:rgba(255,255,255,.03);
   border:1px solid var(--line);
-  border-radius:12px;
-  padding:12px 14px;
+  border-radius:14px;
+  padding:14px;
+  overflow:hidden;
 }
-.stay-ahead-plan strong {
-  display:block;
-  font-size:13px;
+.plan-card.is-high { border-color:rgba(255,100,100,.28); }
+.plan-card.is-medium { border-color:rgba(255,207,112,.22); }
+.plan-card-headline {
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.12em;
+  color:var(--success);
+  margin-bottom:8px;
+}
+.plan-card-title {
+  font-size:14px;
   font-weight:520;
-  margin-bottom:6px;
+  margin-bottom:10px;
+  letter-spacing:-.02em;
 }
-.stay-ahead-plan p {
+.plan-card-meta {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.plan-pill {
+  font-size:10px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  color:var(--muted-2);
+}
+.plan-pill.risk-low { border-color:rgba(148,218,177,.35); color:var(--success); }
+.plan-pill.risk-medium { border-color:rgba(255,207,112,.35); color:var(--warning); }
+.plan-pill.risk-high { border-color:rgba(255,100,100,.35); color:var(--danger); }
+.plan-card-reason {
   font-size:12px;
   color:var(--muted-2);
   line-height:1.55;
-  margin:0;
+  margin:0 0 10px;
 }
-.stay-ahead-plan-meta {
-  margin-top:8px;
+.plan-card-reason strong {
+  display:block;
   font-size:10px;
-  letter-spacing:.06em;
+  letter-spacing:.08em;
   text-transform:uppercase;
+  color:var(--muted);
+  font-weight:600;
+  margin-bottom:4px;
+}
+.plan-sessions {
+  margin:10px 0;
+  padding:10px 12px;
+  border-radius:10px;
+  background:rgba(0,0,0,.2);
+  border:1px solid var(--line);
+}
+.plan-sessions-label {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.plan-session-day {
+  margin-bottom:10px;
+}
+.plan-session-day:last-child { margin-bottom:0; }
+.plan-session-day-name {
+  font-size:12px;
+  font-weight:600;
+  margin-bottom:4px;
+}
+.plan-session-task {
+  font-size:11px;
+  color:var(--muted-2);
+  padding-left:10px;
+  position:relative;
+}
+.plan-session-task::before {
+  content:'•';
+  position:absolute;
+  left:0;
+}
+.plan-card-goal {
+  font-size:11px;
   color:var(--success);
+  margin:8px 0 10px;
+}
+.plan-why-btn {
+  width:100%;
+  min-height:34px;
+  font-size:11px;
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid var(--line-2);
+  background:transparent;
+  color:var(--muted-2);
+  font-family:inherit;
+  cursor:pointer;
+}
+.plan-why-btn:hover { color:var(--text); border-color:rgba(255,255,255,.22); }
+.plan-why-modal {
+  position:fixed;
+  inset:0;
+  z-index:410;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px;
+  background:rgba(0,0,0,.55);
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+.plan-why-modal.is-visible { opacity:1; visibility:visible; }
+.plan-why-modal[hidden] { display:none; }
+.plan-why-sheet {
+  width:min(420px,100%);
+  background:var(--panel);
+  border:1px solid var(--line-2);
+  border-radius:20px 20px 14px 14px;
+  padding:18px 16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.45);
+}
+.plan-why-sheet h2 {
+  font-size:17px;
+  font-weight:520;
+  margin:6px 0 12px;
+}
+.plan-why-sheet p {
+  font-size:13px;
+  color:var(--muted-2);
+  line-height:1.6;
+  margin:0 0 14px;
+}
+.stay-ahead-plan {
+  display:none;
 }
 .assign-plan-note {
   margin-top:10px;
@@ -1471,6 +1637,14 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   font-size:11px;
   color:var(--muted-2);
   line-height:1.5;
+}
+.assign-plan-note strong {
+  display:block;
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--success);
+  margin-bottom:4px;
 }
 .assign-actions.has-founder {
   grid-template-columns:1fr 1fr;
@@ -2078,9 +2252,12 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             </div>
 
             <div class="stay-ahead-founder" id="stay-ahead-founder" hidden>
-              <p class="meta-label">Founder preview</p>
-              <p class="stay-ahead-title">Stay Ahead Planning</p>
-              <p class="stay-ahead-sub">Tell Quiet when you're busy. It suggests when to start — not just when things are due.</p>
+              <p class="smart-plan-title">Smart Planning</p>
+              <p class="smart-plan-sub">Tell Quiet your schedule. It recommends when to start — not just when things are due.</p>
+              <div class="work-on-first" id="work-on-first" hidden>
+                <p class="work-on-first-label">Work on first</p>
+                <ol class="work-on-first-list" id="work-on-first-list"></ol>
+              </div>
               <div id="schedule-editor"></div>
               <div class="stay-ahead-actions">
                 <button type="button" class="secondary" id="save-schedule-btn">Save schedule</button>
@@ -2199,6 +2376,15 @@ button:disabled { cursor:not-allowed; opacity:.42; }
       <button class="secondary" type="button" id="reminder-done">Mark completed</button>
       <button class="ghost" type="button" id="reminder-snooze">Remind me in 1 hour</button>
     </div>
+  </div>
+</div>
+
+<div class="plan-why-modal" id="plan-why-modal" hidden aria-modal="true" role="dialog">
+  <div class="plan-why-sheet">
+    <p class="meta-label">Why this recommendation?</p>
+    <h2 id="plan-why-title">Assignment</h2>
+    <p id="plan-why-body"></p>
+    <button type="button" class="secondary" id="plan-why-close" style="width:100%;min-height:40px">Got it</button>
   </div>
 </div>
 
@@ -2484,7 +2670,7 @@ function updateUserBar() {
   const emailEl = document.getElementById('ub-email');
   emailEl.textContent = email;
   emailEl.title = isFounderUser()
-    ? 'Founder account — Stay Ahead Planning enabled'
+    ? 'Smart Planning enabled'
     : `Signed in as ${email}`;
   document.getElementById('ub-avatar').textContent = name.charAt(0).toUpperCase();
 }
@@ -3038,8 +3224,101 @@ async function refreshStayAheadPlans(useAi = false) {
   }
 
   renderStayAheadPlans();
+  renderWorkOnFirst();
   renderAssignmentLists();
   renderHomeSuggested();
+}
+
+function riskClass(risk) {
+  if (risk === 'High') return 'high';
+  if (risk === 'Medium') return 'medium';
+  return 'low';
+}
+
+function renderWorkOnFirst() {
+  const wrap = $('work-on-first');
+  const list = $('work-on-first-list');
+  if (!wrap || !list) return;
+
+  if (!stayAheadPlans.length) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+  list.innerHTML = '';
+  stayAheadPlans.slice(0, 5).forEach(plan => {
+    const li = document.createElement('li');
+    li.className = 'work-on-first-item';
+    const level = (plan.priorityLevel || 'Medium').toLowerCase();
+    li.innerHTML = `
+      <span class="work-on-first-rank">${plan.priorityRank}.</span>
+      <span class="work-on-first-name"></span>
+      <span class="work-on-first-badge ${level}"></span>
+    `;
+    li.querySelector('.work-on-first-name').textContent = plan.assignment.title;
+    li.querySelector('.work-on-first-badge').textContent = `${plan.priorityLevel} Priority`;
+    list.appendChild(li);
+  });
+}
+
+function renderPlanCard(plan) {
+  const card = document.createElement('article');
+  card.className = `plan-card is-${riskClass(plan.risk)}`;
+
+  const sessionsHtml = plan.multiSession && plan.sessions?.length
+    ? `<div class="plan-sessions">
+        <p class="plan-sessions-label">Recommended plan</p>
+        ${plan.sessions.map(s => `
+          <div class="plan-session-day">
+            <p class="plan-session-day-name">${s.dayName}</p>
+            ${s.tasks.map(t => `<p class="plan-session-task">${t.label} (${window.StayAheadPlanning?.formatEffort?.(t.minutes) || t.minutes + ' min'})</p>`).join('')}
+          </div>
+        `).join('')}
+        <p class="plan-card-goal">${plan.goal || ''}</p>
+      </div>`
+    : '';
+
+  card.innerHTML = `
+    <p class="plan-card-headline"></p>
+    <p class="plan-card-title"></p>
+    <div class="plan-card-meta">
+      <span class="plan-pill plan-due"></span>
+      <span class="plan-pill plan-effort"></span>
+      <span class="plan-pill plan-risk"></span>
+    </div>
+    <p class="plan-card-reason"><strong>Reason</strong><span class="plan-reason-text"></span></p>
+    ${sessionsHtml}
+    <button type="button" class="plan-why-btn">Why this recommendation?</button>
+  `;
+
+  card.querySelector('.plan-card-headline').textContent = plan.startHeadline || 'START SOON';
+  card.querySelector('.plan-card-title').textContent = plan.assignment.title;
+  card.querySelector('.plan-due').textContent = plan.dueLabel || '';
+  card.querySelector('.plan-effort').textContent = `Est. ${plan.effortLabel || ''}`;
+  const riskEl = card.querySelector('.plan-risk');
+  riskEl.textContent = `${plan.risk || 'Low'} risk`;
+  riskEl.classList.add(`risk-${riskClass(plan.risk)}`);
+  card.querySelector('.plan-reason-text').textContent = plan.reason || '';
+
+  card.querySelector('.plan-why-btn').addEventListener('click', () => openPlanWhyModal(plan));
+  return card;
+}
+
+function openPlanWhyModal(plan) {
+  const modal = $('plan-why-modal');
+  if (!modal || !plan) return;
+  $('plan-why-title').textContent = plan.assignment.title;
+  $('plan-why-body').textContent = plan.whyDetailed || plan.reason || '';
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-visible'));
+}
+
+function hidePlanWhyModal() {
+  const modal = $('plan-why-modal');
+  if (!modal) return;
+  modal.classList.remove('is-visible');
+  modal.hidden = true;
 }
 
 function renderStayAheadPlans() {
@@ -3047,27 +3326,14 @@ function renderStayAheadPlans() {
   if (!wrap) return;
 
   if (!stayAheadPlans.length) {
-    wrap.innerHTML = '<p class="empty-state" style="padding:8px">Add assignments to see when Quiet recommends starting each one.</p>';
+    wrap.innerHTML = '<p class="empty-state" style="padding:8px">Add assignments to see your personalized plan.</p>';
+    renderWorkOnFirst();
     return;
   }
 
   wrap.innerHTML = '';
-  stayAheadPlans.forEach(plan => {
-    const card = document.createElement('div');
-    card.className = 'stay-ahead-plan';
-    const days = plan.startDayNames?.length
-      ? `Start: ${plan.startDayNames.join(', ')}`
-      : 'Start soon';
-    card.innerHTML = `
-      <strong></strong>
-      <p></p>
-      <div class="stay-ahead-plan-meta"></div>
-    `;
-    card.querySelector('strong').textContent = plan.assignment.title;
-    card.querySelector('p').textContent = plan.message;
-    card.querySelector('.stay-ahead-plan-meta').textContent = days;
-    wrap.appendChild(card);
-  });
+  stayAheadPlans.forEach(plan => wrap.appendChild(renderPlanCard(plan)));
+  renderWorkOnFirst();
 }
 
 function getStayAheadPlanForAssignment(assignmentId) {
@@ -3215,6 +3481,7 @@ function prioritizedPendingAssignments() {
 }
 
 function getSuggestedNextAssignment() {
+  if (stayAheadPlans.length) return stayAheadPlans[0].assignment;
   return prioritizedPendingAssignments()[0] || null;
 }
 
@@ -3233,8 +3500,12 @@ function formatDueDayLabel(dueAt) {
 
 function buildSuggestedNextCopy(assignment) {
   const plan = getStayAheadPlanForAssignment(assignment.id);
-  if (plan?.message) {
-    return { title: assignment.title, copy: plan.message };
+  if (plan?.startHeadline && plan?.reason) {
+    const start = plan.startHeadline.replace(/^START ON /i, 'Start ').replace(/^START TODAY/i, 'Start today');
+    return { title: assignment.title, copy: `${start}. ${plan.reason}` };
+  }
+  if (plan?.reason) {
+    return { title: assignment.title, copy: plan.reason };
   }
 
   const type = classifyAssignmentType(assignment);
@@ -3490,7 +3761,9 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
 
   if (plan && founder && !assignment.completed) {
     const note = card.querySelector('.assign-plan-note');
-    if (note) note.textContent = plan.message;
+    if (note) {
+      note.innerHTML = `<strong>${plan.startHeadline || 'Start soon'}</strong>${plan.reason || ''}`;
+    }
   }
 
   if (showActions && !assignment.completed) {
@@ -3545,7 +3818,7 @@ function renderTasksDueBanner() {
   banner.hidden = false;
   banner.classList.toggle('urgent', status?.level === 'urgent');
   $('tasks-due-title').textContent = next.title;
-  $('tasks-due-copy').textContent = plan?.message ||
+  $('tasks-due-copy').textContent = plan?.cardSummary || plan?.reason ||
     `${next.course ? next.course + ' · ' : ''}${status?.label || formatDueRelative(next.dueAt)}`;
   $('tasks-due-start').onclick = () => startFocusFromAssignment(next);
 }
@@ -4487,6 +4760,10 @@ $('scan-cancel-btn')?.addEventListener('click', cancelAssignmentScan);
 
 $('save-schedule-btn')?.addEventListener('click', saveScheduleFromEditor);
 $('refresh-plans-btn')?.addEventListener('click', () => refreshStayAheadPlans(true));
+$('plan-why-close')?.addEventListener('click', hidePlanWhyModal);
+$('plan-why-modal')?.addEventListener('click', e => {
+  if (e.target === $('plan-why-modal')) hidePlanWhyModal();
+});
 $('how-start-close')?.addEventListener('click', hideHowToStartModal);
 $('how-start-modal')?.addEventListener('click', e => {
   if (e.target === $('how-start-modal')) hideHowToStartModal();
