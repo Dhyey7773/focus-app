@@ -12,6 +12,8 @@ window.APP_CONFIG = {
   VAPID_PUBLIC_KEY: "BA8c2Tqt7D_6skqSCU5vlAaFgeStR63xw_Y9WtMlXZ6K_1FKfd29_7aNKxh4F4V5_AbStRD6VaEtzUkRF25z2CQ",
   // Optional 3D mascot URL (Supabase Storage public link). Leave empty = PNG only.
   QUIET_GLB_URL: "",
+  // Founder-only preview (Stay Ahead Planning). Match FOUNDER_EMAILS in Supabase Edge secrets.
+  FOUNDER_EMAILS: ["quietfocusai@gmail.com"],
   // Bump when deploying — should match sw.js CACHE suffix (quiet-focus-v32 → "32")
-  APP_CACHE_VERSION: "41"
+  APP_CACHE_VERSION: "42"
 };
