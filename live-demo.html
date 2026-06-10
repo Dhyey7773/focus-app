@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=43"></script>
+  <script src="config.js?v=45"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js?v=2"></script>
+  <script src="stay-ahead-planning.js?v=4"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -2211,6 +2211,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
       <strong>Suggested first 15 minutes</strong>
       <p id="how-start-first"></p>
     </div>
+    <p class="assign-hint" id="how-start-source" hidden style="margin-bottom:12px"></p>
     <div class="how-start-actions">
       <button class="primary" type="button" id="how-start-focus">Start 15-min block</button>
       <button class="secondary" type="button" id="how-start-close">Close</button>
@@ -2620,6 +2621,8 @@ async function handleSignOut() {
 
   currentUser = null;
   signedInUserId = null;
+  stayAheadPlans = [];
+  stayAheadPlansHydrated = false;
   session = null;
   clearInterval(timerId);
   profile.activeSession = null;
@@ -2790,6 +2793,7 @@ let reminderPollId = null;
 let stayAheadPlans = [];
 let howStartAssignmentId = null;
 let stayAheadBusy = false;
+let stayAheadPlansHydrated = false;
 
 const $     = id => document.getElementById(id);
 const pages = Array.from(document.querySelectorAll('.page'));
@@ -2927,7 +2931,7 @@ function isFounderUser() {
   }
 
   const cfg = window.APP_CONFIG || {};
-  const emails = (cfg.FOUNDER_EMAILS || []).map(e => String(e).toLowerCase().trim());
+  const emails = (cfg.FOUNDER_EMAILS || ["quietfocusai@gmail.com"]).map(e => String(e).toLowerCase().trim());
   const email = resolveUserEmail(currentUser).toLowerCase();
   if (email && emails.includes(email)) return true;
   if (currentUser?.id && (cfg.FOUNDER_USER_IDS || []).includes(currentUser.id)) return true;
@@ -3003,9 +3007,9 @@ function saveScheduleFromEditor() {
 
 async function refreshStayAheadPlans(useAi = false) {
   if (!isFounderUser() || !window.StayAheadPlanning) return;
+  if (stayAheadBusy) return;
 
   const plansEl = $('stay-ahead-plans');
-  if (stayAheadBusy) return;
   stayAheadBusy = true;
 
   if (plansEl) {
@@ -3017,7 +3021,8 @@ async function refreshStayAheadPlans(useAi = false) {
     let plans = window.StayAheadPlanning.buildStayAheadPlans(profile.assignments || [], schedule);
     if (useAi && currentUser) {
       plans = await window.StayAheadPlanning.polishPlansWithAi(plans, schedule);
-      toast('Plans updated');
+      const usedAi = plans.some(p => p.source === 'ai');
+      toast(usedAi ? 'Quiet AI — plans updated' : 'Local plans (AI unavailable)', usedAi ? 2500 : 4500);
     }
     stayAheadPlans = plans;
   } catch (err) {
@@ -3029,10 +3034,11 @@ async function refreshStayAheadPlans(useAi = false) {
     if (useAi) toast(err.message || 'AI planning unavailable — showing local plans', 4500);
   } finally {
     stayAheadBusy = false;
+    stayAheadPlansHydrated = true;
   }
 
   renderStayAheadPlans();
-  renderAssignments();
+  renderAssignmentLists();
   renderHomeSuggested();
 }
 
@@ -3076,9 +3082,15 @@ function toggleFounderFeatures() {
 
   if (hint) {
     if (currentUser && !founder) {
+      const email = resolveUserEmail(currentUser) || 'unknown';
+      if (email.toLowerCase() === 'quietfocusai@gmail.com') {
+        hint.textContent =
+          'Founder email recognized, but Stay Ahead failed to load. Hard refresh, or re-upload config.js and stay-ahead-planning.js.';
+      } else {
+        hint.textContent =
+          `Stay Ahead Planning is founder-only. You're signed in as ${email}. Sign in with quietfocusai@gmail.com to enable it.`;
+      }
       hint.hidden = false;
-      hint.textContent =
-        `Stay Ahead Planning is founder-only. You're signed in as ${resolveUserEmail(currentUser) || 'unknown'}. Sign in with quietfocusai@gmail.com to enable it.`;
     } else {
       hint.hidden = true;
     }
@@ -3086,7 +3098,7 @@ function toggleFounderFeatures() {
 
   if (founder) {
     renderScheduleEditor();
-    if (!stayAheadPlans.length) refreshStayAheadPlans(Boolean(currentUser));
+    if (!stayAheadPlansHydrated) void refreshStayAheadPlans(false);
     else renderStayAheadPlans();
   }
 }
@@ -3130,6 +3142,23 @@ async function openHowToStartModal(assignment) {
     stepsEl.appendChild(li);
   });
   firstEl.textContent = result.firstTask || 'Spend 15 minutes on the smallest first step.';
+  const sourceEl = $('how-start-source');
+  if (sourceEl) {
+    if (result.source === 'ai') {
+      sourceEl.hidden = false;
+      sourceEl.textContent = 'Generated by Quiet AI';
+    } else if (currentUser) {
+      sourceEl.hidden = false;
+      sourceEl.textContent = 'Offline template — deploy stay-ahead-plan + GEMINI_API_KEY for AI';
+    } else {
+      sourceEl.hidden = true;
+    }
+  }
+  if (result.source === 'ai') {
+    toast('Quiet AI — steps ready');
+  } else if (currentUser) {
+    toast('Using offline steps (AI unavailable)', 4000);
+  }
 }
 
 function pendingAssignments() {
@@ -3474,7 +3503,7 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
   return card;
 }
 
-function renderAssignments() {
+function renderAssignmentLists() {
   pendingAssignments().forEach(ensureRemindersShown);
   const pending = prioritizedPendingAssignments();
   const done = (profile.assignments || []).filter(a => a.completed);
@@ -3483,7 +3512,7 @@ function renderAssignments() {
   const doneList = $('assign-done-list');
 
   if (!pending.length) {
-    pendingList.innerHTML = '<div class="empty-state">No assignments yet. Add one above.</div>';
+    pendingList.innerHTML = '<div class="empty-state">No assignments yet. Upload coursework or add one above.</div>';
   } else {
     pendingList.innerHTML = '';
     pending.forEach(a => pendingList.appendChild(renderAssignmentCard(a)));
@@ -3496,7 +3525,10 @@ function renderAssignments() {
     done.slice(0, 10).forEach(a => doneList.appendChild(renderAssignmentCard(a, { showActions: false })));
   }
   renderTasksDueBanner();
-  toggleFounderFeatures();
+}
+
+function renderAssignments() {
+  renderAssignmentLists();
 }
 
 function renderTasksDueBanner() {
@@ -4454,7 +4486,7 @@ async function handleAssignmentScan(file) {
 $('scan-cancel-btn')?.addEventListener('click', cancelAssignmentScan);
 
 $('save-schedule-btn')?.addEventListener('click', saveScheduleFromEditor);
-$('refresh-plans-btn')?.addEventListener('click', () => refreshStayAheadPlans(Boolean(currentUser)));
+$('refresh-plans-btn')?.addEventListener('click', () => refreshStayAheadPlans(true));
 $('how-start-close')?.addEventListener('click', hideHowToStartModal);
 $('how-start-modal')?.addEventListener('click', e => {
   if (e.target === $('how-start-modal')) hideHowToStartModal();
