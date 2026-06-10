@@ -103,15 +103,18 @@
     return "default";
   }
 
+  const DEFAULT_FOUNDER_EMAILS = ["quietfocusai@gmail.com"];
+
   function parseFounderEmails(cfg) {
     const raw = cfg?.FOUNDER_EMAILS ?? cfg?.founderEmails ?? [];
+    let parsed = [];
     if (Array.isArray(raw)) {
-      return raw.map((e) => String(e).toLowerCase().trim()).filter(Boolean);
+      parsed = raw.map((e) => String(e).toLowerCase().trim()).filter(Boolean);
+    } else if (typeof raw === "string") {
+      parsed = raw.split(",").map((e) => e.toLowerCase().trim()).filter(Boolean);
     }
-    if (typeof raw === "string") {
-      return raw.split(",").map((e) => e.toLowerCase().trim()).filter(Boolean);
-    }
-    return [];
+    if (parsed.length) return parsed;
+    return DEFAULT_FOUNDER_EMAILS.slice();
   }
 
   function parseFounderUserIds(cfg) {
@@ -359,7 +362,12 @@
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Sign in to use AI planning.");
 
-    const { data, error } = await supabase.functions.invoke("stay-ahead-plan", { body });
+    const invoke = supabase.functions.invoke("stay-ahead-plan", { body });
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("AI request timed out. Try Refresh plans again.")), 20000);
+    });
+
+    const { data, error } = await Promise.race([invoke, timeout]);
 
     if (error) {
       let message = error.message || "Planning request failed.";
