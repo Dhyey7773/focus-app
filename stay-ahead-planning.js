@@ -92,6 +92,18 @@
     }
   };
 
+  const SESSION_LABELS = {
+    essay: ["Research", "Outline", "Draft", "Revise", "Final pass"],
+    project: ["Plan", "Build", "Draft", "Polish", "Submit prep"],
+    lab: ["Read & prep", "Data collection", "Analysis", "Write-up"],
+    reading: ["Skim & notes", "Deep read", "Review"],
+    homework: ["Problems 1–3", "Problems 4–6", "Review"],
+    quiz: ["Review"],
+    default: ["Session 1", "Session 2", "Session 3", "Session 4"]
+  };
+
+  const DEFAULT_FOUNDER_EMAILS = ["quietfocusai@gmail.com"];
+
   function classifyAssignmentType(assignment) {
     const text = `${assignment.title || ""} ${assignment.course || ""}`.toLowerCase();
     if (/essay|paper|thesis|dissertation|\d+\s*word|report|writing/.test(text)) return "essay";
@@ -103,7 +115,17 @@
     return "default";
   }
 
-  const DEFAULT_FOUNDER_EMAILS = ["quietfocusai@gmail.com"];
+  function difficultyWeight(type) {
+    return {
+      essay: 35,
+      project: 40,
+      lab: 28,
+      reading: 18,
+      homework: 15,
+      quiz: 10,
+      default: 15
+    }[type] || 15;
+  }
 
   function parseFounderEmails(cfg) {
     const raw = cfg?.FOUNDER_EMAILS ?? cfg?.founderEmails ?? [];
@@ -206,116 +228,309 @@
     return d;
   }
 
-  function unavailableDays(schedule) {
+  function getScheduleSets(schedule) {
     const s = normalizeSchedule(schedule);
-    return new Set([...s.workDays, ...s.classDays, ...s.busyDays]);
-  }
-
-  function sessionsForAssignment(assignment) {
-    const type = classifyAssignmentType(assignment);
-    const est = Number(assignment.estimatedMinutes) || 60;
-    if (type === "quiz") return 1;
-    if (type === "reading") return est > 90 ? 2 : 1;
-    if (type === "essay" || type === "project") return Math.max(2, Math.ceil(est / 90));
-    if (type === "lab") return Math.max(2, Math.ceil(est / 75));
-    return Math.max(1, Math.ceil(est / 60));
-  }
-
-  function recommendWorkDays(assignment, schedule, now = new Date()) {
-    const due = startOfDay(new Date(assignment.dueAt));
-    const today = startOfDay(now);
-    const blocked = unavailableDays(schedule);
-    const preferred = new Set(normalizeSchedule(schedule).preferredStudyDays);
-    const sessionsNeeded = sessionsForAssignment(assignment);
-    const dueDow = due.getDay();
-
-    if (due <= today) {
-      return {
-        days: [{ date: new Date(today), dow: today.getDay(), preferred: preferred.has(today.getDay()) }],
-        dueDow,
-        dueDayBusy: blocked.has(dueDow),
-        urgent: true
-      };
-    }
-
-    const candidates = [];
-    for (let cursor = new Date(today); cursor < due; cursor.setDate(cursor.getDate() + 1)) {
-      const day = startOfDay(cursor);
-      const dow = day.getDay();
-      if (blocked.has(dow)) continue;
-      const daysFromToday = Math.round((day - today) / 86400000);
-      candidates.push({
-        date: day,
-        dow,
-        daysFromToday,
-        preferred: preferred.has(dow)
-      });
-    }
-
-    candidates.sort((a, b) => {
-      if (a.preferred !== b.preferred) return Number(b.preferred) - Number(a.preferred);
-      return a.daysFromToday - b.daysFromToday;
-    });
-
-    const picked = candidates.slice(0, sessionsNeeded).sort((a, b) => a.date - b.date);
-
     return {
-      days: picked,
-      dueDow,
-      dueDayBusy: blocked.has(dueDow),
-      urgent: false
+      work: new Set(s.workDays),
+      class: new Set(s.classDays),
+      busy: new Set(s.busyDays),
+      preferred: new Set(s.preferredStudyDays)
     };
   }
 
-  function joinDayNames(days) {
-    const names = days.map((d) => DAY_NAMES[d.dow]);
-    if (names.length <= 1) return names[0] || "";
-    if (names.length === 2) return `${names[0]} and ${names[1]}`;
-    return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+  /** Higher tier = better study day. Busy = 0, work/class = 1, neutral = 2, preferred = 3 */
+  function dayTier(dow, sets) {
+    if (sets.busy.has(dow)) return 0;
+    if (sets.work.has(dow) || sets.class.has(dow)) return 1;
+    if (sets.preferred.has(dow)) return 3;
+    return 2;
   }
 
-  function buildPlanMessage(assignment, plan, allPlans) {
+  function formatEffort(minutes) {
+    const m = Math.max(5, Number(minutes) || 60);
+    if (m < 60) return `${m} minutes`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    if (!rem) return `${h} hour${h === 1 ? "" : "s"}`;
+    return `${h} hr${h === 1 ? "" : "s"} ${rem} min`;
+  }
+
+  function sessionCountForAssignment(assignment) {
     const type = classifyAssignmentType(assignment);
-    const dueName = DAY_NAMES[plan.dueDow];
-    const dayNames = joinDayNames(plan.days);
+    const est = Number(assignment.estimatedMinutes) || 60;
+    if (type === "quiz") return 1;
+    if (est <= 45) return 1;
+    if (est <= 90) return 2;
+    if (est <= 180) return 3;
+    return Math.min(5, Math.ceil(est / 60));
+  }
 
-    if (plan.urgent) {
-      return `Your ${assignment.title} is due soon. Block time today if you can — even 25 minutes helps.`;
-    }
+  function sessionLabels(type, count) {
+    const pool = SESSION_LABELS[type] || SESSION_LABELS.default;
+    return Array.from({ length: count }, (_, i) => pool[i] || `Session ${i + 1}`);
+  }
 
-    if ((type === "quiz" || type === "reading" || type === "homework") && plan.days.length) {
-      const bigger = allPlans.find((entry) => {
-        if (entry.assignmentId === assignment.id) return false;
-        const otherType = classifyAssignmentType(entry.assignment);
-        return (otherType === "essay" || otherType === "project" || otherType === "lab") && entry.days.length;
+  function splitEffort(totalMinutes, count) {
+    const total = Math.max(count * 15, Number(totalMinutes) || 60);
+    const base = Math.floor(total / count);
+    const remainder = total % count;
+    return Array.from({ length: count }, (_, i) => base + (i < remainder ? 1 : 0));
+  }
+
+  function enumerateDaysBeforeDue(today, due, sets) {
+    const days = [];
+    const dueDay = startOfDay(due);
+    for (let cursor = new Date(startOfDay(today)); cursor < dueDay; cursor.setDate(cursor.getDate() + 1)) {
+      const date = startOfDay(cursor);
+      const dow = date.getDay();
+      days.push({
+        date,
+        dow,
+        tier: dayTier(dow, sets),
+        isBusy: sets.busy.has(dow),
+        isWork: sets.work.has(dow),
+        isClass: sets.class.has(dow),
+        isPreferred: sets.preferred.has(dow)
       });
+    }
+    return days;
+  }
 
-      if (bigger) {
-        const lastBigDay = bigger.days[bigger.days.length - 1];
-        const quickDay = plan.days[0];
-        if (lastBigDay && quickDay && quickDay.date >= lastBigDay.date) {
-          const quickName = DAY_NAMES[quickDay.dow];
-          return `This ${type === "quiz" ? "quiz" : type === "reading" ? "reading" : "assignment"} looks shorter. Finish it ${quickName} after your ${bigger.title} work is complete.`;
+  function poolWithMinTier(days, minTier) {
+    const filtered = days.filter((d) => d.tier >= minTier);
+    if (filtered.length) return filtered;
+    if (minTier > 0) return poolWithMinTier(days, minTier - 1);
+    return days;
+  }
+
+  function pickSessionDays(beforeDueDays, sessionCount) {
+    if (!beforeDueDays.length || sessionCount < 1) return [];
+
+    let pool = poolWithMinTier(beforeDueDays, 3);
+    if (pool.length < sessionCount) pool = poolWithMinTier(beforeDueDays, 2);
+    if (pool.length < sessionCount) pool = poolWithMinTier(beforeDueDays, 1);
+    if (pool.length < sessionCount) pool = beforeDueDays.slice();
+
+    pool = [...pool].sort((a, b) => a.date - b.date);
+
+    if (sessionCount === 1) {
+      const maxTier = Math.max(...pool.map((d) => d.tier));
+      const best = pool.filter((d) => d.tier === maxTier);
+      return [best[0]];
+    }
+
+    if (pool.length <= sessionCount) {
+      return pool.slice(0, sessionCount);
+    }
+
+    const picked = [];
+    for (let i = 0; i < sessionCount; i++) {
+      const idx = Math.round((i * (pool.length - 1)) / (sessionCount - 1));
+      picked.push(pool[idx]);
+    }
+
+    const seen = new Set();
+    return picked
+      .filter((d) => {
+        const key = d.date.getTime();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => a.date - b.date);
+  }
+
+  function dueDayIsBlocked(dueDow, sets) {
+    return sets.busy.has(dueDow) || sets.work.has(dueDow) || sets.class.has(dueDow);
+  }
+
+  function computeRisk(assignment, sessionDays, due, today) {
+    const hoursToDue = (due - today) / 3600000;
+    const est = Number(assignment.estimatedMinutes) || 60;
+    const firstDay = sessionDays[0];
+    const bufferDays = firstDay ? (due - firstDay.date) / 86400000 : 0;
+
+    if (hoursToDue < 0) return "High";
+    if (hoursToDue <= 24) return "High";
+    if (!firstDay || bufferDays < 1) return "High";
+    if (hoursToDue <= 72 && est > 45) return "High";
+    if (bufferDays < 2 && est > 90) return "High";
+    if (hoursToDue <= 168 || bufferDays < 3) return "Medium";
+    return "Low";
+  }
+
+  function buildWhyDetailed(assignment, sessionDays, dueDow, sets) {
+    const dueName = DAY_NAMES[dueDow];
+    const first = sessionDays[0];
+    const title = assignment.title || "This assignment";
+
+    if (!first) {
+      return `${title} is due ${dueName}, but there are no open study days before then on your schedule. Start the first piece you can today.`;
+    }
+
+    const startName = DAY_NAMES[first.dow];
+    const dueBlocked = dueDayIsBlocked(dueDow, sets);
+    const parts = [];
+
+    parts.push(`We selected ${startName} because your assignment is due ${dueName}`);
+
+    if (dueBlocked) {
+      parts.push(`and ${dueName} is already marked busy on your schedule`);
+    }
+
+    if (first.isPreferred) {
+      parts.push(`and ${startName} is one of your preferred study days`);
+    } else if (first.isWork || first.isClass) {
+      parts.push(`and it was the best available day before the deadline`);
+    } else if (first.isBusy) {
+      parts.push(`and it was the only open slot before the deadline`);
+    }
+
+    if (sessionDays.length > 1) {
+      const spread = sessionDays.map((d) => DAY_NAMES[d.dow]).join(", ");
+      parts.push(`Work is spread across ${spread} so you're not cramming on ${dueName}`);
+    }
+
+    parts.push("Starting earlier reduces deadline risk.");
+    return parts.join(". ").replace(/\.\s+and/g, ",") + ".";
+  }
+
+  function buildReasonShort(assignment, sessionDays, dueDow, sets) {
+    const dueName = DAY_NAMES[dueDow];
+    const first = sessionDays[0];
+    if (!first) return `${dueName} is the deadline and your schedule is tight before then.`;
+
+    const startName = DAY_NAMES[first.dow];
+    if (dueDayIsBlocked(dueDow, sets) && first.isPreferred) {
+      return `${dueName} is the deadline and ${startName} is one of your preferred study days.`;
+    }
+    if (dueDayIsBlocked(dueDow, sets)) {
+      return `${dueName} is the deadline and you're busy that day — start on ${startName}.`;
+    }
+    if (first.isPreferred) {
+      return `${dueName} is the deadline and ${startName} is one of your preferred study days.`;
+    }
+    if (first.isWork || first.isClass) {
+      return `Start on ${startName} — it's the best open day before ${dueName}.`;
+    }
+    return `Start on ${startName} to stay ahead of the ${dueName} deadline.`;
+  }
+
+  function buildAssignmentPlan(assignment, schedule, now = new Date()) {
+    const sets = getScheduleSets(schedule);
+    const due = startOfDay(new Date(assignment.dueAt));
+    const today = startOfDay(now);
+    const dueDow = due.getDay();
+    const dueName = DAY_NAMES[dueDow];
+    const est = Number(assignment.estimatedMinutes) || 60;
+    const type = classifyAssignmentType(assignment);
+    const sessionCount = sessionCountForAssignment(assignment);
+    const labels = sessionLabels(type, sessionCount);
+    const efforts = splitEffort(est, sessionCount);
+
+    let sessionDays;
+    let urgent = false;
+
+    if (due <= today) {
+      urgent = true;
+      sessionDays = [
+        {
+          date: new Date(today),
+          dow: today.getDay(),
+          tier: dayTier(today.getDay(), sets),
+          isBusy: sets.busy.has(today.getDay()),
+          isWork: sets.work.has(today.getDay()),
+          isClass: sets.class.has(today.getDay()),
+          isPreferred: sets.preferred.has(today.getDay())
         }
+      ];
+    } else {
+      const beforeDue = enumerateDaysBeforeDue(today, due, sets);
+      sessionDays = pickSessionDays(beforeDue, sessionCount);
+      if (!sessionDays.length && beforeDue.length) {
+        sessionDays = [beforeDue[beforeDue.length - 1]];
       }
-
-      const quickName = DAY_NAMES[plan.days[0].dow];
-      return `This looks quick. Plan about ${assignment.estimatedMinutes || 30} minutes on ${quickName}.`;
     }
 
-    if (plan.dueDayBusy && plan.days.length >= 2) {
-      return `Your ${assignment.title} is due ${dueName}, but ${dueName} is already busy. I recommend working on this ${dayNames} so you stay ahead of the deadline.`;
-    }
+    const multiSession = sessionDays.length > 1;
+    const sessions = sessionDays.map((day, i) => ({
+      dayName: DAY_NAMES[day.dow],
+      dayLabel: DAY_LABELS[day.dow],
+      dow: day.dow,
+      date: day.date,
+      tasks: [{ label: labels[i] || `Session ${i + 1}`, minutes: efforts[i] }]
+    }));
 
-    if (plan.days.length >= 2) {
-      return `Your ${assignment.title} is due ${dueName}. Spread the work across ${dayNames} so you're not cramming the night before.`;
-    }
+    const first = sessionDays[0];
+    const startName = first ? DAY_NAMES[first.dow] : "today";
+    const risk = computeRisk(assignment, sessionDays, due, today);
+    const reason = buildReasonShort(assignment, sessionDays, dueDow, sets);
+    const whyDetailed = buildWhyDetailed(assignment, sessionDays, dueDow, sets);
+    const goal = multiSession ? `Finish before ${dueName}.` : `Complete before ${dueName}.`;
 
-    if (plan.days.length === 1) {
-      return `Due ${dueName}. A good day to start is ${dayNames} — about ${assignment.estimatedMinutes || 60} minutes total.`;
-    }
+    const startHeadline = urgent
+      ? "START TODAY"
+      : `START ON ${startName.toUpperCase()}`;
 
-    return `Due ${dueName}. Your schedule is tight — look for any open evening before then.`;
+    const effortLabel = multiSession ? formatEffort(est) : formatEffort(efforts[0]);
+
+    const message = multiSession
+      ? `${startHeadline}. ${goal} ${formatEffort(est)} total.`
+      : `${startHeadline}. Due ${dueName}. ${effortLabel}. Risk: ${risk}.`;
+
+    return {
+      assignmentId: assignment.id,
+      assignment,
+      dueDow,
+      dueName,
+      dueDayBusy: dueDayIsBlocked(dueDow, sets),
+      urgent,
+      multiSession,
+      sessions,
+      days: sessionDays,
+      startDayLabels: sessionDays.map((d) => DAY_LABELS[d.dow]),
+      startDayNames: sessionDays.map((d) => DAY_NAMES[d.dow]),
+      startHeadline,
+      dueLabel: `Due ${dueName}`,
+      effortLabel,
+      risk,
+      reason,
+      whyDetailed,
+      goal,
+      message,
+      cardSummary: `Due ${dueName} · ${effortLabel} · ${risk} risk`
+    };
+  }
+
+  function computePriorityScore(assignment, schedule, now = new Date()) {
+    const sets = getScheduleSets(schedule);
+    const hours = (new Date(assignment.dueAt) - now) / 3600000;
+    const est = Number(assignment.estimatedMinutes) || 60;
+    const type = classifyAssignmentType(assignment);
+    const plan = buildAssignmentPlan(assignment, schedule, now);
+
+    let urgency;
+    if (hours < 0) urgency = 100;
+    else if (hours <= 24) urgency = 92;
+    else if (hours <= 72) urgency = 75 - Math.min(hours - 24, 48) * 0.4;
+    else if (hours <= 168) urgency = 55 - (hours - 72) * 0.08;
+    else urgency = Math.max(15, 40 - hours * 0.01);
+
+    const difficulty = difficultyWeight(type);
+    const effort = Math.min(30, est / 6);
+    const riskBoost = plan.risk === "High" ? 25 : plan.risk === "Medium" ? 10 : 0;
+
+    let schedulePenalty = 0;
+    if (!plan.days.length) schedulePenalty += 20;
+    if (plan.dueDayBusy && plan.days.length < 2 && est > 60) schedulePenalty += 15;
+
+    return urgency + difficulty + effort + riskBoost + schedulePenalty;
+  }
+
+  function priorityLevel(score) {
+    if (score >= 75) return "High";
+    if (score >= 45) return "Medium";
+    return "Low";
   }
 
   function buildStayAheadPlans(assignments, schedule, now = new Date()) {
@@ -323,26 +538,20 @@
       .filter((a) => a && !a.completed)
       .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
 
-    const entries = pending.map((assignment) => {
-      const plan = recommendWorkDays(assignment, schedule, now);
-      return {
-        assignmentId: assignment.id,
-        assignment,
-        days: plan.days,
-        dueDow: plan.dueDow,
-        dueDayBusy: plan.dueDayBusy,
-        urgent: plan.urgent,
-        startDayLabels: plan.days.map((d) => DAY_LABELS[d.dow]),
-        startDayNames: plan.days.map((d) => DAY_NAMES[d.dow]),
-        message: ""
-      };
+    const scored = pending.map((assignment) => {
+      const score = computePriorityScore(assignment, schedule, now);
+      const plan = buildAssignmentPlan(assignment, schedule, now);
+      plan.priorityScore = score;
+      plan.priorityLevel = priorityLevel(score);
+      return plan;
     });
 
-    entries.forEach((entry) => {
-      entry.message = buildPlanMessage(entry.assignment, entry, entries);
+    scored.sort((a, b) => b.priorityScore - a.priorityScore);
+    scored.forEach((plan, index) => {
+      plan.priorityRank = index + 1;
     });
 
-    return entries;
+    return scored;
   }
 
   function buildHowToStartLocal(assignment) {
@@ -422,9 +631,9 @@
           dueAt: p.assignment.dueAt,
           estimatedMinutes: p.assignment.estimatedMinutes,
           startDayNames: p.startDayNames,
-          dueDayName: DAY_NAMES[p.dueDow],
+          dueDayName: p.dueName,
           dueDayBusy: p.dueDayBusy,
-          localMessage: p.message
+          localMessage: p.reason
         }))
       });
 
@@ -432,7 +641,7 @@
         const byId = new Map(data.plans.map((p) => [p.assignmentId, p.message]));
         return plans.map((p) => ({
           ...p,
-          message: byId.get(p.assignmentId) || p.message,
+          reason: byId.get(p.assignmentId) || p.reason,
           source: byId.has(p.assignmentId) ? "ai" : p.source || "local"
         }));
       }
@@ -454,9 +663,12 @@
     getScheduleFromProfile,
     saveScheduleToProfile,
     buildStayAheadPlans,
+    buildAssignmentPlan,
     buildHowToStartLocal,
     fetchHowToStart,
     polishPlansWithAi,
-    classifyAssignmentType
+    classifyAssignmentType,
+    formatEffort,
+    priorityLevel
   };
 })();
