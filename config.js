@@ -13,5 +13,5 @@ window.APP_CONFIG = {
   // Optional 3D mascot URL (Supabase Storage public link). Leave empty = PNG only.
   QUIET_GLB_URL: "",
   // Bump when deploying — should match sw.js CACHE suffix (quiet-focus-v32 → "32")
-  APP_CACHE_VERSION: "39"
+  APP_CACHE_VERSION: "40"
 };
