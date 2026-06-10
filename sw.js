@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v42';
+const CACHE = 'quiet-focus-v43';
 
 const ASSETS = [
   './live-demo.html',
@@ -49,6 +49,7 @@ const NETWORK_FIRST = new Set([
   'supabase-sessions.js',
   'supabase-assignments.js',
   'assignment-scan.js',
+  'stay-ahead-planning.js',
   'quiet-reminder-copy.js',
   'mascot-hybrid.js',
   'mascot-hybrid.css',
