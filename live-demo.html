@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js"></script>
+  <script src="config.js?v=43"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js"></script>
+  <script src="stay-ahead-planning.js?v=2"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -2088,6 +2088,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               </div>
               <div class="stay-ahead-plans" id="stay-ahead-plans"></div>
             </div>
+            <p class="assign-hint" id="founder-hint" hidden style="margin-top:12px"></p>
 
             <form class="assign-form" id="assign-form">
               <input class="auth-input" id="assign-title" type="text" maxlength="80" placeholder="Assignment name" required>
@@ -2477,9 +2478,13 @@ function showAppScreen() {
 
 function updateUserBar() {
   if (!currentUser) return;
-  const email = currentUser.email || '';
+  const email = resolveUserEmail(currentUser);
   const name  = currentUser.user_metadata?.name || email.split('@')[0] || '?';
-  document.getElementById('ub-email').textContent = email;
+  const emailEl = document.getElementById('ub-email');
+  emailEl.textContent = email;
+  emailEl.title = isFounderUser()
+    ? 'Founder account — Stay Ahead Planning enabled'
+    : `Signed in as ${email}`;
   document.getElementById('ub-avatar').textContent = name.charAt(0).toUpperCase();
 }
 
@@ -2909,9 +2914,28 @@ function getAssignmentById(id) {
   return (profile.assignments || []).find(a => a.id === id);
 }
 
+function resolveUserEmail(user) {
+  if (window.StayAheadPlanning?.resolveUserEmail) {
+    return window.StayAheadPlanning.resolveUserEmail(user);
+  }
+  return user?.email?.trim() || user?.user_metadata?.email?.trim() || '';
+}
+
 function isFounderUser() {
-  const email = currentUser?.email || '';
-  return window.StayAheadPlanning?.isFounder?.(email) || false;
+  if (window.StayAheadPlanning?.isFounder) {
+    return window.StayAheadPlanning.isFounder(currentUser);
+  }
+
+  const cfg = window.APP_CONFIG || {};
+  const emails = (cfg.FOUNDER_EMAILS || []).map(e => String(e).toLowerCase().trim());
+  const email = resolveUserEmail(currentUser).toLowerCase();
+  if (email && emails.includes(email)) return true;
+  if (currentUser?.id && (cfg.FOUNDER_USER_IDS || []).includes(currentUser.id)) return true;
+  try {
+    return localStorage.getItem('qf-founder') === '1';
+  } catch {
+    return false;
+  }
 }
 
 function getStayAheadSchedule() {
@@ -2993,6 +3017,7 @@ async function refreshStayAheadPlans(useAi = false) {
     let plans = window.StayAheadPlanning.buildStayAheadPlans(profile.assignments || [], schedule);
     if (useAi && currentUser) {
       plans = await window.StayAheadPlanning.polishPlansWithAi(plans, schedule);
+      toast('Plans updated');
     }
     stayAheadPlans = plans;
   } catch (err) {
@@ -3001,6 +3026,7 @@ async function refreshStayAheadPlans(useAi = false) {
       profile.assignments || [],
       getStayAheadSchedule()
     );
+    if (useAi) toast(err.message || 'AI planning unavailable — showing local plans', 4500);
   } finally {
     stayAheadBusy = false;
   }
@@ -3045,7 +3071,18 @@ function getStayAheadPlanForAssignment(assignmentId) {
 function toggleFounderFeatures() {
   const founder = isFounderUser();
   const block = $('stay-ahead-founder');
+  const hint = $('founder-hint');
   if (block) block.hidden = !founder;
+
+  if (hint) {
+    if (currentUser && !founder) {
+      hint.hidden = false;
+      hint.textContent =
+        `Stay Ahead Planning is founder-only. You're signed in as ${resolveUserEmail(currentUser) || 'unknown'}. Sign in with quietfocusai@gmail.com to enable it.`;
+    } else {
+      hint.hidden = true;
+    }
+  }
 
   if (founder) {
     renderScheduleEditor();
