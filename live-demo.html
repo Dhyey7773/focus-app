@@ -18,8 +18,8 @@
     gtag('js', new Date());
     gtag('config', 'G-R9S0676XRS');
   </script>
-  <title>Quiet Focus</title>
-  <meta name="description" content="A distraction-aware focus timer. Notice when you drift, come back gently.">
+  <title>Quiet Focus — Never miss an assignment again</title>
+  <meta name="description" content="Upload your coursework. Quiet finds deadlines, helps you prioritize, and reminds you before things are due.">
   <meta name="theme-color" content="#07080a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1561,7 +1561,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 <body>
 
 <div class="install-banner" id="install-banner" hidden>
-  <p id="install-copy">Install Quiet Focus on your home screen for quick access during study sessions.</p>
+  <p id="install-copy">Add Quiet to your home screen for deadline reminders.</p>
   <div class="install-banner-actions">
     <button type="button" class="install-primary" id="install-accept">Install</button>
     <button type="button" class="install-secondary" id="install-dismiss">Not now</button>
@@ -1615,7 +1615,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
         <input class="auth-input" id="si-password" type="password" placeholder="••••••••" required autocomplete="current-password">
       </div>
       <button class="auth-submit" type="submit" id="btn-signin">Sign in</button>
-      <p class="auth-footer">Focus sessions saved securely to your account.<br>No spam. Unsubscribe anytime.</p>
+      <p class="auth-footer">Assignments and sessions save to your account.<br>No spam. Unsubscribe anytime.</p>
     </form>
 
     <!-- SIGN UP FORM -->
@@ -1637,8 +1637,8 @@ button:disabled { cursor:not-allowed; opacity:.42; }
     </form>
 
     <div class="auth-skip-wrap">
-      <button type="button" class="auth-skip" id="btn-guest-demo" onclick="enterGuestMode()">Continue without account</button>
-      <p class="auth-skip-note">Try the timer now. Sessions save on this device only.</p>
+      <button type="button" class="auth-skip" id="btn-guest-demo" onclick="enterGuestMode()">Try without signing in</button>
+      <p class="auth-skip-note">Everything saves on this device.</p>
     </div>
   </div>
 </div>
@@ -1664,13 +1664,13 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   <main class="showcase" style="padding-top:80px;">
     <!-- sidebar -->
     <section class="intro" aria-label="App introduction">
-      <p class="eyebrow">Quiet Focus</p>
-      <h1>Focus, with a calmer coach.</h1>
-      <p class="intro-copy">An AI focus coach and timer: run one session, notice when you drift, get a short recap after — no lecture, just what happened.</p>
+      <p class="eyebrow">For students</p>
+      <h1>Never miss an assignment again.</h1>
+      <p class="intro-copy">Upload your coursework. Quiet finds deadlines, helps you prioritize, and reminds you before things are due.</p>
       <div class="feature-list" aria-label="Features">
-        <span>Focus timer</span>
-        <span>Drift counter</span>
-        <span>Coach recap</span>
+        <span>Upload coursework</span>
+        <span>Find deadlines</span>
+        <span>Get reminders</span>
       </div>
       <div class="user-stats" id="user-stats" style="display:none">
         <p class="us-label">Your progress</p>
@@ -1718,11 +1718,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               <p class="home-name" id="home-display-name" hidden>Your Name</p>
 
               <div class="home-mascot-stage mascot-hybrid" id="home-mascot-hybrid">
-                <div class="quiet-mascot quiet-mascot--hero" id="quiet-mascot" data-mood="idle" aria-label="Quiet, your focus companion">
+                <div class="quiet-mascot quiet-mascot--hero" id="quiet-mascot" data-mood="idle" aria-label="Quiet, your study companion">
                   <div class="quiet-mascot-glow" aria-hidden="true"></div>
                   <span class="quiet-badge" aria-hidden="true"></span>
                   <div class="quiet-art-wrap mascot-hybrid-stage">
-                    <img class="quiet-art quiet-art--hero mascot-hybrid-png" src="icons/quiet-hero.png?v=7" width="360" height="400" alt="Quiet, your focus companion">
+                    <img class="quiet-art quiet-art--hero mascot-hybrid-png" src="icons/quiet-hero.png?v=7" width="360" height="400" alt="Quiet, your study companion">
                     <model-viewer
                       class="mascot-hybrid-3d"
                       alt=""
@@ -1741,7 +1741,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
               <div class="home-content">
                 <h2 class="home-quiet-title">Hi, I'm Quiet.</h2>
-                <p class="home-quiet-copy" id="quiet-intro">Never miss an assignment again. Gentle reminders, check-ins, and focus sessions that help you stay on track.</p>
+                <p class="home-quiet-copy" id="quiet-intro">Upload your coursework and I'll help you stay ahead — deadlines, priorities, and reminders.</p>
 
                 <div class="home-summary" id="home-summary" aria-live="polite">
                   <p id="home-tasks-line" hidden>No tasks due soon.</p>
@@ -1749,7 +1749,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 </div>
 
                 <div class="home-suggested" id="home-suggested" hidden>
-                  <p class="meta-label">Suggested next</p>
+                  <p class="meta-label">Work on first</p>
                   <p class="home-suggested-title" id="home-suggested-title"></p>
                   <p class="home-suggested-copy" id="home-suggested-copy"></p>
                   <button type="button" class="secondary home-suggested-btn" id="home-suggested-btn">Start focus block</button>
@@ -1766,7 +1766,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
                 </div>
 
-                <p class="home-quiet-motto">Distraction is not failure. <strong>Return is the practice.</strong></p>
+                <p class="home-quiet-motto">Stay ahead of deadlines <strong>before they become emergencies.</strong></p>
               </div>
             </div>
           </section>
@@ -1776,7 +1776,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             <div class="focus-setup-header">
               <p class="meta-label">Focus</p>
               <p class="focus-setup-title">Ready to focus?</p>
-              <p class="focus-setup-sub">Pick your task and duration. Quiet will check in during your session.</p>
+              <p class="focus-setup-sub">Pick what you're working on and how long. Quiet checks in gently during your session.</p>
             </div>
             <form class="session-builder" id="session-form">
               <label class="meta-label" for="username">Your name</label>
@@ -1872,14 +1872,14 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             <div class="assign-header">
               <p class="meta-label">Deadlines</p>
               <p class="assign-title">Assignments</p>
-              <p class="assign-sub">Add what’s due. Start a focus session when it’s time.</p>
-              <p class="assign-hint">In-app popups when the app is open. Enable phone reminders below for alerts when it is closed.</p>
+              <p class="assign-sub">Upload coursework or add deadlines manually. Quiet shows what to work on first.</p>
+              <p class="assign-hint">Reminders while you're in the app. Enable phone alerts below for when it's closed.</p>
             </div>
 
             <div class="push-card" id="push-card">
               <div class="push-card-copy">
                 <strong>Phone reminders</strong>
-                <p id="push-status">Notify at 24h, 6h, and 1h before due — even when Quiet Focus is closed.</p>
+                <p id="push-status">Reminders at 24h, 6h, and 1h before each deadline — even when Quiet is closed.</p>
               </div>
               <div class="push-card-actions">
                 <button type="button" class="secondary" id="push-enable-btn">Enable</button>
@@ -1901,8 +1901,8 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             </form>
 
             <div class="assign-scan" id="assign-scan">
-              <p class="assign-scan-title">Scan syllabus or assignment</p>
-              <p class="assign-scan-sub">PDF, photo, or .txt — Quiet pulls due dates only (saves AI tokens).</p>
+              <p class="assign-scan-title">Upload coursework</p>
+              <p class="assign-scan-sub">Drop a PDF, photo, or screenshot from Canvas or email.</p>
               <div class="assign-scan-actions">
                 <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
                   PDF
@@ -1918,20 +1918,20 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 </label>
               </div>
               <div class="assign-scan-toolbar">
-                <p class="assign-scan-status" id="scan-status">Works offline with smart date parsing. Sign in for AI extraction.</p>
+                <p class="assign-scan-status" id="scan-status">Choose a file — Quiet finds due dates for you.</p>
                 <button type="button" class="assign-scan-cancel" id="scan-cancel-btn" hidden>Cancel</button>
               </div>
               <div class="assign-scan-preview" id="scan-preview">
-                <label for="scan-markdown">Extracted notes (markdown)</label>
-                <textarea class="assign-scan-md" id="scan-markdown" readonly aria-label="Extracted markdown"></textarea>
-                <label>Found assignments</label>
+                <label for="scan-markdown">Preview</label>
+                <textarea class="assign-scan-md" id="scan-markdown" readonly aria-label="File preview"></textarea>
+                <label>Deadlines found</label>
                 <div class="assign-scan-results" id="scan-results"></div>
               </div>
             </div>
 
             <p class="assign-section-label">Upcoming</p>
             <div class="assign-list" id="assign-pending-list">
-              <div class="empty-state">No assignments yet. Add one above.</div>
+              <div class="empty-state">No assignments yet. Upload coursework or add one above.</div>
             </div>
 
             <p class="assign-section-label">Completed</p>
@@ -3167,7 +3167,7 @@ function renderPushCard() {
   if (isGuestMode() && !currentUser) {
     card.classList.remove('is-enabled');
     testBtn.classList.add('hidden');
-    status.textContent = 'Sign in to get phone reminders when the app is closed. In-app reminders still work in demo mode.';
+    status.textContent = 'Sign in for phone reminders when the app is closed. In-app reminders still work here.';
     enableBtn.textContent = 'Sign in';
     enableBtn.disabled = false;
     enableBtn.onclick = () => exitGuestMode();
@@ -3194,11 +3194,11 @@ function renderPushCard() {
   if (ios && !PushReminders.isStandalone()) {
     status.textContent = 'On iPhone: Share → Add to Home Screen, open the installed app, then enable reminders here.';
   } else if (enabled) {
-    status.textContent = 'Phone reminders on. Alerts fire at 24h, 6h, and 1h before due (requires Supabase cron — see below).';
+    status.textContent = 'Reminders on — 24h, 6h, and 1h before each deadline.';
   } else if (permission === 'denied') {
     status.textContent = 'Notifications blocked. Allow them in browser or phone settings, then tap Enable again.';
   } else {
-    status.textContent = 'In-app popups work while the app is open. Phone alerts need Enable + a Supabase cron job on send-reminders.';
+    status.textContent = 'Get alerts on your phone before things are due — even when the app is closed.';
   }
 
   enableBtn.textContent = enabled ? 'Turn off' : 'Enable';
@@ -3338,14 +3338,14 @@ function renderHome() {
   const last = profile.history[0];
   if (last) {
     intro.textContent = last.distractions
-      ? "Welcome back. I'll help you notice drift gently and return without pressure."
-      : "Welcome back. Ready for another calm focus block together?";
+      ? "Welcome back. Pick up where you left off — I'll help you stay on what matters."
+      : "Welcome back. Ready to tackle your next deadline?";
     setQuietMood(getSuggestedNextAssignment() ? 'encouraging' : 'idle');
   } else if (getSuggestedNextAssignment()) {
-    intro.textContent = "I'll help you focus on what matters most first — one block at a time.";
+    intro.textContent = "Here's what to work on first. Start a focus block when you're ready.";
     setQuietMood('encouraging');
   } else {
-    intro.textContent = "I'll help you stay focused through gentle reminders, check-ins, and session summaries.";
+    intro.textContent = "Upload a syllabus or assignment and I'll find your deadlines.";
     setQuietMood('idle');
   }
 
@@ -3822,13 +3822,13 @@ renderAssignments();
 let lastScanResults = [];
 let scanBusy = false;
 let scanAbortController = null;
-const SCAN_IDLE_STATUS = 'Works offline with smart date parsing. Sign in for AI extraction.';
+const SCAN_IDLE_STATUS = 'Choose a file — Quiet finds due dates for you.';
 
 function setScanCancelVisible(show, mode) {
   const btn = $('scan-cancel-btn');
   if (!btn) return;
   btn.hidden = !show;
-  btn.textContent = mode === 'clear' ? 'Clear scan' : 'Cancel';
+  btn.textContent = mode === 'clear' ? 'Clear upload' : 'Cancel';
 }
 
 function resetAssignmentScan() {
@@ -3854,13 +3854,13 @@ function cancelAssignmentScan() {
     $('scan-markdown').value = '';
     $('scan-results').innerHTML = '';
     lastScanResults = [];
-    $('scan-status').textContent = 'Scan cancelled.';
+    $('scan-status').textContent = 'Upload cancelled.';
     setScanCancelVisible(false);
-    toast('Scan cancelled');
+    toast('Upload cancelled');
     return;
   }
   resetAssignmentScan();
-  toast('Scan cleared');
+  toast('Upload cleared');
 }
 
 function setScanBusy(busy) {
@@ -3873,8 +3873,8 @@ function setScanBusy(busy) {
 
 function scanStatusMessage(source, aiLimitMessage) {
   if (aiLimitMessage) return aiLimitMessage;
-  if (source === 'ai') return 'AI extracted key dates. Review and add below.';
-  return 'Dates found locally. Review and add below.';
+  if (source === 'ai') return 'Found more deadlines. Review and add below.';
+  return 'Review what Quiet found and add the ones you need.';
 }
 
 function renderScanResults(assignments, source, aiLimitMessage) {
@@ -3884,7 +3884,7 @@ function renderScanResults(assignments, source, aiLimitMessage) {
   const status = $('scan-status');
   resultsEl.innerHTML = '';
   if (!lastScanResults.length) {
-    resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No due dates found. Try a cropped photo of just the assignment lines.</p>';
+    resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No deadlines found. Try a clearer photo of just the assignment section.</p>';
   } else {
     if (lastScanResults.length > 1) {
       const addAll = document.createElement('button');
@@ -3939,7 +3939,7 @@ async function handleAssignmentScan(file) {
   const status = $('scan-status');
   const preview = $('scan-preview');
   if (!window.AssignmentScan?.scanFile) {
-    toast('Scan module not loaded');
+    toast('Upload module not loaded');
     return;
   }
   if (scanBusy) return;
@@ -3948,7 +3948,7 @@ async function handleAssignmentScan(file) {
   const signal = scanAbortController.signal;
   setScanBusy(true);
   setScanCancelVisible(true, 'cancel');
-  status.textContent = 'Starting scan…';
+  status.textContent = 'Reading your file…';
   preview.classList.remove('is-visible');
   let showedLocal = false;
   try {
@@ -3963,17 +3963,17 @@ async function handleAssignmentScan(file) {
         renderScanResults(partial.assignments, partial.source, partial.aiLimitMessage);
         if (partial.source === 'local' && !partial.aiLimitMessage) {
           showedLocal = true;
-          status.textContent = 'Checking AI (optional)…';
+          status.textContent = 'Looking for more deadlines…';
         }
       }
     });
     if (signal.aborted) return;
     $('scan-markdown').value = result.markdown || '';
     renderScanResults(result.assignments, result.source, result.aiLimitMessage);
-    toast(result.source === 'ai' && showedLocal ? 'AI updated your dates' : 'Scan complete');
+    toast(result.source === 'ai' && showedLocal ? 'Updated with more deadlines' : 'Deadlines found');
   } catch (err) {
     if (err.name === 'AbortError' || signal.aborted) return;
-    status.textContent = err.message || 'Scan failed';
+    status.textContent = err.message || 'Could not read that file';
     setScanCancelVisible(true, 'clear');
     toast(status.textContent, 4500);
   } finally {
@@ -4077,7 +4077,7 @@ try {
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredPrompt = event;
-    showBanner('Install Quiet Focus on your home screen for quick access during study sessions.');
+    showBanner('Add Quiet to your home screen for deadline reminders.');
   });
 
   accept.addEventListener('click', async () => {
