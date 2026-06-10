@@ -103,11 +103,74 @@
     return "default";
   }
 
-  function isFounder(userEmail) {
+  function parseFounderEmails(cfg) {
+    const raw = cfg?.FOUNDER_EMAILS ?? cfg?.founderEmails ?? [];
+    if (Array.isArray(raw)) {
+      return raw.map((e) => String(e).toLowerCase().trim()).filter(Boolean);
+    }
+    if (typeof raw === "string") {
+      return raw.split(",").map((e) => e.toLowerCase().trim()).filter(Boolean);
+    }
+    return [];
+  }
+
+  function parseFounderUserIds(cfg) {
+    const raw = cfg?.FOUNDER_USER_IDS ?? [];
+    if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+    if (typeof raw === "string") return raw.split(",").map((s) => s.trim()).filter(Boolean);
+    return [];
+  }
+
+  function resolveUserEmail(user) {
+    if (!user) return "";
+    const direct = user.email?.trim();
+    if (direct) return direct;
+    const meta = user.user_metadata?.email?.trim();
+    if (meta) return meta;
+    for (const identity of user.identities || []) {
+      const fromIdentity = identity.identity_data?.email?.trim();
+      if (fromIdentity) return fromIdentity;
+    }
+    return "";
+  }
+
+  function isFounder(userOrEmail) {
     const cfg = window.APP_CONFIG || {};
-    const emails = (cfg.FOUNDER_EMAILS || []).map((e) => String(e).toLowerCase().trim());
-    if (userEmail && emails.includes(String(userEmail).toLowerCase().trim())) return true;
-    return localStorage.getItem("qf-founder") === "1";
+    const emails = parseFounderEmails(cfg);
+    const userIds = parseFounderUserIds(cfg);
+
+    let email = "";
+    let userId = "";
+
+    if (userOrEmail && typeof userOrEmail === "object") {
+      email = resolveUserEmail(userOrEmail);
+      userId = userOrEmail.id || "";
+    } else if (userOrEmail) {
+      email = String(userOrEmail).trim();
+    }
+
+    if (userId && userIds.includes(userId)) return true;
+
+    if (email && emails.includes(email.toLowerCase())) {
+      if (userId) {
+        try {
+          sessionStorage.setItem(`qf-founder-${userId}`, "1");
+        } catch (_) {}
+      }
+      return true;
+    }
+
+    if (userId) {
+      try {
+        if (sessionStorage.getItem(`qf-founder-${userId}`) === "1") return true;
+      } catch (_) {}
+    }
+
+    try {
+      return localStorage.getItem("qf-founder") === "1";
+    } catch (_) {
+      return false;
+    }
   }
 
   function normalizeDayList(list) {
@@ -297,8 +360,22 @@
     if (!session) throw new Error("Sign in to use AI planning.");
 
     const { data, error } = await supabase.functions.invoke("stay-ahead-plan", { body });
-    if (error) throw new Error(error.message || "Planning request failed.");
-    if (data?.error) throw new Error(data.error);
+
+    if (error) {
+      let message = error.message || "Planning request failed.";
+      try {
+        const payload = await error.context?.json?.();
+        if (payload?.error) message = payload.error;
+        if (payload?.hint) message += ` ${payload.hint}`;
+      } catch (_) {}
+      throw new Error(message);
+    }
+
+    if (data?.error) {
+      const hint = data.hint ? ` ${data.hint}` : "";
+      throw new Error(`${data.error}${hint}`);
+    }
+
     return data;
   }
 
@@ -363,6 +440,8 @@
     DAY_NAMES,
     DEFAULT_SCHEDULE,
     isFounder,
+    resolveUserEmail,
+    parseFounderEmails,
     normalizeSchedule,
     getScheduleFromProfile,
     saveScheduleToProfile,
