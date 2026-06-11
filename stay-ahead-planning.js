@@ -794,25 +794,17 @@
   function categorizeWeeklyPlans(plans, now = new Date()) {
     const ahead = plans.filter((p) => isAheadOfSchedule(p, now));
     const aheadIds = new Set(ahead.map((p) => p.assignmentId));
-
     const weekly = plans.filter((p) => isDueThisWeek(p.assignment.dueAt, now));
-    const pool = (weekly.length ? weekly : plans).filter((p) => !aheadIds.has(p.assignmentId));
 
-    const doFirst = pool.slice(0, 2);
-    const doNext = pool.slice(2, 4);
-    const shownIds = new Set([
-      ...ahead.map((p) => p.assignmentId),
-      ...doFirst.map((p) => p.assignmentId),
-      ...doNext.map((p) => p.assignmentId)
-    ]);
-    const canWait = plans.filter((p) => !shownIds.has(p.assignmentId)).slice(0, 3);
+    // Rank #1 = do first (one only), #2–#3 = next up, #4+ = can wait
+    const actionable = plans.filter((p) => !aheadIds.has(p.assignmentId));
 
     return {
       weekly,
       ahead,
-      doFirst,
-      doNext,
-      canWait,
+      doFirst: actionable.slice(0, 1),
+      doNext: actionable.slice(1, 3),
+      canWait: actionable.slice(3),
       summary: buildWeeklySummary(plans, null, now)
     };
   }
