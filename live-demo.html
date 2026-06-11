@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=50"></script>
+  <script src="config.js?v=51"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js?v=9"></script>
+  <script src="stay-ahead-planning.js?v=10"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -2501,8 +2501,8 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             <div class="week-founder-block" id="week-founder-block" hidden>
               <header class="week-header">
                 <p class="meta-label">This week</p>
-                <h2 class="week-title">Work on first</h2>
-                <p class="week-sub">Quiet picks what matters most — by deadline, effort, and your schedule.</p>
+                <h2 class="week-title">What should I work on?</h2>
+                <p class="week-sub">One clear pick for today — then what’s next, and what can wait.</p>
               </header>
 
               <div class="week-summary" id="week-summary" hidden aria-live="polite">
@@ -2516,11 +2516,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div class="week-rec-list" id="week-ahead-list"></div>
                 </section>
                 <section class="week-category" id="week-do-first">
-                  <h3 class="week-cat-label do-first">Do first</h3>
+                  <h3 class="week-cat-label do-first">Work on first today</h3>
                   <div class="week-rec-list" id="week-do-first-list"></div>
                 </section>
                 <section class="week-category" id="week-do-next">
-                  <h3 class="week-cat-label do-next">Do next</h3>
+                  <h3 class="week-cat-label do-next">Next up</h3>
                   <div class="week-rec-list" id="week-do-next-list"></div>
                 </section>
                 <section class="week-category" id="week-can-wait">
@@ -3718,9 +3718,9 @@ function renderWeeklyPlanner() {
 
   const buckets = window.StayAheadPlanning?.categorizeWeeklyPlans?.(stayAheadPlans) || {
     ahead: [],
-    doFirst: stayAheadPlans.slice(0, 2),
-    doNext: stayAheadPlans.slice(2, 4),
-    canWait: stayAheadPlans.slice(4, 7),
+    doFirst: stayAheadPlans.slice(0, 1),
+    doNext: stayAheadPlans.slice(1, 3),
+    canWait: stayAheadPlans.slice(3),
     summary: {
       assignmentCount: stayAheadPlans.length,
       effortLabel: '0 hours',
