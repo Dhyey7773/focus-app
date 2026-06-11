@@ -17,5 +17,5 @@ window.APP_CONFIG = {
   // Optional: add your Supabase user UUID if email matching fails (Dashboard → Authentication → Users)
   FOUNDER_USER_IDS: [],
   // Bump when deploying — should match sw.js CACHE suffix (quiet-focus-v32 → "32")
-  APP_CACHE_VERSION: "49"
+  APP_CACHE_VERSION: "50"
 };
