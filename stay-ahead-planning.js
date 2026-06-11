@@ -22,13 +22,23 @@
   const HOW_TO_START_TEMPLATES = {
     essay: {
       steps: [
-        "Read the prompt.",
-        "Choose a topic.",
-        "Find one source.",
-        "Create a rough outline."
+        "Read rubric",
+        "Create thesis",
+        "Build outline",
+        "Gather one source"
       ],
       firstTask:
-        "Spend 15 minutes finding one source and writing down three key points."
+        "Spend 15 minutes reading the rubric and writing a one-sentence thesis idea."
+    },
+    discussion: {
+      steps: [
+        "Read prompt",
+        "Pick one argument",
+        "Write 3 bullet points",
+        "Draft your post"
+      ],
+      firstTask:
+        "Spend 15 minutes reading the prompt and writing three bullets for your argument."
     },
     project: {
       steps: [
@@ -42,13 +52,13 @@
     },
     quiz: {
       steps: [
-        "Skim your notes.",
-        "List the main topics.",
-        "Do three practice questions.",
-        "Review what you missed."
+        "Review notes",
+        "Complete practice questions",
+        "Identify weak topics",
+        "Quick recap"
       ],
       firstTask:
-        "Spend 15 minutes listing the three topics most likely to appear."
+        "Spend 15 minutes reviewing notes and listing three topics to practice."
     },
     homework: {
       steps: [
@@ -106,6 +116,7 @@
 
   function classifyAssignmentType(assignment) {
     const text = `${assignment.title || ""} ${assignment.course || ""}`.toLowerCase();
+    if (/discussion|forum|db\b|reply post|weekly post/.test(text)) return "discussion";
     if (/essay|paper|thesis|dissertation|\d+\s*word|report|writing/.test(text)) return "essay";
     if (/project|capstone|portfolio|presentation/.test(text)) return "project";
     if (/lab\b|practicum|experiment/.test(text)) return "lab";
@@ -122,9 +133,118 @@
       lab: 28,
       reading: 18,
       homework: 15,
+      discussion: 12,
       quiz: 10,
       default: 15
     }[type] || 15;
+  }
+
+  function formatDayRange(dayIndices) {
+    const days = normalizeDayList(dayIndices);
+    if (!days.length) return "";
+    if (days.length === 1) return DAY_LABELS[days[0]];
+    const labels = days.map((d) => DAY_LABELS[d]);
+    if (days.length === 2) return `${labels[0]}–${labels[1]}`;
+    return `${labels[0]}–${labels[labels.length - 1]}`;
+  }
+
+  function compareRankedAssignments(a, b, now = new Date()) {
+    if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+    const dueA = new Date(a.assignment.dueAt);
+    const dueB = new Date(b.assignment.dueAt);
+    if (dueA !== dueB) return dueA - dueB;
+    const estA = Number(a.assignment.estimatedMinutes) || 60;
+    const estB = Number(b.assignment.estimatedMinutes) || 60;
+    if (estB !== estA) return estB - estA;
+    const typeA = classifyAssignmentType(a.assignment);
+    const typeB = classifyAssignmentType(b.assignment);
+    if (difficultyWeight(typeB) !== difficultyWeight(typeA)) {
+      return difficultyWeight(typeB) - difficultyWeight(typeA);
+    }
+    const sessionsA = sessionCountForAssignment(a.assignment);
+    const sessionsB = sessionCountForAssignment(b.assignment);
+    if (sessionsB !== sessionsA) return sessionsB - sessionsA;
+    return (a.assignment.title || "").localeCompare(b.assignment.title || "");
+  }
+
+  function assignRelativePriorityLevels(plans) {
+    if (!plans.length) return;
+    const topScore = plans[0].priorityScore;
+    plans.forEach((plan, index) => {
+      const gap = topScore - plan.priorityScore;
+      if (index === 0) plan.priorityLevel = "High";
+      else if (index === 1 && gap <= 15) plan.priorityLevel = "High";
+      else if (index <= 3 && gap <= 28) plan.priorityLevel = "Medium";
+      else plan.priorityLevel = "Low";
+    });
+  }
+
+  function buildTopRankReason(plan) {
+    const parts = [];
+    if (plan.multiSession) parts.push("requires multiple sessions");
+    const hours = (new Date(plan.assignment.dueAt) - Date.now()) / 3600000;
+    const days = Math.max(0, Math.ceil(hours / 24));
+    if (days <= 1) parts.push("is due very soon");
+    else if (days <= 4) parts.push("is due soon");
+    if (plan.risk === "High") parts.push("has higher deadline risk");
+    if (!parts.length) return "Top priority based on deadline, effort, and your schedule.";
+    const text = parts.join(" and ");
+    return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+  }
+
+  function buildRankReason(plan, prevPlan) {
+    if (!prevPlan) return "";
+    const planDue = new Date(plan.assignment.dueAt);
+    const prevDue = new Date(prevPlan.assignment.dueAt);
+    const planEst = Number(plan.assignment.estimatedMinutes) || 60;
+    const prevEst = Number(prevPlan.assignment.estimatedMinutes) || 60;
+    const planSessions = plan.multiSession ? plan.sessions?.length || 2 : 1;
+    const prevSessions = prevPlan.multiSession ? prevPlan.sessions?.length || 2 : 1;
+
+    if (planSessions > 1 && prevSessions === 1) {
+      return "Requires multiple sessions and is due sooner.";
+    }
+    if (planDue < prevDue && planEst >= prevEst) {
+      return "Due sooner and needs more time.";
+    }
+    if (planDue < prevDue) return "Due sooner than the assignment below.";
+    if (planEst >= prevEst + 45 && planSessions > prevSessions) {
+      return "Higher effort and needs more sessions.";
+    }
+    if (planEst <= prevEst - 30 && prevSessions > 1 && planSessions === 1) {
+      return "Lower effort and can be completed in one sitting.";
+    }
+    if (plan.risk === "High" && prevPlan.risk !== "High") {
+      return "Higher deadline risk on your schedule.";
+    }
+    if (planEst > prevEst + 20) return "Requires more focused time.";
+    return "Ranked above based on deadline, effort, and your schedule.";
+  }
+
+  function buildStartReason(assignment, sessionDays, dueDow, sets, multiSession) {
+    const first = sessionDays[0];
+    if (!first) return "Your schedule is tight before the deadline.";
+    const startName = DAY_NAMES[first.dow];
+    const dueName = DAY_NAMES[dueDow];
+    const parts = [];
+    const workRange = formatDayRange([...sets.work]);
+    const busyRange = formatDayRange([...sets.busy]);
+
+    if (workRange) parts.push(`you work ${workRange}`);
+    if (busyRange) parts.push(`${busyRange} is marked busy`);
+    if (multiSession) parts.push("this assignment needs multiple sessions");
+
+    if (first.isPreferred) {
+      parts.push(`${startName} is a preferred study day`);
+    } else if (dueDayIsBlocked(dueDow, sets)) {
+      parts.push(`${dueName} is busy on your schedule`);
+    }
+
+    if (!parts.length) {
+      return `${startName} is the best open day before ${dueName}.`;
+    }
+    const joined = parts.join(", ").replace(/, ([^,]*)$/, ", and $1");
+    return joined.charAt(0).toUpperCase() + joined.slice(1) + ".";
   }
 
   function parseFounderEmails(cfg) {
@@ -502,8 +622,9 @@
     const goal = multiSession ? `Finish before ${dueName}.` : `Complete before ${dueName}.`;
 
     const startHeadline = urgent
-      ? "START TODAY"
-      : `START ON ${startName.toUpperCase()}`;
+      ? "Recommended start: Today"
+      : `Recommended start: ${startName}`;
+    const startReason = buildStartReason(assignment, sessionDays, dueDow, sets, multiSession);
 
     const effortLabel = formatEffort(est);
     const taskLabel = formatTaskEffort(multiSession ? est : efforts[0], multiSession);
@@ -528,6 +649,7 @@
       startDayLabels: sessionDays.map((d) => DAY_LABELS[d.dow]),
       startDayNames: sessionDays.map((d) => DAY_NAMES[d.dow]),
       startHeadline,
+      startReason,
       dueLabel: `Due ${dueName}`,
       effortLabel,
       taskLabel,
@@ -578,6 +700,123 @@
     return "Low";
   }
 
+  function buildWhyBullets(plan, schedule) {
+    const bullets = [];
+    const assignment = plan.assignment;
+    const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+    const days = Math.max(0, Math.ceil(hours / 24));
+    const sets = getScheduleSets(schedule);
+    const est = Number(assignment.estimatedMinutes) || 60;
+    const type = classifyAssignmentType(assignment);
+    const s = normalizeSchedule(schedule);
+
+    if (hours < 0) bullets.push("Overdue — start as soon as you can");
+    else if (hours <= 24) bullets.push("Due within 24 hours");
+    else if (days === 1) bullets.push("Due tomorrow");
+    else bullets.push(`Due in ${days} days`);
+
+    bullets.push(`Requires ${formatEffort(est)}`);
+
+    if (plan.multiSession) {
+      const count = plan.sessions?.length || 2;
+      bullets.push(`Needs ${count} focused sessions`);
+    } else if (type === "essay" || type === "project") {
+      bullets.push("Best completed in one focused block");
+    }
+
+    const workRange = formatDayRange(s.workDays);
+    if (workRange) bullets.push(`You work ${workRange}`);
+
+    const startDay = plan.days?.[0];
+    if (startDay?.isPreferred) {
+      bullets.push(`${DAY_NAMES[startDay.dow]} is a preferred study day`);
+    } else if (startDay && !startDay.isBusy && !startDay.isWork && !startDay.isClass) {
+      bullets.push(`${DAY_NAMES[startDay.dow]} is an available study day`);
+    } else if (startDay?.isWork || startDay?.isClass) {
+      bullets.push(`${DAY_NAMES[startDay.dow]} is the best open slot before the deadline`);
+    }
+
+    if (sets.busy.has(plan.dueDow)) bullets.push(`${plan.dueName} is marked busy`);
+    else if (sets.work.has(plan.dueDow)) bullets.push(`${plan.dueName} is a work day`);
+
+    return bullets.slice(0, 4);
+  }
+
+  function isAheadOfSchedule(plan, now = new Date()) {
+    if (!plan || plan.urgent || plan.risk === "High") return false;
+    const today = startOfDay(now);
+    const due = startOfDay(new Date(plan.assignment.dueAt));
+    if (due <= today) return false;
+
+    const hoursToDue = (due - today) / 3600000;
+    if (hoursToDue < 48) return false;
+
+    const firstDay = plan.days?.[0];
+    if (!firstDay) return false;
+
+    const firstDate = startOfDay(firstDay.date);
+    const todayMs = today.getTime();
+
+    if (firstDate.getTime() > todayMs && plan.risk === "Low") return true;
+
+    const hasSessionToday = (plan.days || []).some(
+      (d) => startOfDay(d.date).getTime() === todayMs
+    );
+    if (!hasSessionToday && plan.risk === "Low") {
+      const bufferDays = (due - firstDate) / 86400000;
+      if (bufferDays >= 2) return true;
+    }
+
+    return false;
+  }
+
+  function buildWeeklySummary(plans, schedule, now = new Date()) {
+    const weekly = plans.filter((p) => isDueThisWeek(p.assignment.dueAt, now));
+    const pool = weekly.length ? weekly : plans;
+    const totalMinutes = pool.reduce(
+      (sum, p) => sum + (Number(p.assignment.estimatedMinutes) || 60),
+      0
+    );
+
+    return {
+      assignmentCount: pool.length,
+      effortLabel: formatEffort(totalMinutes),
+      highPriorityCount: pool.filter((p) => p.priorityLevel === "High").length,
+      atRiskCount: pool.filter((p) => p.risk === "High").length
+    };
+  }
+
+  function isDueThisWeek(dueAt, now = new Date()) {
+    const ms = new Date(dueAt) - now;
+    return ms <= 7 * 86400000;
+  }
+
+  function categorizeWeeklyPlans(plans, now = new Date()) {
+    const ahead = plans.filter((p) => isAheadOfSchedule(p, now));
+    const aheadIds = new Set(ahead.map((p) => p.assignmentId));
+
+    const weekly = plans.filter((p) => isDueThisWeek(p.assignment.dueAt, now));
+    const pool = (weekly.length ? weekly : plans).filter((p) => !aheadIds.has(p.assignmentId));
+
+    const doFirst = pool.slice(0, 2);
+    const doNext = pool.slice(2, 4);
+    const shownIds = new Set([
+      ...ahead.map((p) => p.assignmentId),
+      ...doFirst.map((p) => p.assignmentId),
+      ...doNext.map((p) => p.assignmentId)
+    ]);
+    const canWait = plans.filter((p) => !shownIds.has(p.assignmentId)).slice(0, 3);
+
+    return {
+      weekly,
+      ahead,
+      doFirst,
+      doNext,
+      canWait,
+      summary: buildWeeklySummary(plans, null, now)
+    };
+  }
+
   function buildStayAheadPlans(assignments, schedule, now = new Date()) {
     const pending = (assignments || [])
       .filter((a) => a && !a.completed)
@@ -588,18 +827,24 @@
         assignment,
         priorityScore: computePriorityScore(assignment, schedule, now)
       }))
-      .sort((a, b) => b.priorityScore - a.priorityScore);
+      .sort((a, b) => compareRankedAssignments(a, b, now));
 
     const usedDayKeys = new Set();
     const plans = ranked.map(({ assignment, priorityScore }) => {
       const plan = buildAssignmentPlan(assignment, schedule, now, usedDayKeys);
       plan.priorityScore = priorityScore;
-      plan.priorityLevel = priorityLevel(priorityScore);
       return plan;
     });
 
+    assignRelativePriorityLevels(plans);
+
     plans.forEach((plan, index) => {
       plan.priorityRank = index + 1;
+      plan.rankReason = index === 0
+        ? buildTopRankReason(plan)
+        : buildRankReason(plan, plans[index - 1]);
+      plan.whyBullets = buildWhyBullets(plan, schedule);
+      plan.isAhead = isAheadOfSchedule(plan, now);
     });
 
     return plans;
@@ -722,6 +967,11 @@
     formatEffort,
     formatSessionBlock,
     formatTaskEffort,
+    buildWhyBullets,
+    categorizeWeeklyPlans,
+    buildWeeklySummary,
+    isAheadOfSchedule,
+    isDueThisWeek,
     priorityLevel
   };
 })();
