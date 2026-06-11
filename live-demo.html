@@ -32,13 +32,13 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=49"></script>
+  <script src="config.js?v=50"></script>
   <script src="auth-captcha.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
-  <script src="stay-ahead-planning.js?v=8"></script>
+  <script src="stay-ahead-planning.js?v=9"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
   <script src="sw-update.js"></script>
@@ -1662,6 +1662,35 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   line-height:1.5;
   margin:0;
 }
+.week-summary {
+  margin-bottom:16px;
+  padding:14px;
+  border:1px solid rgba(148,218,177,.22);
+  border-radius:14px;
+  background:rgba(148,218,177,.06);
+}
+.week-summary[hidden] { display:none; }
+.week-summary-title {
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--success);
+  margin:0 0 10px;
+}
+.week-summary-stats {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.week-summary-stats span {
+  font-size:11px;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  color:var(--muted-2);
+  background:rgba(255,255,255,.03);
+}
 .week-planner {
   display:flex;
   flex-direction:column;
@@ -1680,6 +1709,53 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .week-cat-label.do-first { color:var(--danger); }
 .week-cat-label.do-next { color:var(--warning); }
 .week-cat-label.can-wait { color:var(--success); }
+.week-cat-label.ahead { color:var(--success); }
+.week-rec-rank {
+  flex:0 0 22px;
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+}
+.week-rec-rank-reason {
+  font-size:11px;
+  color:var(--muted-2);
+  line-height:1.45;
+  margin:0 0 8px;
+}
+.week-rec-start-reason {
+  font-size:11px;
+  color:var(--muted-2);
+  line-height:1.45;
+  margin:0 0 8px;
+}
+.week-rec-why-visible {
+  margin:0 0 10px;
+  font-size:12px;
+}
+.week-rec-why-label {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:0 0 6px;
+}
+.week-rec-why-visible ul {
+  margin:0;
+  padding:0 0 0 16px;
+  color:var(--muted-2);
+  line-height:1.55;
+}
+.week-rec-why-visible li { margin-bottom:3px; }
+.week-rec-card.is-ahead {
+  border-color:rgba(148,218,177,.35);
+  background:rgba(148,218,177,.05);
+}
+.week-rec-ahead-note {
+  font-size:11px;
+  color:var(--success);
+  margin:0 0 8px;
+}
 .week-rec-list {
   display:flex;
   flex-direction:column;
@@ -2429,7 +2505,16 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <p class="week-sub">Quiet picks what matters most — by deadline, effort, and your schedule.</p>
               </header>
 
+              <div class="week-summary" id="week-summary" hidden aria-live="polite">
+                <p class="week-summary-title">This week</p>
+                <div class="week-summary-stats" id="week-summary-stats"></div>
+              </div>
+
               <div class="week-planner" id="week-planner" aria-live="polite">
+                <section class="week-category" id="week-ahead" hidden>
+                  <h3 class="week-cat-label ahead">Ahead of schedule</h3>
+                  <div class="week-rec-list" id="week-ahead-list"></div>
+                </section>
                 <section class="week-category" id="week-do-first">
                   <h3 class="week-cat-label do-first">Do first</h3>
                   <div class="week-rec-list" id="week-do-first-list"></div>
@@ -3471,10 +3556,10 @@ function recIcon(plan) {
   return '📋';
 }
 
-function renderWeeklyRecCard(plan) {
+function renderWeeklyRecCard(plan, { ahead = false } = {}) {
   const card = document.createElement('article');
   const level = priorityClass(plan.priorityLevel);
-  card.className = `week-rec-card is-${level}`;
+  card.className = `week-rec-card is-${ahead ? 'ahead' : level}`;
 
   const bullets = plan.whyBullets?.length
     ? plan.whyBullets
@@ -3482,32 +3567,66 @@ function renderWeeklyRecCard(plan) {
 
   const effortText = plan.effortLabel || plan.taskLabel || '';
   const founder = isFounderUser();
+  const startDay = plan.startDayNames?.[0] || plan.days?.[0]
+    ? window.StayAheadPlanning?.DAY_NAMES?.[plan.days[0].dow]
+    : null;
 
   card.innerHTML = `
     <div class="week-rec-top">
+      ${ahead ? '' : '<span class="week-rec-rank"></span>'}
       <span class="week-rec-icon" aria-hidden="true"></span>
       <span class="week-rec-name"></span>
-      <span class="week-rec-priority ${level}"></span>
+      ${ahead ? '' : `<span class="week-rec-priority ${level}"></span>`}
     </div>
+    ${ahead ? '<p class="week-rec-ahead-note"></p>' : '<p class="week-rec-rank-reason"></p>'}
     <p class="week-rec-start"></p>
+    <p class="week-rec-start-reason"></p>
     <div class="week-rec-meta">
       <span class="week-rec-due"></span>
       <span class="week-rec-effort"></span>
     </div>
-    <details class="week-rec-why">
-      <summary>Why?</summary>
+    <div class="week-rec-why-visible">
+      <p class="week-rec-why-label">Why this is recommended</p>
       <ul class="week-rec-why-list"></ul>
-    </details>
+    </div>
     <div class="week-rec-actions">
-      <button type="button" class="primary week-rec-start-btn">Start focus</button>
-      ${founder ? '<button type="button" class="secondary week-rec-how-btn">How do I start?</button>' : ''}
+      ${ahead ? '' : '<button type="button" class="primary week-rec-start-btn">Start focus</button>'}
+      ${founder && !ahead ? '<button type="button" class="secondary week-rec-how-btn">How do I start?</button>' : ''}
     </div>
   `;
 
-  card.querySelector('.week-rec-icon').textContent = recIcon(plan);
+  const rankEl = card.querySelector('.week-rec-rank');
+  if (rankEl) rankEl.textContent = `${plan.priorityRank}.`;
+
+  card.querySelector('.week-rec-icon').textContent = ahead ? '✓' : recIcon(plan);
   card.querySelector('.week-rec-name').textContent = plan.assignment.title;
-  card.querySelector('.week-rec-priority').textContent = `${plan.priorityLevel || 'Medium'} Priority`;
-  card.querySelector('.week-rec-start').textContent = plan.startHeadline || 'START SOON';
+
+  const priorityBadge = card.querySelector('.week-rec-priority');
+  if (priorityBadge) {
+    priorityBadge.textContent = `${plan.priorityLevel || 'Medium'} priority`;
+  }
+
+  const rankReasonEl = card.querySelector('.week-rec-rank-reason');
+  if (rankReasonEl && plan.rankReason) {
+    rankReasonEl.textContent = plan.rankReason;
+  } else if (rankReasonEl) {
+    rankReasonEl.hidden = true;
+  }
+
+  const aheadNote = card.querySelector('.week-rec-ahead-note');
+  if (aheadNote) {
+    const started = startDay ? `Started ${startDay}` : (plan.startHeadline || '');
+    aheadNote.textContent = `${started} · ${plan.dueLabel || ''} · No work required today`;
+  }
+
+  card.querySelector('.week-rec-start').textContent = plan.startHeadline || 'Recommended start: Soon';
+  const startReasonEl = card.querySelector('.week-rec-start-reason');
+  if (plan.startReason) {
+    startReasonEl.textContent = plan.startReason;
+  } else {
+    startReasonEl.hidden = true;
+  }
+
   card.querySelector('.week-rec-due').textContent = plan.dueLabel || '';
   card.querySelector('.week-rec-effort').textContent = effortText;
 
@@ -3517,11 +3636,15 @@ function renderWeeklyRecCard(plan) {
     li.textContent = text;
     list.appendChild(li);
   });
-  if (!bullets.length) card.querySelector('.week-rec-why').hidden = true;
+  if (!bullets.length) {
+    const whyBlock = card.querySelector('.week-rec-why-visible');
+    if (whyBlock) whyBlock.hidden = true;
+  }
 
-  card.querySelector('.week-rec-start-btn').addEventListener('click', () => {
-    startFocusFromAssignment(plan.assignment);
-  });
+  const startBtn = card.querySelector('.week-rec-start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => startFocusFromAssignment(plan.assignment));
+  }
   const howBtn = card.querySelector('.week-rec-how-btn');
   if (howBtn) {
     howBtn.addEventListener('click', () => openHowToStartModal(plan.assignment));
@@ -3530,7 +3653,7 @@ function renderWeeklyRecCard(plan) {
   return card;
 }
 
-function renderWeeklyCategory(sectionId, listId, plans) {
+function renderWeeklyCategory(sectionId, listId, plans, options = {}) {
   const section = $(sectionId);
   const list = $(listId);
   if (!section || !list) return;
@@ -3543,7 +3666,34 @@ function renderWeeklyCategory(sectionId, listId, plans) {
 
   section.hidden = false;
   list.innerHTML = '';
-  plans.forEach(plan => list.appendChild(renderWeeklyRecCard(plan)));
+  plans.forEach(plan => list.appendChild(renderWeeklyRecCard(plan, options)));
+}
+
+function renderWeeklySummary(summary) {
+  const wrap = $('week-summary');
+  const stats = $('week-summary-stats');
+  if (!wrap || !stats || !summary) return;
+
+  if (!summary.assignmentCount) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+  const highLabel = summary.highPriorityCount === 1 ? 'high priority' : 'high priority';
+  const riskLabel = summary.atRiskCount === 1 ? 'assignment at risk' : 'assignments at risk';
+  stats.innerHTML = '';
+
+  [
+    `${summary.assignmentCount} assignment${summary.assignmentCount === 1 ? '' : 's'}`,
+    summary.effortLabel + ' estimated',
+    `${summary.highPriorityCount} ${highLabel}`,
+    summary.atRiskCount > 0 ? `${summary.atRiskCount} ${riskLabel}` : null
+  ].filter(Boolean).forEach(text => {
+    const span = document.createElement('span');
+    span.textContent = text;
+    stats.appendChild(span);
+  });
 }
 
 function renderWeeklyPlanner() {
@@ -3554,10 +3704,12 @@ function renderWeeklyPlanner() {
   const pending = pendingAssignments();
 
   if (!pending.length) {
-    ['week-do-first', 'week-do-next', 'week-can-wait'].forEach(id => {
+    ['week-ahead', 'week-do-first', 'week-do-next', 'week-can-wait'].forEach(id => {
       const el = $(id);
       if (el) el.hidden = true;
     });
+    const summaryEl = $('week-summary');
+    if (summaryEl) summaryEl.hidden = true;
     if (empty) empty.hidden = false;
     return;
   }
@@ -3565,11 +3717,20 @@ function renderWeeklyPlanner() {
   if (empty) empty.hidden = true;
 
   const buckets = window.StayAheadPlanning?.categorizeWeeklyPlans?.(stayAheadPlans) || {
+    ahead: [],
     doFirst: stayAheadPlans.slice(0, 2),
-    doNext: stayAheadPlans.slice(2, 5),
-    canWait: stayAheadPlans.slice(5)
+    doNext: stayAheadPlans.slice(2, 4),
+    canWait: stayAheadPlans.slice(4, 7),
+    summary: {
+      assignmentCount: stayAheadPlans.length,
+      effortLabel: '0 hours',
+      highPriorityCount: 0,
+      atRiskCount: 0
+    }
   };
 
+  renderWeeklySummary(buckets.summary);
+  renderWeeklyCategory('week-ahead', 'week-ahead-list', buckets.ahead || [], { ahead: true });
   renderWeeklyCategory('week-do-first', 'week-do-first-list', buckets.doFirst);
   renderWeeklyCategory('week-do-next', 'week-do-next-list', buckets.doNext);
   renderWeeklyCategory('week-can-wait', 'week-can-wait-list', buckets.canWait);
@@ -3781,9 +3942,9 @@ function formatDueDayLabel(dueAt) {
 
 function buildSuggestedNextCopy(assignment) {
   const plan = getStayAheadPlanForAssignment(assignment.id);
-  if (plan?.startHeadline && plan?.reason) {
-    const start = plan.startHeadline.replace(/^START ON /i, 'Start ').replace(/^START TODAY/i, 'Start today');
-    return { title: assignment.title, copy: `${start}. ${plan.reason}` };
+  if (plan?.startHeadline) {
+    const detail = plan.startReason || plan.reason || '';
+    return { title: assignment.title, copy: detail ? `${plan.startHeadline}. ${detail}` : plan.startHeadline };
   }
   if (plan?.reason) {
     return { title: assignment.title, copy: plan.reason };
@@ -4041,7 +4202,7 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
   if (plan && founder && !assignment.completed) {
     const note = card.querySelector('.assign-plan-note');
     if (note) {
-      note.innerHTML = `<strong>${plan.startHeadline || 'Start soon'}</strong>${plan.reason || ''}`;
+      note.innerHTML = `<strong>${plan.startHeadline || 'Recommended start: Soon'}</strong>${plan.startReason || plan.reason || ''}`;
     }
   }
 
