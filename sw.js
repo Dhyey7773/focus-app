@@ -1,13 +1,17 @@
-const CACHE = 'quiet-focus-v51';
+const CACHE = 'quiet-focus-v54';
 
 const ASSETS = [
   './live-demo.html',
   './index.html',
+  './sitemap.xml',
+  './robots.txt',
+  './quietfocus2026indexnow.txt',
   './config.js',
   './auth-captcha.js',
   './supabase-sessions.js',
   './supabase-assignments.js',
   './assignment-scan.js',
+  './lms-import.js',
   './stay-ahead-planning.js',
   './quiet-reminder-copy.js',
   './mascot-hybrid.js',
