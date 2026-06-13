@@ -51,6 +51,7 @@
   <script src="supabase-sessions.js"></script>
   <script src="supabase-assignments.js"></script>
   <script src="assignment-scan.js"></script>
+  <script src="lms-import.js"></script>
   <script src="stay-ahead-planning.js?v=10"></script>
   <script src="quiet-reminder-copy.js"></script>
   <script src="push-notifications.js"></script>
@@ -1376,6 +1377,92 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   background:rgba(255,255,255,.06); color:var(--text); font-size:13px; font-weight:600;
 }
 .assign-scan-add-all:hover { background:rgba(255,255,255,.1); }
+.assign-lms {
+  margin-top:12px;
+  padding:14px;
+  border:1px solid rgba(148,218,177,0.22);
+  border-radius:14px;
+  text-align:left;
+  background:rgba(148,218,177,0.04);
+}
+.lms-tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+.lms-tab {
+  flex:1;
+  min-height:38px;
+  border-radius:10px;
+  border:1px solid var(--line-2);
+  background:rgba(255,255,255,.03);
+  color:var(--muted-2);
+  font-size:12px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.lms-tab.active {
+  border-color:rgba(148,218,177,0.45);
+  color:var(--mint);
+  background:rgba(148,218,177,0.1);
+}
+.lms-panel[hidden] { display:none; }
+.lms-url-input,
+.lms-paste-input {
+  width:100%;
+  min-height:44px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid var(--line-2);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  font-size:13px;
+  font-family:inherit;
+  margin-bottom:8px;
+}
+.lms-paste-input {
+  min-height:120px;
+  resize:vertical;
+  line-height:1.45;
+}
+.lms-import-btn {
+  width:100%;
+  min-height:42px;
+  border-radius:10px;
+  border:1px solid rgba(148,218,177,0.35);
+  background:rgba(148,218,177,0.12);
+  color:var(--mint);
+  font-size:13px;
+  font-weight:600;
+  font-family:inherit;
+  cursor:pointer;
+}
+.lms-import-btn:disabled { opacity:.5; cursor:not-allowed; }
+.lms-sync-btn {
+  margin-top:8px;
+  background:rgba(255,255,255,.05);
+  color:var(--text);
+  border-color:var(--line-2);
+}
+.lms-help {
+  margin-top:10px;
+  font-size:11px;
+  color:var(--muted);
+}
+.lms-help summary { cursor:pointer; color:var(--muted-2); }
+.lms-help ol { margin:8px 0 0 18px; line-height:1.5; }
+.lms-badge {
+  display:inline-block;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--mint);
+  border:1px solid rgba(148,218,177,0.3);
+  border-radius:999px;
+  padding:3px 8px;
+  margin-bottom:8px;
+}
 .assign-scan-item {
   padding:10px 12px;
   border-radius:10px;
@@ -2590,6 +2677,36 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                     <button class="primary" type="submit" style="min-height:46px">Add assignment</button>
                   </div>
                 </form>
+
+                <div class="assign-lms" id="assign-lms">
+                  <span class="lms-badge">One link · all reminders</span>
+                  <p class="assign-scan-title">Connect Canvas or D2L calendar</p>
+                  <p class="assign-scan-sub">Paste your school calendar link once. Quiet pulls every deadline and sets reminders — no copying assignments.</p>
+                  <div class="lms-panel" id="lms-panel-calendar" role="tabpanel">
+                    <input class="lms-url-input" id="lms-calendar-url" type="url" inputmode="url" autocomplete="off" placeholder="https://…brightspace.com/…/calendar… or Canvas feed .ics" aria-label="Calendar feed URL">
+                    <button type="button" class="lms-import-btn" id="lms-calendar-fetch">Connect &amp; set reminders</button>
+                    <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-sync" hidden>Sync calendar again</button>
+                    <details class="lms-help" id="lms-calendar-help">
+                      <summary>Where do I find this link?</summary>
+                      <ol id="lms-help-steps">
+                        <li><strong>D2L (MTSU):</strong> Calendar → Subscribe → copy the .ics / web calendar URL.</li>
+                        <li><strong>Canvas:</strong> Calendar → Calendar Feed → copy link.</li>
+                        <li>Paste above once. Tap Sync again each week for new deadlines.</li>
+                      </ol>
+                    </details>
+                    <details class="lms-help">
+                      <summary>Other import options</summary>
+                      <p style="margin-top:8px;line-height:1.45">Paste assignment text or upload a syllabus PDF below if you don’t have the calendar link.</p>
+                    </details>
+                  </div>
+                  <div class="assign-scan-toolbar">
+                    <p class="assign-scan-status" id="lms-status">Sign in, paste your calendar link, then connect.</p>
+                  </div>
+                  <div class="assign-scan-preview" id="lms-preview" hidden>
+                    <label>Latest sync</label>
+                    <div class="assign-scan-results" id="lms-results"></div>
+                  </div>
+                </div>
 
                 <div class="assign-scan" id="assign-scan">
                   <p class="assign-scan-title">Upload coursework</p>
@@ -4074,7 +4191,8 @@ function pickDurationForAssignment(assignment) {
   return Math.min(match, 45);
 }
 
-function addAssignment(data) {
+function addAssignment(data, options) {
+  options = options || {};
   const dueDate = data.dueAt
     ? new Date(data.dueAt)
     : parseDueAt(data.date, data.time);
@@ -4092,13 +4210,43 @@ function addAssignment(data) {
   primeRemindersForAssignment(assignment);
   profile.assignments = profile.assignments || [];
   profile.assignments.unshift(assignment);
-  saveProfile();
-  renderAssignments();
-  renderHome();
+  if (!options.skipRender) {
+    saveProfile();
+    renderAssignments();
+    renderHome();
+  }
   syncAssignmentToCloud(assignment);
-  toast('Assignment added');
-  setTimeout(maybeShowDueReminder, 400);
+  if (!options.silent) {
+    toast('Assignment added');
+    setTimeout(maybeShowDueReminder, 400);
+  }
   return assignment;
+}
+
+function addAssignmentsBatch(items) {
+  const split = window.LmsImport?.splitNewAssignments?.(profile.assignments || [], items) || {
+    fresh: items || [],
+    skipped: 0,
+    total: (items || []).length
+  };
+  for (const item of split.fresh) {
+    addAssignment(
+      {
+        title: item.title,
+        course: item.course,
+        dueAt: item.dueAt,
+        estimatedMinutes: item.estimatedMinutes
+      },
+      { silent: true, skipRender: true }
+    );
+  }
+  if (split.fresh.length) {
+    saveProfile();
+    renderAssignments();
+    renderHome();
+    setTimeout(maybeShowDueReminder, 400);
+  }
+  return split;
 }
 
 function completedTodayCount() {
@@ -5091,22 +5239,25 @@ function scanStatusMessage(source, aiLimitMessage) {
   return 'Review what Quiet found and add the ones you need.';
 }
 
-function renderScanResults(assignments, source, aiLimitMessage) {
-  lastScanResults = assignments || [];
-  const resultsEl = $('scan-results');
-  const preview = $('scan-preview');
-  const status = $('scan-status');
+function renderScanResults(assignments, source, aiLimitMessage, targets) {
+  const resultsEl = targets?.resultsEl || $('scan-results');
+  const preview = targets?.previewEl || $('scan-preview');
+  const status = targets?.statusEl || $('scan-status');
+  const trackGlobal = !targets;
+
+  if (trackGlobal) lastScanResults = assignments || [];
+  const list = assignments || [];
   resultsEl.innerHTML = '';
-  if (!lastScanResults.length) {
+  if (!list.length) {
     resultsEl.innerHTML = '<p class="empty-state" style="padding:8px">No deadlines found. Try a clearer photo of just the assignment section.</p>';
   } else {
-    if (lastScanResults.length > 1) {
+    if (list.length > 1) {
       const addAll = document.createElement('button');
       addAll.type = 'button';
       addAll.className = 'assign-scan-add-all';
-      addAll.textContent = `Add all ${lastScanResults.length} assignments`;
+      addAll.textContent = `Add all ${list.length} assignments`;
       addAll.addEventListener('click', () => {
-        lastScanResults.forEach(item => {
+        list.forEach(item => {
           addAssignment({
             title: item.title,
             course: item.course,
@@ -5120,17 +5271,17 @@ function renderScanResults(assignments, source, aiLimitMessage) {
         });
         addAll.textContent = 'All added ✓';
         addAll.disabled = true;
-        toast(`Added ${lastScanResults.length} assignments`);
+        toast(`Added ${list.length} assignments`);
       });
       resultsEl.appendChild(addAll);
     }
-    lastScanResults.forEach(item => {
+    list.forEach(item => {
       const card = document.createElement('div');
       card.className = 'assign-scan-item';
       card.innerHTML = '<strong></strong><p></p><button type="button" class="primary">Add assignment</button>';
       card.querySelector('strong').textContent = item.title;
       card.querySelector('p').textContent =
-        `${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)} · Est. ${item.estimatedMinutes} min` +
+        `${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)} · Est. ${item.estimatedMinutes || 60} min` +
         (item.notes ? ` · ${item.notes}` : '');
       card.querySelector('button').addEventListener('click', () => {
         addAssignment({
@@ -5146,7 +5297,11 @@ function renderScanResults(assignments, source, aiLimitMessage) {
     });
   }
   preview.classList.add('is-visible');
-  status.textContent = scanStatusMessage(source, aiLimitMessage);
+  status.textContent = aiLimitMessage || (source === 'calendar'
+    ? 'Calendar import ready — add what you need below.'
+    : source === 'paste'
+      ? 'Paste import ready — add what you need below.'
+      : scanStatusMessage(source, aiLimitMessage));
 }
 
 async function handleAssignmentScan(file) {
@@ -5234,6 +5389,123 @@ $('scan-txt-input')?.addEventListener('change', e => {
   if (file) handleAssignmentScan(file);
   e.target.value = '';
 });
+
+const LMS_CALENDAR_URL_KEY = 'qf_lms_calendar_url';
+const LMS_CALENDAR_SYNC_KEY = 'qf_lms_calendar_last_sync';
+
+function updateLmsHelpSteps(url) {
+  const stepsEl = $('lms-help-steps');
+  if (!stepsEl || !window.LmsImport?.helpSteps) return;
+  const platform = window.LmsImport.detectPlatform(url || '');
+  const steps = window.LmsImport.helpSteps(platform);
+  stepsEl.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+}
+
+function formatLmsSyncStatus(total, added, skipped) {
+  const active = (profile.assignments || []).filter(a => !a.completed).length;
+  if (added > 0) {
+    return `${added} new reminder${added === 1 ? '' : 's'} set · ${skipped} already synced · ${active} active tasks`;
+  }
+  if (total > 0) {
+    return `Calendar synced · ${skipped} already up to date · ${active} active tasks`;
+  }
+  return 'No deadlines found in that calendar link.';
+}
+
+function updateLmsSyncUi() {
+  const syncBtn = $('lms-calendar-sync');
+  const statusEl = $('lms-status');
+  const savedUrl = localStorage.getItem(LMS_CALENDAR_URL_KEY);
+  if (syncBtn) syncBtn.hidden = !savedUrl;
+  const last = localStorage.getItem(LMS_CALENDAR_SYNC_KEY);
+  if (last && savedUrl && statusEl) {
+    statusEl.textContent = `Calendar connected · last synced ${last} · tap Sync again for new deadlines`;
+  }
+}
+
+function initLmsImport() {
+  const urlInput = $('lms-calendar-url');
+  const fetchBtn = $('lms-calendar-fetch');
+  const syncBtn = $('lms-calendar-sync');
+  if (!urlInput || !window.LmsImport) return;
+
+  const savedUrl = localStorage.getItem(LMS_CALENDAR_URL_KEY);
+  if (savedUrl) {
+    urlInput.value = savedUrl;
+    updateLmsHelpSteps(savedUrl);
+  }
+  updateLmsSyncUi();
+
+  urlInput.addEventListener('input', () => updateLmsHelpSteps(urlInput.value));
+
+  async function runCalendarSync(buttonEl) {
+    const url = urlInput.value.trim();
+    if (!url) {
+      toast('Paste your D2L or Canvas calendar link first');
+      return;
+    }
+    if (!currentUser) {
+      toast('Sign in to connect your calendar');
+      return;
+    }
+    if (!window.LmsImport.isAllowedCalendarUrl(url)) {
+      $('lms-status').textContent = 'Use your D2L Brightspace or Canvas calendar subscribe link (https).';
+      toast('That link does not look like a school calendar feed');
+      return;
+    }
+
+    fetchBtn.disabled = true;
+    if (syncBtn) syncBtn.disabled = true;
+    $('lms-status').textContent = 'Pulling deadlines from your school calendar…';
+
+    try {
+      const assignments = await window.LmsImport.fetchCalendarFeed(url);
+      localStorage.setItem(LMS_CALENDAR_URL_KEY, url);
+      updateLmsSyncUi();
+
+      if (!assignments.length) {
+        $('lms-status').textContent = formatLmsSyncStatus(0, 0, 0);
+        toast('No deadlines in that feed — check the link or upload a syllabus');
+        return;
+      }
+
+      const result = addAssignmentsBatch(assignments);
+      const stamp = new Intl.DateTimeFormat([], {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(new Date());
+      localStorage.setItem(LMS_CALENDAR_SYNC_KEY, stamp);
+
+      const msg = formatLmsSyncStatus(result.total, result.fresh.length, result.skipped);
+      $('lms-status').textContent = msg;
+      toast(result.fresh.length
+        ? `${result.fresh.length} new reminder${result.fresh.length === 1 ? '' : 's'} turned on`
+        : 'Calendar already synced');
+
+      const preview = $('lms-preview');
+      const resultsEl = $('lms-results');
+      if (preview && resultsEl && result.fresh.length) {
+        preview.hidden = false;
+        resultsEl.innerHTML = result.fresh.slice(0, 8).map(item =>
+          `<div class="assign-scan-item"><strong>${item.title}</strong><p>${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)}</p></div>`
+        ).join('') + (result.fresh.length > 8 ? `<p class="empty-state" style="padding:8px">+ ${result.fresh.length - 8} more</p>` : '');
+      }
+    } catch (err) {
+      $('lms-status').textContent = err.message || 'Could not sync calendar';
+      toast($('lms-status').textContent, 4500);
+    } finally {
+      fetchBtn.disabled = false;
+      if (syncBtn) syncBtn.disabled = false;
+    }
+  }
+
+  fetchBtn?.addEventListener('click', () => runCalendarSync(fetchBtn));
+  syncBtn?.addEventListener('click', () => runCalendarSync(syncBtn));
+}
+
+initLmsImport();
 
 const pageParam = new URLSearchParams(window.location.search).get('page');
 if (pageParam && document.getElementById(`page-${pageParam}`)) {
