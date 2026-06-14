@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=51"></script>
-  <script src="auth-captcha.js"></script>
+  <script src="config.js?v=63"></script>
+  <script src="auth-captcha.js?v=63"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js"></script>
-  <script src="supabase-assignments.js"></script>
-  <script src="assignment-scan.js"></script>
-  <script src="lms-import.js"></script>
-  <script src="stay-ahead-planning.js?v=10"></script>
-  <script src="quiet-reminder-copy.js"></script>
-  <script src="push-notifications.js"></script>
-  <script src="sw-update.js"></script>
+  <script src="supabase-sessions.js?v=63"></script>
+  <script src="supabase-assignments.js?v=63"></script>
+  <script src="assignment-scan.js?v=63"></script>
+  <script src="lms-import.js?v=63"></script>
+  <script src="stay-ahead-planning.js?v=63"></script>
+  <script src="quiet-reminder-copy.js?v=63"></script>
+  <script src="push-notifications.js?v=63"></script>
+  <script src="sw-update.js?v=63"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -2870,6 +2870,8 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     detectSessionInUrl: true
   }
 });
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 window.supabaseClient = sb;
 window.FocusAuth = { getSupabase: () => sb };
 
@@ -5443,6 +5445,13 @@ function initLmsImport() {
   const fetchBtn = $('lms-calendar-fetch');
   const syncBtn = $('lms-calendar-sync');
   if (!urlInput || !window.LmsImport) return;
+
+  if (!window.LmsImport.extractCalendarUrl || !window.LmsImport.fetchCalendarFeed) {
+    const statusEl = $('lms-status');
+    if (statusEl) {
+      statusEl.textContent = 'Old cached version in this tab — hard refresh (Cmd+Shift+R) or use the installed app.';
+    }
+  }
 
   const savedUrl = localStorage.getItem(LMS_CALENDAR_URL_KEY);
   if (savedUrl) {
