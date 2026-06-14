@@ -2681,16 +2681,19 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <div class="assign-lms" id="assign-lms">
                   <span class="lms-badge">One link · all reminders</span>
                   <p class="assign-scan-title">Connect Canvas or D2L calendar</p>
-                  <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link — not a calendar PDF. No file upload needed.</p>
+                  <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link. Works now via <strong>Open feed → copy → paste</strong> below.</p>
                   <div class="lms-panel" id="lms-panel-calendar" role="tabpanel">
                     <input class="lms-url-input" id="lms-calendar-url" type="text" inputmode="url" autocomplete="off" placeholder="https://elearn.mscc.edu/d2l/…/feed.ics?token=…" aria-label="Calendar feed URL">
-                    <button type="button" class="lms-import-btn" id="lms-calendar-fetch">Connect &amp; set reminders</button>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                      <button type="button" class="lms-import-btn" id="lms-open-feed" style="flex:1;min-width:140px">Open feed in new tab</button>
+                      <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-fetch" style="flex:1;min-width:140px">Connect &amp; set reminders</button>
+                    </div>
                     <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-sync" hidden>Sync calendar again</button>
-                    <details class="lms-help" id="lms-ics-paste">
-                      <summary>Paste calendar text (if Connect fails)</summary>
-                      <p style="margin:8px 0;line-height:1.45">Open your Subscribe link in Safari. If you see raw text starting with <code>BEGIN:VCALENDAR</code>, copy all of it and paste below.</p>
-                      <textarea class="auth-input" id="lms-ics-text" rows="5" placeholder="BEGIN:VCALENDAR&#10;VERSION:2.0&#10;…" aria-label="Paste calendar text" style="width:100%;resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
-                      <button type="button" class="lms-import-btn lms-sync-btn" id="lms-ics-paste-btn" style="margin-top:8px">Import pasted calendar</button>
+                    <details class="lms-help" id="lms-ics-paste" open>
+                      <summary><strong>Step 2:</strong> Paste calendar text here (works today)</summary>
+                      <p style="margin:8px 0;line-height:1.45">After Open feed: select all text (starts with <code>BEGIN:VCALENDAR</code>), copy, paste below, tap Import.</p>
+                      <textarea class="auth-input" id="lms-ics-text" rows="6" placeholder="BEGIN:VCALENDAR&#10;VERSION:2.0&#10;…" aria-label="Paste calendar text" style="width:100%;resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+                      <button type="button" class="lms-import-btn" id="lms-ics-paste-btn" style="margin-top:8px">Import pasted calendar</button>
                     </details>
                     <details class="lms-help" id="lms-calendar-help">
                       <summary>Where do I find this link?</summary>
@@ -2706,7 +2709,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                     </details>
                   </div>
                   <div class="assign-scan-toolbar">
-                    <p class="assign-scan-status" id="lms-status">Sign in, paste your calendar link, then connect.</p>
+                    <p class="assign-scan-status" id="lms-status">Step 1: paste Subscribe link → Open feed → copy text → Import below.</p>
                     <button type="button" class="assign-scan-cancel" id="lms-calendar-cancel" hidden>Cancel</button>
                   </div>
                   <div class="assign-scan-preview" id="lms-preview" hidden>
@@ -5450,11 +5453,35 @@ function initLmsImport() {
 
   urlInput.addEventListener('input', () => updateLmsHelpSteps(urlInput.value));
 
+  $('lms-open-feed')?.addEventListener('click', () => {
+    let url = urlInput.value.trim();
+    url = window.LmsImport.extractCalendarUrl(url);
+    if (url && url !== urlInput.value.trim()) urlInput.value = url;
+    if (!url) {
+      toast('Paste your D2L Subscribe link first');
+      return;
+    }
+    if (!window.LmsImport.isAllowedCalendarUrl(url)) {
+      toast('That does not look like a D2L Subscribe link');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+    const paste = $('lms-ics-paste');
+    if (paste) paste.open = true;
+    $('lms-status').textContent = 'Feed opened — copy all text (BEGIN:VCALENDAR…), paste below, tap Import.';
+    toast('Copy the calendar text from the new tab');
+  });
+
   let calendarAbort = null;
+  let calendarSyncId = 0;
 
   $('lms-calendar-cancel')?.addEventListener('click', () => {
+    calendarSyncId += 1;
     if (calendarAbort) calendarAbort.abort();
-    $('lms-status').textContent = 'Cancelled. Try Paste calendar text below, or sync again.';
+    fetchBtn.disabled = false;
+    if (syncBtn) syncBtn.disabled = false;
+    $('lms-calendar-cancel').hidden = true;
+    $('lms-status').textContent = 'Cancelled. Use Open feed → copy → Import below.';
     toast('Cancelled');
   });
 
@@ -5485,10 +5512,26 @@ function initLmsImport() {
     fetchBtn.disabled = true;
     if (syncBtn) syncBtn.disabled = true;
     $('lms-calendar-cancel').hidden = false;
-    $('lms-status').textContent = 'Pulling deadlines… (up to 30 sec)';
+    $('lms-status').textContent = 'Pulling deadlines… (up to 20 sec)';
+
+    const syncId = ++calendarSyncId;
+    calendarAbort = new AbortController();
+    const statusEl = $('lms-status');
+    const tick = setInterval(() => {
+      if (syncId !== calendarSyncId) return;
+      if (statusEl.textContent.startsWith('Pulling deadlines')) {
+        statusEl.textContent = statusEl.textContent.endsWith('…') ? statusEl.textContent + '.' : statusEl.textContent.replace(/\.+$/, '') + '…';
+      }
+    }, 4000);
 
     try {
-      const assignments = await window.LmsImport.fetchCalendarFeed(url);
+      const assignments = await window.LmsImport.fetchCalendarFeed(url, {
+        signal: calendarAbort.signal,
+        onStatus: (msg) => {
+          if (syncId === calendarSyncId && statusEl) statusEl.textContent = msg;
+        }
+      });
+      if (syncId !== calendarSyncId) return;
       localStorage.setItem(LMS_CALENDAR_URL_KEY, url);
       updateLmsSyncUi();
 
@@ -5522,12 +5565,17 @@ function initLmsImport() {
         ).join('') + (result.fresh.length > 8 ? `<p class="empty-state" style="padding:8px">+ ${result.fresh.length - 8} more</p>` : '');
       }
     } catch (err) {
+      if (syncId !== calendarSyncId) return;
+      if (/cancelled/i.test(err.message || '')) return;
       $('lms-status').textContent = err.message || 'Could not sync calendar';
-      toast(/paste calendar text/i.test(err.message || '') ? 'Use Paste calendar text below' : 'Sync failed — see message', 3500);
+      toast(/import pasted|open feed/i.test(err.message || '') ? err.message : 'Sync failed — see message', 4000);
     } finally {
+      clearInterval(tick);
+      if (syncId !== calendarSyncId) return;
       fetchBtn.disabled = false;
       if (syncBtn) syncBtn.disabled = false;
       $('lms-calendar-cancel').hidden = true;
+      calendarAbort = null;
     }
   }
 
