@@ -2683,7 +2683,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <p class="assign-scan-title">Connect Canvas or D2L calendar</p>
                   <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link — not a calendar PDF. No file upload needed.</p>
                   <div class="lms-panel" id="lms-panel-calendar" role="tabpanel">
-                    <input class="lms-url-input" id="lms-calendar-url" type="text" inputmode="url" autocomplete="off" placeholder="webcal://…brightspace.com/…/calendar.ics" aria-label="Calendar feed URL">
+                    <input class="lms-url-input" id="lms-calendar-url" type="text" inputmode="url" autocomplete="off" placeholder="https://elearn.mscc.edu/d2l/…/feed.ics?token=…" aria-label="Calendar feed URL">
                     <button type="button" class="lms-import-btn" id="lms-calendar-fetch">Connect &amp; set reminders</button>
                     <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-sync" hidden>Sync calendar again</button>
                     <details class="lms-help" id="lms-ics-paste">
@@ -5460,7 +5460,7 @@ function initLmsImport() {
 
   async function runCalendarSync(buttonEl) {
     let url = urlInput.value.trim();
-    url = window.LmsImport.normalizeCalendarUrl(url);
+    url = window.LmsImport.extractCalendarUrl(url);
     if (url && url !== urlInput.value.trim()) urlInput.value = url;
 
     if (!url) {
