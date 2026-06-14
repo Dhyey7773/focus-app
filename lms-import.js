@@ -23,7 +23,7 @@
     const d = Number(m[3]);
     if (m[4] != null) {
       const h = Number(m[4]);
-      const min = Number(m[5]);
+      const min = Number(m[5]);a
       const sec = Number(m[6] || 0);
       if (m[7] === "Z") return new Date(Date.UTC(y, mo, d, h, min, sec));
       return new Date(y, mo, d, h, min, sec);
@@ -77,19 +77,32 @@
     return ASSIGNMENT_HINT.test(text) || /due\b/i.test(text);
   }
 
+  function isExpiredCalendarResponse(text) {
+    const s = String(text || "");
+    if (/BEGIN:VCALENDAR/i.test(s)) return false;
+    return /sessionExpired|d2l\/login|<html|<!DOCTYPE/i.test(s);
+  }
+
+  function assertValidIcsText(icsText, context) {
+    const s = String(icsText || "");
+    if (/BEGIN:VCALENDAR/i.test(s)) return;
+    if (isExpiredCalendarResponse(s)) {
+      throw new Error("Your D2L Subscribe link expired. In D2L: Calendar → Subscribe → copy a fresh link.");
+    }
+    if (looksLikeCalendarUrl(s)) {
+      throw new Error("That is a link — paste it in the top box and tap Connect, not in Paste calendar text.");
+    }
+    if (context === "paste") {
+      throw new Error("Not calendar text. Open your Subscribe link in Safari, copy everything starting with BEGIN:VCALENDAR.");
+    }
+    throw new Error("D2L did not return calendar data. Get a fresh Subscribe link or paste calendar text.");
+  }
+
   function parseIcsEvents(icsText, options) {
     options = options || {};
     const lmsFeed = options.lmsFeed !== false;
     const unfolded = unfoldIcs(icsText);
-    if (!/BEGIN:VCALENDAR/i.test(unfolded)) {
-      if (looksLikeCalendarUrl(unfolded)) {
-        throw new Error("That is a link — paste it in the box above and tap Connect, not in Paste calendar text.");
-      }
-      if (/^\s*</.test(unfolded) || /<html/i.test(unfolded)) {
-        throw new Error("D2L sent a login page, not calendar data. Open the link in Safari while signed in, copy the text, and paste below.");
-      }
-      throw new Error("Not calendar text. It should start with BEGIN:VCALENDAR — open your Subscribe link in Safari and copy all of it.");
-    }
+    assertValidIcsText(unfolded, options.context || "feed");
 
     const chunks = unfolded.split("BEGIN:VEVENT").slice(1);
     const now = Date.now();
@@ -413,7 +426,7 @@
     if (looksLikeCalendarUrl(raw) && !/BEGIN:VCALENDAR/i.test(raw)) {
       throw new Error("That is your Subscribe link — paste it in the top box and tap Connect.");
     }
-    return parseIcsEvents(raw, { lmsFeed: true });
+    return parseIcsEvents(raw, { lmsFeed: true, context: "paste" });
   }
 
   function withTimeout(promise, ms, message) {
@@ -425,35 +438,91 @@
     ]);
   }
 
-  async function invokeCalendarFetch(supabase, url) {
-    const tryFetch = async (name, body) => {
-      const { data, error } = await supabase.functions.invoke(name, { body });
-      if (error) {
-        const msg = error.message || "";
-        if (/failed to send|function not found|404|502|503|non-2xx/i.test(msg)) {
-          return { unavailable: true, error: msg };
-        }
-        throw new Error(msg || "Could not fetch calendar.");
-      }
-      if (data?.error) throw new Error(data.error);
-      if (!data?.ics) throw new Error("Calendar feed returned no data.");
-      return { ics: data.ics };
+  function getSupabaseConfig() {
+    const cfg = window.APP_CONFIG || {};
+    return {
+      url: (cfg.SUPABASE_URL || window.supabaseClient?.supabaseUrl || "").replace(/\/$/, ""),
+      anon: cfg.SUPABASE_ANON_KEY || ""
     };
-
-    const primary = await tryFetch("fetch-calendar", { url });
-    if (primary.unavailable) {
-      const fallback = await tryFetch("scan-assignment", { mode: "fetch-calendar", url });
-      if (fallback.unavailable) {
-        throw new Error(
-          "Calendar server not ready yet. Open your link in Safari, copy all the text, and use Paste calendar text below."
-        );
-      }
-      return fallback.ics;
-    }
-    return primary.ics;
   }
 
-  async function fetchCalendarFeed(calendarUrl) {
+  async function invokeCalendarFetch(supabase, url, options) {
+    options = options || {};
+    const signal = options.signal;
+    const onStatus = options.onStatus;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Sign in to import from a calendar link.");
+
+    const { url: baseUrl, anon } = getSupabaseConfig();
+    if (!baseUrl || !anon) throw new Error("App config missing — refresh the page.");
+
+    async function callFunction(name, body) {
+      if (signal?.aborted) throw new Error("Cancelled");
+      if (onStatus) onStatus(name === "fetch-calendar" ? "Contacting calendar server…" : "Trying backup server…");
+
+      const controller = new AbortController();
+      const onAbort = () => controller.abort();
+      if (signal) signal.addEventListener("abort", onAbort, { once: true });
+
+      const timer = setTimeout(() => controller.abort(), 16000);
+      try {
+        const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: anon
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+
+        if (res.status === 404) return { unavailable: true };
+        if (!res.ok) {
+          const msg = data.error || `Server error ${res.status}`;
+          if (/not found|404|502|503/i.test(msg)) return { unavailable: true, error: msg };
+          throw new Error(msg);
+        }
+        if (data.error) throw new Error(data.error);
+        if (Array.isArray(data.assignments)) return { assignments: data.assignments };
+        if (data.ics) return { ics: data.ics };
+        throw new Error("Calendar feed returned no data.");
+      } catch (err) {
+        if (err?.name === "AbortError" || signal?.aborted) {
+          throw new Error("Cancelled");
+        }
+        const msg = err?.message || "";
+        if (/not found|404|failed to fetch|network/i.test(msg)) return { unavailable: true, error: msg };
+        throw err;
+      } finally {
+        clearTimeout(timer);
+        if (signal) signal.removeEventListener("abort", onAbort);
+      }
+    }
+
+    const primary = await callFunction("fetch-calendar", { url });
+    if (primary.unavailable) {
+      const fallback = await callFunction("scan-assignment", { mode: "fetch-calendar", url });
+      if (fallback.unavailable) {
+        throw new Error(
+          "Calendar server not responding. Use Open feed → copy text → Import pasted calendar below."
+        );
+      }
+      return fallback;
+    }
+    return primary;
+  }
+
+  async function fetchCalendarFeed(calendarUrl, options) {
+    options = options || {};
     const url = extractCalendarUrl(calendarUrl);
     if (!isAllowedCalendarUrl(url)) {
       throw new Error("Use your D2L Subscribe link (https://…/feed.ics?token=…) — not a calendar PDF.");
@@ -465,19 +534,25 @@
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Sign in to import from a calendar link.");
 
-    let ics;
+    let result;
     try {
-      ics = await withTimeout(
-        invokeCalendarFetch(supabase, url),
-        28000,
-        "Calendar sync timed out. Open the link in Safari, copy the text, and paste it below."
+      result = await withTimeout(
+        invokeCalendarFetch(supabase, url, options),
+        20000,
+        "Timed out after 20 sec. Use Open feed → copy text → Import below."
       );
     } catch (err) {
+      if (/cancelled/i.test(err.message || "")) throw err;
       if (/timed out/i.test(err.message || "")) throw err;
-      throw new Error(err.message || "Could not sync calendar. Try Paste calendar text below.");
+      throw new Error(err.message || "Could not sync calendar. Try Import pasted calendar below.");
     }
 
-    return parseIcsEvents(ics, { lmsFeed: true });
+    if (result.assignments) {
+      return result.assignments;
+    }
+
+    if (options.onStatus) options.onStatus("Reading deadlines…");
+    return parseIcsEvents(result.ics, { lmsFeed: true, context: "feed" });
   }
 
   function splitNewAssignments(existing, incoming) {
@@ -507,10 +582,10 @@
     }
     if (platform === "d2l") {
       return [
-        "Open D2L → Calendar (top bar).",
-        "Click Subscribe → copy the web calendar link (webcal:// or https://).",
-        "Paste that link above and tap Connect.",
-        "If Connect hangs: open the same link in Safari, select all, copy, then Paste calendar text below."
+        "Open D2L → Calendar → Subscribe → copy the https link.",
+        "Paste the link in Quiet, tap Open feed in new tab.",
+        "In the new tab: Select All → Copy (text must start with BEGIN:VCALENDAR).",
+        "Paste in Step 2 below → Import pasted calendar."
       ];
     }
     return [
