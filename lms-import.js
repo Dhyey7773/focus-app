@@ -203,7 +203,7 @@
         feedByMatch.set(mk, item);
       }
     }
-    const incoming = [...feedByMatch.values()];
+    const feedItems = [...feedByMatch.values()];
 
     const removedIds = [];
     let deduped = 0;
@@ -237,7 +237,7 @@
       byMatch.set(matchKey(a), a);
     }
 
-    for (const item of incoming) {
+    for (const item of feedItems) {
       const mk = matchKey(item);
       const target = byMatch.get(mk);
 
@@ -298,7 +298,7 @@
       reopened,
       deduped,
       skipped,
-      total: incoming.length
+      total: feedItems.length
     };
   }
 
