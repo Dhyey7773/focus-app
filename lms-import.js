@@ -154,9 +154,17 @@
     return "unknown";
   }
 
+  function normalizeCalendarUrl(raw) {
+    let url = String(raw || "").trim();
+    if (!url) return "";
+    if (/^webcal:\/\//i.test(url)) url = url.replace(/^webcal:\/\//i, "https://");
+    if (/^http:\/\//i.test(url)) url = url.replace(/^http:\/\//i, "https://");
+    return url;
+  }
+
   function isAllowedCalendarUrl(url) {
     try {
-      const u = new URL(url.trim());
+      const u = new URL(normalizeCalendarUrl(url));
       if (u.protocol !== "https:") return false;
       const host = u.hostname.toLowerCase();
       if (/^127\.|^10\.|^192\.168\.|^169\.254\.|^localhost$|^0\./.test(host)) return false;
@@ -285,10 +293,139 @@
     return null;
   }
 
+  function looksLikeCalendarExport(text) {
+    const s = String(text || "").toLowerCase();
+    return (
+      /brightspace|d2l|instructure|canvas/.test(s) &&
+      (/calendar/.test(s) || (s.match(/\d{1,2}\/\d{1,2}/g) || []).length >= 3)
+    );
+  }
+
+  function parseCalendarExportText(text) {
+    const lines = String(text || "")
+      .replace(/\u00a0/g, " ")
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const out = [];
+    const seen = new Set();
+    const now = Date.now();
+    const horizon = now + 180 * 86400000;
+
+    function push(title, due, course) {
+      if (!title || !due || Number.isNaN(due.getTime())) return;
+      if (due.getTime() < now - 86400000 || due.getTime() > horizon) return;
+      if (BLOCKLIST.test(title)) return;
+      const item = {
+        title: title.slice(0, 120),
+        course: course || "",
+        dueAt: due.toISOString(),
+        estimatedMinutes: 60,
+        source: "calendar-export"
+      };
+      const key = importKey(item);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const inline = line.match(
+        /^(.+?)\s+((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}(?:\s+\d{1,2}:\d{2}\s*(?:am|pm)?)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?(?:\s+\d{1,2}:\d{2}\s*(?:am|pm)?)?)/i
+      );
+      if (inline) {
+        const due = parseFlexibleDate(inline[2]);
+        push(inline[1].replace(/^[-–—•]\s*/, ""), due, extractCourse(inline[1], "", ""));
+        continue;
+      }
+
+      const dateFirst = line.match(
+        /^((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}(?:\s+\d{1,2}:\d{2}\s*(?:am|pm)?)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?(?:\s+\d{1,2}:\d{2}\s*(?:am|pm)?)?)\s*[-–—]?\s*(.+)$/i
+      );
+      if (dateFirst) {
+        push(dateFirst[2], parseFlexibleDate(dateFirst[1]), extractCourse(dateFirst[2], "", ""));
+        continue;
+      }
+
+      const due = parseFlexibleDate(line);
+      if (due && lines[i - 1] && !parseFlexibleDate(lines[i - 1])) {
+        push(lines[i - 1], due, extractCourse(lines[i - 1], line, ""));
+      }
+    }
+
+    out.sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+    return out.slice(0, 60);
+  }
+
+  function readIcsFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) return reject(new Error("No file selected"));
+      const name = (file.name || "").toLowerCase();
+      if (!name.endsWith(".ics") && file.type && !/calendar|ics/i.test(file.type)) {
+        return reject(new Error("Upload the .ics calendar file — not a PDF. In D2L: Calendar → Subscribe → download or copy link."));
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Could not read calendar file."));
+      reader.readAsText(file);
+    });
+  }
+
+  async function importIcsFile(file) {
+    const ics = await readIcsFile(file);
+    return parseIcsEvents(ics, { lmsFeed: true });
+  }
+
+  function importIcsText(rawText) {
+    const ics = String(rawText || "").trim();
+    if (ics.length < 20) {
+      throw new Error("Paste the full calendar text starting with BEGIN:VCALENDAR.");
+    }
+    return parseIcsEvents(ics, { lmsFeed: true });
+  }
+
+  function withTimeout(promise, ms, message) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(message || "Timed out")), ms)
+      )
+    ]);
+  }
+
+  async function invokeCalendarFetch(supabase, url) {
+    const tryFetch = async (name, body) => {
+      const { data, error } = await supabase.functions.invoke(name, { body });
+      if (error) {
+        const msg = error.message || "";
+        if (/failed to send|function not found|404|502|503|non-2xx/i.test(msg)) {
+          return { unavailable: true, error: msg };
+        }
+        throw new Error(msg || "Could not fetch calendar.");
+      }
+      if (data?.error) throw new Error(data.error);
+      if (!data?.ics) throw new Error("Calendar feed returned no data.");
+      return { ics: data.ics };
+    };
+
+    const primary = await tryFetch("fetch-calendar", { url });
+    if (primary.unavailable) {
+      const fallback = await tryFetch("scan-assignment", { mode: "fetch-calendar", url });
+      if (fallback.unavailable) {
+        throw new Error(
+          "Calendar server not ready yet. Open your link in Safari, copy all the text, and use Paste calendar text below."
+        );
+      }
+      return fallback.ics;
+    }
+    return primary.ics;
+  }
+
   async function fetchCalendarFeed(calendarUrl) {
-    const url = String(calendarUrl || "").trim();
+    const url = normalizeCalendarUrl(calendarUrl);
     if (!isAllowedCalendarUrl(url)) {
-      throw new Error("Use your Canvas or D2L calendar feed link (https, .ics or calendar feed).");
+      throw new Error("Use your D2L Subscribe link — not a calendar PDF.");
     }
 
     const supabase = window.FocusAuth?.getSupabase?.() || window.supabaseClient;
@@ -297,15 +434,19 @@
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Sign in to import from a calendar link.");
 
-    const { data, error } = await supabase.functions.invoke("fetch-calendar", {
-      body: { url }
-    });
+    let ics;
+    try {
+      ics = await withTimeout(
+        invokeCalendarFetch(supabase, url),
+        28000,
+        "Calendar sync timed out. Open the link in Safari, copy the text, and paste it below."
+      );
+    } catch (err) {
+      if (/timed out/i.test(err.message || "")) throw err;
+      throw new Error(err.message || "Could not sync calendar. Try Paste calendar text below.");
+    }
 
-    if (error) throw new Error(error.message || "Could not fetch calendar.");
-    if (data?.error) throw new Error(data.error);
-    if (!data?.ics) throw new Error("Calendar feed returned no data.");
-
-    return parseIcsEvents(data.ics, { lmsFeed: true });
+    return parseIcsEvents(ics, { lmsFeed: true });
   }
 
   function splitNewAssignments(existing, incoming) {
@@ -335,10 +476,10 @@
     }
     if (platform === "d2l") {
       return [
-        "Open D2L Brightspace → Calendar.",
-        "Choose Subscribe or Get calendar link (.ics).",
-        "Copy the URL and paste it here.",
-        "Works at MTSU and most transfer schools using D2L."
+        "Open D2L → Calendar (top bar).",
+        "Click Subscribe → copy the web calendar link (webcal:// or https://).",
+        "Paste that link above and tap Connect.",
+        "If Connect hangs: open the same link in Safari, select all, copy, then Paste calendar text below."
       ];
     }
     return [
@@ -351,6 +492,11 @@
   window.LmsImport = {
     parseIcsEvents,
     parseCanvasD2lPaste,
+    parseCalendarExportText,
+    looksLikeCalendarExport,
+    importIcsFile,
+    importIcsText,
+    normalizeCalendarUrl,
     fetchCalendarFeed,
     detectPlatform,
     isAllowedCalendarUrl,
