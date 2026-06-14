@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=63"></script>
-  <script src="auth-captcha.js?v=63"></script>
+  <script src="config.js?v=64"></script>
+  <script src="auth-captcha.js?v=64"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=63"></script>
-  <script src="supabase-assignments.js?v=63"></script>
-  <script src="assignment-scan.js?v=63"></script>
-  <script src="lms-import.js?v=63"></script>
-  <script src="stay-ahead-planning.js?v=63"></script>
-  <script src="quiet-reminder-copy.js?v=63"></script>
-  <script src="push-notifications.js?v=63"></script>
-  <script src="sw-update.js?v=63"></script>
+  <script src="supabase-sessions.js?v=64"></script>
+  <script src="supabase-assignments.js?v=64"></script>
+  <script src="assignment-scan.js?v=64"></script>
+  <script src="lms-import.js?v=64"></script>
+  <script src="stay-ahead-planning.js?v=64"></script>
+  <script src="quiet-reminder-copy.js?v=64"></script>
+  <script src="push-notifications.js?v=64"></script>
+  <script src="sw-update.js?v=64"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -4217,6 +4217,7 @@ function addAssignment(data, options) {
     completed: false,
     snoozedUntil: null,
     remindersShown: null,
+    source: data.source || options.source || null,
     createdAt: new Date().toISOString()
   };
   primeRemindersForAssignment(assignment);
@@ -4236,29 +4237,61 @@ function addAssignment(data, options) {
 }
 
 function addAssignmentsBatch(items) {
-  const split = window.LmsImport?.splitNewAssignments?.(profile.assignments || [], items) || {
+  const merge = window.LmsImport?.mergeCalendarImport?.(profile.assignments || [], items);
+  const split = merge || window.LmsImport?.splitNewAssignments?.(profile.assignments || [], items) || {
     fresh: items || [],
     skipped: 0,
     total: (items || []).length
   };
-  for (const item of split.fresh) {
+  const stats = merge || split.merge || {
+    fresh: split.fresh,
+    touched: [],
+    removedIds: [],
+    added: (split.fresh || []).length,
+    updated: 0,
+    reopened: 0,
+    deduped: 0,
+    skipped: split.skipped || 0,
+    total: split.total || 0
+  };
+
+  if (stats.removedIds?.length) {
+    profile.assignments = (profile.assignments || []).filter(
+      a => !stats.removedIds.includes(a.id)
+    );
+  }
+
+  for (const item of stats.touched || []) {
+    primeRemindersForAssignment(item);
+    syncAssignmentToCloud(item);
+  }
+
+  for (const item of stats.fresh || split.fresh || []) {
     addAssignment(
       {
         title: item.title,
         course: item.course,
         dueAt: item.dueAt,
-        estimatedMinutes: item.estimatedMinutes
+        estimatedMinutes: item.estimatedMinutes,
+        source: item.source || 'calendar'
       },
       { silent: true, skipRender: true }
     );
   }
-  if (split.fresh.length) {
+
+  const changed =
+    (stats.fresh || split.fresh || []).length ||
+    (stats.touched || []).length ||
+    (stats.removedIds || []).length;
+
+  if (changed) {
     saveProfile();
     renderAssignments();
     renderHome();
     setTimeout(maybeShowDueReminder, 400);
   }
-  return split;
+
+  return stats;
 }
 
 function completedTodayCount() {
@@ -5418,13 +5451,22 @@ function updateLmsHelpSteps(url) {
   stepsEl.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
 }
 
-function formatLmsSyncStatus(total, added, skipped) {
+function formatLmsSyncStatus(result) {
   const active = (profile.assignments || []).filter(a => !a.completed).length;
-  if (added > 0) {
-    return `${added} new reminder${added === 1 ? '' : 's'} set · ${skipped} already synced · ${active} active tasks`;
+  const added = result.added ?? (result.fresh || []).length;
+  const updated = result.updated || 0;
+  const reopened = result.reopened || 0;
+  const deduped = result.deduped || 0;
+  const parts = [];
+  if (added > 0) parts.push(`${added} new`);
+  if (reopened > 0) parts.push(`${reopened} restored`);
+  if (updated > 0) parts.push(`${updated} updated`);
+  if (deduped > 0) parts.push(`${deduped} duplicate${deduped === 1 ? '' : 's'} removed`);
+  if (parts.length) {
+    return `${parts.join(' · ')} · ${active} active tasks`;
   }
-  if (total > 0) {
-    return `Calendar synced · ${skipped} already up to date · ${active} active tasks`;
+  if ((result.total || 0) > 0) {
+    return `Calendar synced · ${active} active tasks`;
   }
   return 'No deadlines found in that calendar link.';
 }
@@ -5545,7 +5587,7 @@ function initLmsImport() {
       updateLmsSyncUi();
 
       if (!assignments.length) {
-        $('lms-status').textContent = formatLmsSyncStatus(0, 0, 0);
+        $('lms-status').textContent = formatLmsSyncStatus({ total: 0 });
         toast('No deadlines in that feed — check the link or upload a syllabus');
         return;
       }
@@ -5559,19 +5601,23 @@ function initLmsImport() {
       }).format(new Date());
       localStorage.setItem(LMS_CALENDAR_SYNC_KEY, stamp);
 
-      const msg = formatLmsSyncStatus(result.total, result.fresh.length, result.skipped);
+      const msg = formatLmsSyncStatus(result);
       $('lms-status').textContent = msg;
-      toast(result.fresh.length
-        ? `${result.fresh.length} new reminder${result.fresh.length === 1 ? '' : 's'} turned on`
-        : 'Calendar already synced');
+      const toastParts = [];
+      if (result.added) toastParts.push(`${result.added} new`);
+      if (result.reopened) toastParts.push(`${result.reopened} restored`);
+      if (result.updated) toastParts.push(`${result.updated} updated`);
+      if (result.deduped) toastParts.push(`${result.deduped} dupes removed`);
+      toast(toastParts.length ? toastParts.join(' · ') : 'Calendar synced');
 
       const preview = $('lms-preview');
       const resultsEl = $('lms-results');
-      if (preview && resultsEl && result.fresh.length) {
+      const previewItems = [...(result.fresh || []), ...(result.touched || [])];
+      if (preview && resultsEl && previewItems.length) {
         preview.hidden = false;
-        resultsEl.innerHTML = result.fresh.slice(0, 8).map(item =>
+        resultsEl.innerHTML = previewItems.slice(0, 8).map(item =>
           `<div class="assign-scan-item"><strong>${item.title}</strong><p>${item.course ? item.course + ' · ' : ''}${formatDueDateTime(item.dueAt)}</p></div>`
-        ).join('') + (result.fresh.length > 8 ? `<p class="empty-state" style="padding:8px">+ ${result.fresh.length - 8} more</p>` : '');
+        ).join('') + (previewItems.length > 8 ? `<p class="empty-state" style="padding:8px">+ ${previewItems.length - 8} more</p>` : '');
       }
     } catch (err) {
       if (syncId !== calendarSyncId) return;
@@ -5611,8 +5657,12 @@ function initLmsImport() {
         return;
       }
       const result = addAssignmentsBatch(assignments);
-      $('lms-status').textContent = formatLmsSyncStatus(result.total, result.fresh.length, result.skipped);
-      toast(result.fresh.length ? `${result.fresh.length} reminders set` : 'Already synced');
+      $('lms-status').textContent = formatLmsSyncStatus(result);
+      const toastParts = [];
+      if (result.added) toastParts.push(`${result.added} new`);
+      if (result.reopened) toastParts.push(`${result.reopened} restored`);
+      if (result.updated) toastParts.push(`${result.updated} updated`);
+      toast(toastParts.length ? toastParts.join(' · ') : 'Calendar synced');
       if (textEl) textEl.value = '';
     } catch (err) {
       $('lms-status').textContent = err.message || 'Could not read pasted calendar';
