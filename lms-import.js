@@ -441,8 +441,10 @@
   function getSupabaseConfig() {
     const cfg = window.APP_CONFIG || {};
     return {
-      url: (cfg.SUPABASE_URL || window.supabaseClient?.supabaseUrl || "").replace(/\/$/, ""),
-      anon: cfg.SUPABASE_ANON_KEY || ""
+      url: String(
+        cfg.SUPABASE_URL || window.SUPABASE_URL || window.supabaseClient?.supabaseUrl || ""
+      ).replace(/\/$/, ""),
+      anon: cfg.SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY || ""
     };
   }
 
