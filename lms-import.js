@@ -82,7 +82,13 @@
     const lmsFeed = options.lmsFeed !== false;
     const unfolded = unfoldIcs(icsText);
     if (!/BEGIN:VCALENDAR/i.test(unfolded)) {
-      throw new Error("That link does not look like a calendar feed (.ics).");
+      if (looksLikeCalendarUrl(unfolded)) {
+        throw new Error("That is a link — paste it in the box above and tap Connect, not in Paste calendar text.");
+      }
+      if (/^\s*</.test(unfolded) || /<html/i.test(unfolded)) {
+        throw new Error("D2L sent a login page, not calendar data. Open the link in Safari while signed in, copy the text, and paste below.");
+      }
+      throw new Error("Not calendar text. It should start with BEGIN:VCALENDAR — open your Subscribe link in Safari and copy all of it.");
     }
 
     const chunks = unfolded.split("BEGIN:VEVENT").slice(1);
@@ -149,13 +155,33 @@
   function detectPlatform(urlOrText) {
     const s = String(urlOrText || "").toLowerCase();
     if (/instructure\.com|canvas\./.test(s)) return "canvas";
-    if (/brightspace\.com|d2l\./.test(s)) return "d2l";
+    if (/brightspace\.com|d2l\.|\/d2l\/|elearn\.|mscc\.edu/.test(s)) return "d2l";
     if (/blackboard\.com/.test(s)) return "blackboard";
     return "unknown";
   }
 
+  function stripUrlNoise(raw) {
+    return String(raw || "")
+      .trim()
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/^["']|["']$/g, "");
+  }
+
+  function extractCalendarUrl(raw) {
+    const s = stripUrlNoise(raw);
+    if (!s) return "";
+    const match = s.match(/(webcal:\/\/[^\s<>"']+|https?:\/\/[^\s<>"']+)/i);
+    if (match) return normalizeCalendarUrl(match[1]);
+    return normalizeCalendarUrl(s);
+  }
+
+  function looksLikeCalendarUrl(text) {
+    const s = stripUrlNoise(text);
+    return /^(webcal:\/\/|https?:\/\/)/i.test(s) || /https?:\/\/[^\s]+feed\.ics/i.test(s);
+  }
+
   function normalizeCalendarUrl(raw) {
-    let url = String(raw || "").trim();
+    let url = stripUrlNoise(raw);
     if (!url) return "";
     if (/^webcal:\/\//i.test(url)) url = url.replace(/^webcal:\/\//i, "https://");
     if (/^http:\/\//i.test(url)) url = url.replace(/^http:\/\//i, "https://");
@@ -164,17 +190,19 @@
 
   function isAllowedCalendarUrl(url) {
     try {
-      const u = new URL(normalizeCalendarUrl(url));
+      const u = new URL(extractCalendarUrl(url));
       if (u.protocol !== "https:") return false;
       const host = u.hostname.toLowerCase();
+      const pathQuery = `${u.pathname}${u.search}`;
       if (/^127\.|^10\.|^192\.168\.|^169\.254\.|^localhost$|^0\./.test(host)) return false;
       if (/instructure\.com$/.test(host)) return true;
       if (/\.instructure\.com$/.test(host)) return true;
       if (/brightspace\.com$/.test(host)) return true;
       if (/\.brightspace\.com$/.test(host)) return true;
       if (/\.d2l\.com$/.test(host)) return true;
-      if (/feed\.ics|calendar|feeds\/calendars/i.test(u.pathname + u.search)) return true;
-      if (/\.ics(\?|$)/i.test(u.pathname + u.search)) return true;
+      if (/\/d2l\//i.test(pathQuery)) return true;
+      if (/feed\.ics|calendar|feeds\/calendars/i.test(pathQuery)) return true;
+      if (/\.ics(\?|$)/i.test(pathQuery)) return true;
       return false;
     } catch {
       return false;
@@ -378,11 +406,14 @@
   }
 
   function importIcsText(rawText) {
-    const ics = String(rawText || "").trim();
-    if (ics.length < 20) {
+    const raw = String(rawText || "").trim();
+    if (raw.length < 20) {
       throw new Error("Paste the full calendar text starting with BEGIN:VCALENDAR.");
     }
-    return parseIcsEvents(ics, { lmsFeed: true });
+    if (looksLikeCalendarUrl(raw) && !/BEGIN:VCALENDAR/i.test(raw)) {
+      throw new Error("That is your Subscribe link — paste it in the top box and tap Connect.");
+    }
+    return parseIcsEvents(raw, { lmsFeed: true });
   }
 
   function withTimeout(promise, ms, message) {
@@ -423,9 +454,9 @@
   }
 
   async function fetchCalendarFeed(calendarUrl) {
-    const url = normalizeCalendarUrl(calendarUrl);
+    const url = extractCalendarUrl(calendarUrl);
     if (!isAllowedCalendarUrl(url)) {
-      throw new Error("Use your D2L Subscribe link — not a calendar PDF.");
+      throw new Error("Use your D2L Subscribe link (https://…/feed.ics?token=…) — not a calendar PDF.");
     }
 
     const supabase = window.FocusAuth?.getSupabase?.() || window.supabaseClient;
@@ -496,6 +527,7 @@
     looksLikeCalendarExport,
     importIcsFile,
     importIcsText,
+    extractCalendarUrl,
     normalizeCalendarUrl,
     fetchCalendarFeed,
     detectPlatform,
