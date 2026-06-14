@@ -165,6 +165,153 @@
     return `${course}|${title}|${due}`;
   }
 
+  function normalizeTitleForMatch(title) {
+    return String(title || "")
+      .toLowerCase()
+      .replace(/\s*-\s*(available|due|closed|ends?|submitted|no longer available)\s*$/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function matchKey(item) {
+    const course = String(item.course || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+    return `${course}|${normalizeTitleForMatch(item.title)}`;
+  }
+
+  function pickBestAssignment(list) {
+    return [...list].sort((a, b) => {
+      if (!!a.completed !== !!b.completed) return a.completed ? 1 : -1;
+      const da = new Date(a.dueAt || 0).getTime();
+      const db = new Date(b.dueAt || 0).getTime();
+      if (da !== db) return db - da;
+      return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    })[0];
+  }
+
+  function mergeCalendarImport(existing, incoming) {
+    let list = [...(existing || [])];
+    const feed = [...(incoming || [])];
+
+    const feedByMatch = new Map();
+    for (const item of feed) {
+      const mk = matchKey(item);
+      const prev = feedByMatch.get(mk);
+      if (!prev || new Date(item.dueAt || 0) >= new Date(prev.dueAt || 0)) {
+        feedByMatch.set(mk, item);
+      }
+    }
+    const incoming = [...feedByMatch.values()];
+
+    const removedIds = [];
+    let deduped = 0;
+    let added = 0;
+    let updated = 0;
+    let reopened = 0;
+    let skipped = 0;
+    const fresh = [];
+    const touched = [];
+
+    const groups = new Map();
+    for (const a of list) {
+      const mk = matchKey(a);
+      if (!groups.has(mk)) groups.set(mk, []);
+      groups.get(mk).push(a);
+    }
+
+    for (const [, dupes] of groups) {
+      if (dupes.length <= 1) continue;
+      const keep = pickBestAssignment(dupes);
+      for (const a of dupes) {
+        if (a.id === keep.id) continue;
+        removedIds.push(a.id);
+        deduped++;
+        list = list.filter(x => x.id !== a.id);
+      }
+    }
+
+    const byMatch = new Map();
+    for (const a of list) {
+      byMatch.set(matchKey(a), a);
+    }
+
+    for (const item of incoming) {
+      const mk = matchKey(item);
+      const target = byMatch.get(mk);
+
+      if (!target) {
+        fresh.push({ ...item, source: "calendar" });
+        added++;
+        continue;
+      }
+
+      let changed = false;
+
+      if (target.completed) {
+        target.completed = false;
+        target.completedAt = null;
+        target.remindersShown = { h24: false, h6: false, h1: false };
+        reopened++;
+        changed = true;
+      }
+
+      if (item.dueAt && target.dueAt !== item.dueAt) {
+        target.dueAt = item.dueAt;
+        updated++;
+        changed = true;
+      }
+
+      const nextTitle = String(item.title || "").trim();
+      if (nextTitle && target.title !== nextTitle) {
+        target.title = nextTitle;
+        changed = true;
+      }
+
+      const nextCourse = String(item.course || "").trim();
+      if ((target.course || "") !== nextCourse) {
+        target.course = nextCourse;
+        changed = true;
+      }
+
+      const nextEst = Number(item.estimatedMinutes) || 0;
+      if (nextEst && target.estimatedMinutes !== nextEst) {
+        target.estimatedMinutes = nextEst;
+        changed = true;
+      }
+
+      if (changed) {
+        target.source = target.source || "calendar";
+        touched.push(target);
+      } else {
+        skipped++;
+      }
+    }
+
+    return {
+      fresh,
+      touched,
+      removedIds,
+      added,
+      updated,
+      reopened,
+      deduped,
+      skipped,
+      total: incoming.length
+    };
+  }
+
+  function splitNewAssignments(existing, incoming) {
+    const merged = mergeCalendarImport(existing, incoming);
+    return {
+      fresh: merged.fresh,
+      skipped: merged.skipped,
+      total: merged.total,
+      merge: merged
+    };
+  }
+
   function detectPlatform(urlOrText) {
     const s = String(urlOrText || "").toLowerCase();
     if (/instructure\.com|canvas\./.test(s)) return "canvas";
@@ -557,22 +704,6 @@
     return parseIcsEvents(result.ics, { lmsFeed: true, context: "feed" });
   }
 
-  function splitNewAssignments(existing, incoming) {
-    const keys = new Set((existing || []).map(importKey));
-    const fresh = [];
-    let skipped = 0;
-    for (const item of incoming || []) {
-      const key = importKey(item);
-      if (keys.has(key)) {
-        skipped++;
-        continue;
-      }
-      keys.add(key);
-      fresh.push(item);
-    }
-    return { fresh, skipped, total: (incoming || []).length };
-  }
-
   function helpSteps(platform) {
     if (platform === "canvas") {
       return [
@@ -611,6 +742,8 @@
     isAllowedCalendarUrl,
     helpSteps,
     importKey,
+    matchKey,
+    mergeCalendarImport,
     splitNewAssignments
   };
 })();
