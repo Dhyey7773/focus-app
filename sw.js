@@ -1,4 +1,4 @@
-const CACHE = 'quiet-focus-v62';
+const CACHE = 'quiet-focus-v63';
 
 const ASSETS = [
   './live-demo.html',
@@ -53,6 +53,7 @@ const NETWORK_FIRST = new Set([
   'supabase-sessions.js',
   'supabase-assignments.js',
   'assignment-scan.js',
+  'lms-import.js',
   'stay-ahead-planning.js',
   'quiet-reminder-copy.js',
   'mascot-hybrid.js',
@@ -72,10 +73,31 @@ function isAppShell(url) {
   return NETWORK_FIRST.has(fileName(url));
 }
 
+function isCriticalScript(url) {
+  return /\.js(\?|$)/i.test(url.pathname + url.search) &&
+    /(?:^|[?&])v=\d+/i.test(url.search || "");
+}
+
 async function putCache(request, response) {
   if (!response || response.status !== 200 || response.type !== 'basic') return;
   const cache = await caches.open(CACHE);
   await cache.put(request, response.clone());
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      await putCache(request, response);
+      return response;
+    }
+  } catch {
+    /* offline */
+  }
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  return fetch(request);
 }
 
 async function staleWhileRevalidate(request) {
@@ -149,6 +171,11 @@ self.addEventListener('fetch', (event) => {
 
   if (isAppShell(url)) {
     event.respondWith(staleWhileRevalidate(event.request));
+    return;
+  }
+
+  if (isCriticalScript(url)) {
+    event.respondWith(networkFirst(event.request));
     return;
   }
 
