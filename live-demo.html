@@ -2681,17 +2681,23 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <div class="assign-lms" id="assign-lms">
                   <span class="lms-badge">One link · all reminders</span>
                   <p class="assign-scan-title">Connect Canvas or D2L calendar</p>
-                  <p class="assign-scan-sub">Paste your school calendar link once. Quiet pulls every deadline and sets reminders — no copying assignments.</p>
+                  <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link — not a calendar PDF. No file upload needed.</p>
                   <div class="lms-panel" id="lms-panel-calendar" role="tabpanel">
-                    <input class="lms-url-input" id="lms-calendar-url" type="url" inputmode="url" autocomplete="off" placeholder="https://…brightspace.com/…/calendar… or Canvas feed .ics" aria-label="Calendar feed URL">
+                    <input class="lms-url-input" id="lms-calendar-url" type="text" inputmode="url" autocomplete="off" placeholder="webcal://…brightspace.com/…/calendar.ics" aria-label="Calendar feed URL">
                     <button type="button" class="lms-import-btn" id="lms-calendar-fetch">Connect &amp; set reminders</button>
                     <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-sync" hidden>Sync calendar again</button>
+                    <details class="lms-help" id="lms-ics-paste">
+                      <summary>Paste calendar text (if Connect fails)</summary>
+                      <p style="margin:8px 0;line-height:1.45">Open your Subscribe link in Safari. If you see raw text starting with <code>BEGIN:VCALENDAR</code>, copy all of it and paste below.</p>
+                      <textarea class="auth-input" id="lms-ics-text" rows="5" placeholder="BEGIN:VCALENDAR&#10;VERSION:2.0&#10;…" aria-label="Paste calendar text" style="width:100%;resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+                      <button type="button" class="lms-import-btn lms-sync-btn" id="lms-ics-paste-btn" style="margin-top:8px">Import pasted calendar</button>
+                    </details>
                     <details class="lms-help" id="lms-calendar-help">
                       <summary>Where do I find this link?</summary>
                       <ol id="lms-help-steps">
-                        <li><strong>D2L (MTSU):</strong> Calendar → Subscribe → copy the .ics / web calendar URL.</li>
-                        <li><strong>Canvas:</strong> Calendar → Calendar Feed → copy link.</li>
-                        <li>Paste above once. Tap Sync again each week for new deadlines.</li>
+                        <li><strong>D2L:</strong> Calendar → Subscribe → copy link (starts with webcal:// or https://).</li>
+                        <li><strong>Not PDF:</strong> Print/Save as PDF does not work here.</li>
+                        <li>If Connect hangs, use Paste calendar text above.</li>
                       </ol>
                     </details>
                     <details class="lms-help">
@@ -2701,6 +2707,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   </div>
                   <div class="assign-scan-toolbar">
                     <p class="assign-scan-status" id="lms-status">Sign in, paste your calendar link, then connect.</p>
+                    <button type="button" class="assign-scan-cancel" id="lms-calendar-cancel" hidden>Cancel</button>
                   </div>
                   <div class="assign-scan-preview" id="lms-preview" hidden>
                     <label>Latest sync</label>
@@ -2710,7 +2717,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
                 <div class="assign-scan" id="assign-scan">
                   <p class="assign-scan-title">Upload coursework</p>
-                  <p class="assign-scan-sub">Drop a PDF, photo, or screenshot from Canvas or email.</p>
+                  <p class="assign-scan-sub">One assignment or syllabus PDF — not your whole D2L calendar (use link above for that).</p>
                   <div class="assign-scan-actions">
                     <label class="assign-scan-btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
                       PDF
@@ -5342,9 +5349,14 @@ async function handleAssignmentScan(file) {
     toast(result.source === 'ai' && showedLocal ? 'Updated with more deadlines' : 'Deadlines found');
   } catch (err) {
     if (err.name === 'AbortError' || signal.aborted) return;
-    status.textContent = err.message || 'Could not read that file';
+    const msg = err.message || 'Could not read that file';
+    status.textContent = msg;
     setScanCancelVisible(true, 'clear');
-    toast(status.textContent, 4500);
+    if (/d2l|canvas|subscribe|\.ics/i.test(msg)) {
+      toast('Use calendar link above — not a photo', 3500);
+    } else {
+      toast('Photo scan failed — see message above', 2800);
+    }
   } finally {
     if (!signal.aborted) {
       setScanBusy(false);
@@ -5438,25 +5450,42 @@ function initLmsImport() {
 
   urlInput.addEventListener('input', () => updateLmsHelpSteps(urlInput.value));
 
+  let calendarAbort = null;
+
+  $('lms-calendar-cancel')?.addEventListener('click', () => {
+    if (calendarAbort) calendarAbort.abort();
+    $('lms-status').textContent = 'Cancelled. Try Paste calendar text below, or sync again.';
+    toast('Cancelled');
+  });
+
   async function runCalendarSync(buttonEl) {
-    const url = urlInput.value.trim();
+    let url = urlInput.value.trim();
+    url = window.LmsImport.normalizeCalendarUrl(url);
+    if (url && url !== urlInput.value.trim()) urlInput.value = url;
+
     if (!url) {
-      toast('Paste your D2L or Canvas calendar link first');
+      toast('Paste your D2L Subscribe link');
       return;
     }
     if (!currentUser) {
       toast('Sign in to connect your calendar');
       return;
     }
+    if (/\.pdf(\?|$)/i.test(url)) {
+      $('lms-status').textContent = 'That is a PDF link. In D2L use Calendar → Subscribe (.ics), not Print PDF.';
+      toast('Use Subscribe link or .ics file — not calendar PDF');
+      return;
+    }
     if (!window.LmsImport.isAllowedCalendarUrl(url)) {
-      $('lms-status').textContent = 'Use your D2L Brightspace or Canvas calendar subscribe link (https).';
-      toast('That link does not look like a school calendar feed');
+      $('lms-status').textContent = 'Use D2L Calendar → Subscribe link (webcal:// or https://…calendar.ics).';
+      toast('That link does not look like a calendar feed');
       return;
     }
 
     fetchBtn.disabled = true;
     if (syncBtn) syncBtn.disabled = true;
-    $('lms-status').textContent = 'Pulling deadlines from your school calendar…';
+    $('lms-calendar-cancel').hidden = false;
+    $('lms-status').textContent = 'Pulling deadlines… (up to 30 sec)';
 
     try {
       const assignments = await window.LmsImport.fetchCalendarFeed(url);
@@ -5494,15 +5523,45 @@ function initLmsImport() {
       }
     } catch (err) {
       $('lms-status').textContent = err.message || 'Could not sync calendar';
-      toast($('lms-status').textContent, 4500);
+      toast(/paste calendar text/i.test(err.message || '') ? 'Use Paste calendar text below' : 'Sync failed — see message', 3500);
     } finally {
       fetchBtn.disabled = false;
       if (syncBtn) syncBtn.disabled = false;
+      $('lms-calendar-cancel').hidden = true;
     }
   }
 
   fetchBtn?.addEventListener('click', () => runCalendarSync(fetchBtn));
   syncBtn?.addEventListener('click', () => runCalendarSync(syncBtn));
+
+  $('lms-ics-paste-btn')?.addEventListener('click', async () => {
+    const textEl = $('lms-ics-text');
+    const raw = textEl?.value?.trim() || '';
+    if (!raw) {
+      toast('Paste calendar text first');
+      return;
+    }
+    if (!currentUser) {
+      toast('Sign in first');
+      return;
+    }
+    $('lms-status').textContent = 'Reading pasted calendar…';
+    try {
+      const assignments = await window.LmsImport.importIcsText(raw);
+      if (!assignments.length) {
+        $('lms-status').textContent = 'No deadlines in that text.';
+        toast('No deadlines found');
+        return;
+      }
+      const result = addAssignmentsBatch(assignments);
+      $('lms-status').textContent = formatLmsSyncStatus(result.total, result.fresh.length, result.skipped);
+      toast(result.fresh.length ? `${result.fresh.length} reminders set` : 'Already synced');
+      if (textEl) textEl.value = '';
+    } catch (err) {
+      $('lms-status').textContent = err.message || 'Could not read pasted calendar';
+      toast($('lms-status').textContent, 4500);
+    }
+  });
 }
 
 initLmsImport();
