@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=64"></script>
-  <script src="auth-captcha.js?v=64"></script>
+  <script src="config.js?v=65"></script>
+  <script src="auth-captcha.js?v=65"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=64"></script>
-  <script src="supabase-assignments.js?v=64"></script>
-  <script src="assignment-scan.js?v=64"></script>
-  <script src="lms-import.js?v=64"></script>
-  <script src="stay-ahead-planning.js?v=64"></script>
-  <script src="quiet-reminder-copy.js?v=64"></script>
-  <script src="push-notifications.js?v=64"></script>
-  <script src="sw-update.js?v=64"></script>
+  <script src="supabase-sessions.js?v=65"></script>
+  <script src="supabase-assignments.js?v=65"></script>
+  <script src="assignment-scan.js?v=65"></script>
+  <script src="lms-import.js?v=65"></script>
+  <script src="stay-ahead-planning.js?v=65"></script>
+  <script src="quiet-reminder-copy.js?v=65"></script>
+  <script src="push-notifications.js?v=65"></script>
+  <script src="sw-update.js?v=65"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -5486,7 +5486,11 @@ function initLmsImport() {
   const urlInput = $('lms-calendar-url');
   const fetchBtn = $('lms-calendar-fetch');
   const syncBtn = $('lms-calendar-sync');
-  if (!urlInput || !window.LmsImport) return;
+  if (!urlInput || !window.LmsImport) {
+    const statusEl = $('lms-status');
+    if (statusEl) statusEl.textContent = 'Calendar import failed to load — hard refresh (Cmd+Shift+R).';
+    return;
+  }
 
   if (!window.LmsImport.extractCalendarUrl || !window.LmsImport.fetchCalendarFeed) {
     const statusEl = $('lms-status');
