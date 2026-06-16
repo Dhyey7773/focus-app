@@ -103,7 +103,7 @@
   };
 
   const SESSION_LABELS = {
-    essay: ["Research", "Outline", "Draft", "Revise", "Final pass"],
+    essay: ["Read prompt", "Find sources", "Outline", "Introduction", "Body paragraphs", "Revision"],
     project: ["Plan", "Build", "Draft", "Polish", "Submit prep"],
     lab: ["Read & prep", "Data collection", "Analysis", "Write-up"],
     reading: ["Skim & notes", "Deep read", "Review"],
@@ -940,6 +940,158 @@
     return plans.map((p) => ({ ...p, source: "local" }));
   }
 
+  function buildTodayWorkload(plans, now = new Date()) {
+    const todayMs = startOfDay(now).getTime();
+    const items = [];
+
+    for (const plan of plans || []) {
+      if (!plan?.assignment || plan.assignment.completed) continue;
+      for (const session of plan.sessions || []) {
+        if (!session.date || startOfDay(session.date).getTime() !== todayMs) continue;
+        const task = session.tasks?.[0];
+        items.push({
+          assignmentId: plan.assignmentId,
+          assignment: plan.assignment,
+          title: plan.assignment.title,
+          course: plan.assignment.course || "",
+          minutes: task?.minutes || Math.min(60, Number(plan.assignment.estimatedMinutes) || 45),
+          stepLabel: task?.label || "Work session",
+          priorityLevel: plan.priorityLevel || "Medium",
+          risk: plan.risk,
+          plan
+        });
+      }
+    }
+
+    const rank = { High: 0, Medium: 1, Low: 2 };
+    items.sort((a, b) => (rank[a.priorityLevel] ?? 2) - (rank[b.priorityLevel] ?? 2));
+
+    const totalMinutes = items.reduce((sum, item) => sum + item.minutes, 0);
+    return {
+      items,
+      totalMinutes,
+      totalLabel: formatEffort(totalMinutes)
+    };
+  }
+
+  function getTodaySession(plan, now = new Date()) {
+    const todayMs = startOfDay(now).getTime();
+    for (const session of plan?.sessions || []) {
+      if (session.date && startOfDay(session.date).getTime() === todayMs) return session;
+    }
+    return null;
+  }
+
+  function buildPlanReminderCopy(plan, now = new Date()) {
+    const session = getTodaySession(plan, now);
+    if (!session) return null;
+    const task = session.tasks?.[0];
+    const mins = task?.minutes || 20;
+    const name = plan.assignment.title || "your assignment";
+    const step = (task?.label || "work on it").toLowerCase();
+    return {
+      kicker: "Today's plan",
+      title: "Quiet",
+      body: `Spend ${mins} minutes on ${name} — ${step}.`,
+      modalHint: "Start a focus block?"
+    };
+  }
+
+  function shouldShowPlanReminder(plan, assignment, now = new Date()) {
+    if (!plan || !assignment || assignment.completed) return false;
+    if (!getTodaySession(plan, now)) return false;
+    const shown = assignment.remindersShown || {};
+    if (shown.planToday) return false;
+    const hour = now.getHours();
+    return hour >= 16 || hour <= 11;
+  }
+
+  const CAMPUS_RESOURCES = [
+    {
+      match: (type, text) =>
+        type === "essay" || /writ|paper|essay|report/.test(text),
+      label: "Writing Center",
+      url: "https://www.mtsu.edu/writing-center/",
+      reasonEarly: "Outline or draft feedback early.",
+      reasonLate: "Get help before this stacks up."
+    },
+    {
+      match: (type, text) =>
+        type === "quiz" || type === "homework" || /math|calc|stat|algebra|physic/.test(text),
+      label: "Tutoring Center",
+      url: "https://www.mtsu.edu/tutoring/",
+      reasonEarly: "Walk-in help for problem sets.",
+      reasonLate: "Catch up before the next assignment."
+    },
+    {
+      match: (_type, text) => /speech|comm|present|rhetoric/.test(text),
+      label: "Speech Center",
+      url: "https://www.mtsu.edu/speech-center/",
+      reasonEarly: "Practice before you present.",
+      reasonLate: "Get feedback before presentation day."
+    },
+    {
+      match: (_type, text) => /cs\b|comp|program|code|java|python|c\+\+/.test(text),
+      label: "CS tutoring",
+      url: "https://www.mtsu.edu/programs/computer-science/",
+      reasonEarly: "Peer help for programming courses.",
+      reasonLate: "Debug help before the deadline."
+    }
+  ];
+
+  function recommendCampusResource(assignment, now = new Date()) {
+    if (!assignment) return null;
+    const type = classifyAssignmentType(assignment);
+    const text = `${assignment.title || ""} ${assignment.course || ""}`.toLowerCase();
+    const overdue = (new Date(assignment.dueAt) - now) < 0;
+    for (const resource of CAMPUS_RESOURCES) {
+      if (!resource.match(type, text)) continue;
+      return {
+        label: resource.label,
+        url: resource.url,
+        reason: overdue ? resource.reasonLate : resource.reasonEarly
+      };
+    }
+    return null;
+  }
+
+  function weekendOverloadWarning(plans, schedule, now = new Date()) {
+    const sets = getScheduleSets(schedule);
+    const saturday = 6;
+    let saturdayMinutes = 0;
+    const todayMs = startOfDay(now).getTime();
+
+    for (const plan of plans || []) {
+      if (!plan?.assignment || plan.assignment.completed) continue;
+      for (const session of plan.sessions || []) {
+        if (!session.date) continue;
+        const sessionMs = startOfDay(session.date).getTime();
+        if (session.date.getDay() !== saturday || sessionMs <= todayMs) continue;
+        saturdayMinutes += session.tasks?.[0]?.minutes || 0;
+      }
+    }
+
+    if (saturdayMinutes < 180) return null;
+    const label = formatEffort(saturdayMinutes);
+    const worksSaturday = sets.work.has(saturday);
+    return {
+      minutes: saturdayMinutes,
+      label,
+      message: worksSaturday
+        ? `At this pace you'll have ${label} of work on Saturday — and you work that day. Spread some tasks earlier in My schedule.`
+        : `At this pace you'll have ${label} of work on Saturday. Spread tasks across the week in My schedule.`
+    };
+  }
+
+  function buildTrackStatus(workload, warning) {
+    if (warning) return warning.message;
+    if (!workload.items.length) return "Nothing scheduled for today — you're ahead.";
+    const total = workload.totalMinutes;
+    if (total <= 90) return "You're on track.";
+    if (total <= 150) return "Full day — start with the first task.";
+    return "Heavy day — do the first block, then reassess.";
+  }
+
   window.StayAheadPlanning = {
     DAY_LABELS,
     DAY_NAMES,
@@ -964,6 +1116,13 @@
     buildWeeklySummary,
     isAheadOfSchedule,
     isDueThisWeek,
-    priorityLevel
+    priorityLevel,
+    buildTodayWorkload,
+    getTodaySession,
+    buildPlanReminderCopy,
+    shouldShowPlanReminder,
+    recommendCampusResource,
+    weekendOverloadWarning,
+    buildTrackStatus
   };
 })();
