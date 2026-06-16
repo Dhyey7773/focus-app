@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=65"></script>
-  <script src="auth-captcha.js?v=65"></script>
+  <script src="config.js?v=67"></script>
+  <script src="auth-captcha.js?v=67"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=65"></script>
-  <script src="supabase-assignments.js?v=65"></script>
-  <script src="assignment-scan.js?v=65"></script>
-  <script src="lms-import.js?v=65"></script>
-  <script src="stay-ahead-planning.js?v=65"></script>
-  <script src="quiet-reminder-copy.js?v=65"></script>
-  <script src="push-notifications.js?v=65"></script>
-  <script src="sw-update.js?v=65"></script>
+  <script src="supabase-sessions.js?v=67"></script>
+  <script src="supabase-assignments.js?v=67"></script>
+  <script src="assignment-scan.js?v=67"></script>
+  <script src="lms-import.js?v=67"></script>
+  <script src="stay-ahead-planning.js?v=67"></script>
+  <script src="quiet-reminder-copy.js?v=67"></script>
+  <script src="push-notifications.js?v=67"></script>
+  <script src="sw-update.js?v=67"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -949,6 +949,111 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   min-height:40px;
   font-size:13px;
 }
+.home-greeting-line {
+  font-family:var(--font-serif, Georgia, serif);
+  font-size:22px;
+  font-weight:400;
+  color:var(--text);
+  margin:0 0 14px;
+  text-align:left;
+  width:100%;
+}
+.home-today-plan {
+  width:100%;
+  margin-bottom:16px;
+  padding:16px;
+  border-radius:16px;
+  background:var(--panel-2);
+  border:1px solid var(--line-2);
+  text-align:left;
+}
+.home-workload-total {
+  font-size:28px;
+  font-weight:600;
+  color:var(--text);
+  margin:4px 0 12px;
+  letter-spacing:-0.02em;
+}
+.home-workload-list {
+  list-style:none;
+  margin:0 0 12px;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.home-workload-item {
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+}
+.home-workload-item.high { border-color:rgba(255,120,120,.25); }
+.home-workload-item.medium { border-color:rgba(255,207,112,.22); }
+.home-workload-item.low { border-color:rgba(148,218,177,.18); }
+.home-workload-dot { font-size:10px; line-height:1.6; flex-shrink:0; }
+.home-workload-body { flex:1; min-width:0; }
+.home-workload-title {
+  font-size:13px;
+  font-weight:520;
+  color:var(--text);
+  margin:0 0 2px;
+  line-height:1.35;
+}
+.home-workload-step {
+  font-size:11px;
+  color:var(--muted);
+  margin:0;
+  line-height:1.4;
+}
+.home-workload-mins {
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted-2);
+  flex-shrink:0;
+  margin-top:2px;
+}
+.home-track-status {
+  font-size:12px;
+  line-height:1.45;
+  color:var(--mint);
+  margin:0 0 12px;
+}
+.home-track-status.is-warn { color:var(--warning); }
+.home-campus-tip {
+  font-size:11px;
+  line-height:1.45;
+  color:var(--muted);
+  margin:0 0 12px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:rgba(148,218,177,.06);
+  border:1px solid rgba(148,218,177,.15);
+}
+.home-campus-tip a { color:var(--mint); text-decoration:none; }
+.home-campus-tip a:hover { text-decoration:underline; }
+.home-today-btn {
+  width:100%;
+  min-height:48px;
+  font-size:15px;
+  margin-bottom:8px;
+}
+.home-setup-link {
+  display:block;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  text-decoration:none;
+}
+.home-setup-link:hover { color:var(--muted-2); }
+.home-empty {
+  width:100%;
+  text-align:left;
+}
+.home-empty .primary { width:100%; min-height:46px; margin-top:12px; }
 .home-content {
   width:100%;
   flex-shrink:0;
@@ -1438,6 +1543,17 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   cursor:pointer;
 }
 .lms-import-btn:disabled { opacity:.5; cursor:not-allowed; }
+.lms-pwa-notice {
+  margin:10px 0 0;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(148,218,177,0.28);
+  background:rgba(148,218,177,0.08);
+  color:var(--muted-2);
+  font-size:12px;
+  line-height:1.45;
+}
+.lms-pwa-notice strong { color:var(--mint); }
 .lms-sync-btn {
   margin-top:8px;
   background:rgba(255,255,255,.05);
@@ -2474,24 +2590,28 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               </div>
 
               <div class="home-content">
-                <h2 class="home-quiet-title">Hi, I'm Quiet.</h2>
-                <p class="home-quiet-copy" id="quiet-intro">Upload your coursework and I'll help you stay ahead — deadlines, priorities, and reminders.</p>
+                <h2 class="home-greeting-line" id="home-greeting-line">Good evening 👋</h2>
 
-                <div class="home-summary" id="home-summary" aria-live="polite">
-                  <p id="home-tasks-line" hidden>No tasks due soon.</p>
-                  <p id="home-streak-line" hidden>Start your first focus session today.</p>
+                <div class="home-today-plan" id="home-today-plan" hidden>
+                  <p class="meta-label">Today's workload</p>
+                  <p class="home-workload-total" id="home-workload-total">0 min</p>
+                  <ul class="home-workload-list" id="home-workload-list" aria-live="polite"></ul>
+                  <p class="home-track-status" id="home-track-status">You're on track.</p>
+                  <p class="home-campus-tip" id="home-campus-tip" hidden></p>
+                  <button class="primary home-today-btn" type="button" id="home-today-btn">Start today's plan</button>
+                  <a class="home-setup-link" href="#" id="home-setup-link">Set work &amp; class days →</a>
                 </div>
 
-                <div class="home-suggested" id="home-suggested" hidden>
-                  <p class="meta-label">Work on first</p>
-                  <p class="home-suggested-title" id="home-suggested-title"></p>
-                  <p class="home-suggested-copy" id="home-suggested-copy"></p>
-                  <button type="button" class="secondary home-suggested-btn" id="home-suggested-btn">Start focus block</button>
+                <div class="home-empty" id="home-empty">
+                  <p class="home-quiet-copy" id="quiet-intro">Canvas shows what's due. Quiet tells you what to do today.</p>
+                  <button class="primary" type="button" id="home-add-work-btn">Add your coursework</button>
                 </div>
 
-                <button class="primary home-start-btn" type="button" id="home-start-btn">Start focus session</button>
+                <div class="home-suggested" id="home-suggested" hidden aria-hidden="true"></div>
 
-                <div class="home-streak-block">
+                <button class="primary home-start-btn" type="button" id="home-start-btn" hidden>Start focus session</button>
+
+                <div class="home-streak-block" id="home-streak-block" hidden>
                   <div class="home-streak-pill" aria-label="Focus streak">
                     <span>Streak</span>
                     <strong id="streak-count">0</strong>
@@ -2500,7 +2620,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div class="home-streak-days" id="streak-days" aria-label="Last seven days"></div>
                 </div>
 
-                <p class="home-quiet-motto">Stay ahead of deadlines <strong>before they become emergencies.</strong></p>
+                <p class="home-quiet-motto">Open for a minute. <strong>Close it and do the work.</strong></p>
               </div>
             </div>
           </section>
@@ -2600,9 +2720,9 @@ button:disabled { cursor:not-allowed; opacity:.42; }
           <section class="page" id="page-assignments" aria-label="Assignments">
             <div class="week-founder-block" id="week-founder-block" hidden>
               <header class="week-header">
-                <p class="meta-label">This week</p>
+                <p class="meta-label">Your plan</p>
                 <h2 class="week-title">What should I work on?</h2>
-                <p class="week-sub">One clear pick for today — then what’s next, and what can wait.</p>
+                <p class="week-sub">Quiet spreads work across your week — not everything at once.</p>
               </header>
 
               <div class="week-summary" id="week-summary" hidden aria-live="polite">
@@ -2637,22 +2757,22 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <div id="schedule-editor"></div>
                   <div class="stay-ahead-actions">
                     <button type="button" class="secondary" id="save-schedule-btn">Save schedule</button>
-                    <button type="button" class="ghost" id="refresh-plans-btn">Refresh with AI</button>
+                    <button type="button" class="ghost" id="refresh-plans-btn" hidden>Refresh with AI (Pro)</button>
                   </div>
                 </div>
               </details>
             </div>
 
             <header class="assign-header" id="assign-basic-header">
-              <p class="meta-label">Deadlines</p>
-              <p class="assign-title">Assignments</p>
-              <p class="assign-sub">Upload coursework or add deadlines manually. Quiet reminds you before things are due.</p>
+              <p class="meta-label">Setup</p>
+              <p class="assign-title">Add coursework</p>
+              <p class="assign-sub">Import from D2L once. Quiet builds your daily plan — Canvas shows what's due, Quiet shows what to do today.</p>
             </header>
 
             <div class="push-card" id="push-card">
               <div class="push-card-copy">
-                <strong>Phone reminders</strong>
-                <p id="push-status">Reminders at 24h, 6h, and 1h before each deadline — even when Quiet is closed.</p>
+                <strong>Gentle nudges</strong>
+                <p id="push-status">Quiet tells you when to start — not just when things are due.</p>
               </div>
               <div class="push-card-actions">
                 <button type="button" class="secondary" id="push-enable-btn">Enable</button>
@@ -2681,16 +2801,20 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <div class="assign-lms" id="assign-lms">
                   <span class="lms-badge">One link · all reminders</span>
                   <p class="assign-scan-title">Connect Canvas or D2L calendar</p>
-                  <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link. Works now via <strong>Open feed → copy → paste</strong> below.</p>
+                  <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link once — reminders stay on automatically.</p>
+                  <div class="lms-pwa-notice" id="lms-pwa-notice" hidden>
+                    <strong>Use the installed app</strong> for reliable D2L calendar sync. In Chrome: ⋮ menu → <strong>Install Quiet Focus</strong> (or the install icon in the address bar). Browser tab can still paste calendar text below.
+                  </div>
                   <div class="lms-panel" id="lms-panel-calendar" role="tabpanel">
                     <input class="lms-url-input" id="lms-calendar-url" type="text" inputmode="url" autocomplete="off" placeholder="https://elearn.mscc.edu/d2l/…/feed.ics?token=…" aria-label="Calendar feed URL">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
                       <button type="button" class="lms-import-btn" id="lms-open-feed" style="flex:1;min-width:140px">Open feed in new tab</button>
-                      <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-fetch" style="flex:1;min-width:140px">Connect &amp; set reminders</button>
+                      <button type="button" class="lms-import-btn" id="lms-calendar-fetch" style="flex:1;min-width:140px">Connect &amp; set reminders</button>
+                      <button type="button" class="lms-import-btn" id="lms-install-app" hidden style="flex:1;min-width:140px">Install app to sync calendar</button>
                     </div>
                     <button type="button" class="lms-import-btn lms-sync-btn" id="lms-calendar-sync" hidden>Sync calendar again</button>
                     <details class="lms-help" id="lms-ics-paste" open>
-                      <summary><strong>Step 2:</strong> Paste calendar text here (works today)</summary>
+                      <summary><strong>Browser fallback:</strong> paste calendar text here</summary>
                       <p style="margin:8px 0;line-height:1.45">After Open feed: select all text (starts with <code>BEGIN:VCALENDAR</code>), copy, paste below, tap Import.</p>
                       <textarea class="auth-input" id="lms-ics-text" rows="6" placeholder="BEGIN:VCALENDAR&#10;VERSION:2.0&#10;…" aria-label="Paste calendar text" style="width:100%;resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
                       <button type="button" class="lms-import-btn" id="lms-ics-paste-btn" style="margin-top:8px">Import pasted calendar</button>
@@ -3557,6 +3681,10 @@ function resolveUserEmail(user) {
   return user?.email?.trim() || user?.user_metadata?.email?.trim() || '';
 }
 
+function canUseStayAhead() {
+  return !!(currentUser && window.StayAheadPlanning && pendingAssignments().length);
+}
+
 function isFounderUser() {
   if (window.StayAheadPlanning?.isFounder) {
     return window.StayAheadPlanning.isFounder(currentUser);
@@ -3630,7 +3758,7 @@ function readScheduleFromEditor() {
 }
 
 function saveScheduleFromEditor() {
-  if (!isFounderUser() || !window.StayAheadPlanning) return;
+  if (!canUseStayAhead() || !window.StayAheadPlanning) return;
   window.StayAheadPlanning.saveScheduleToProfile(profile, readScheduleFromEditor());
   saveProfile();
   refreshStayAheadPlans(false);
@@ -3638,7 +3766,7 @@ function saveScheduleFromEditor() {
 }
 
 function rebuildStayAheadPlans() {
-  if (!isFounderUser() || !window.StayAheadPlanning) {
+  if (!canUseStayAhead() || !window.StayAheadPlanning) {
     stayAheadPlans = [];
     stayAheadPlansHydrated = false;
     return;
@@ -3651,7 +3779,7 @@ function rebuildStayAheadPlans() {
 }
 
 async function refreshStayAheadPlans(useAi = false) {
-  if (!isFounderUser() || !window.StayAheadPlanning) return;
+  if (!canUseStayAhead() || !window.StayAheadPlanning) return;
   if (stayAheadBusy) return;
 
   stayAheadBusy = true;
@@ -3679,7 +3807,7 @@ async function refreshStayAheadPlans(useAi = false) {
 
   renderWeeklyPlanner();
   renderAssignmentLists();
-  renderHomeSuggested();
+  renderHomeTodayPlan();
 }
 
 function riskClass(risk) {
@@ -3708,7 +3836,7 @@ function renderWeeklyRecCard(plan, { ahead = false } = {}) {
     : (plan.reason ? [plan.reason] : []);
 
   const effortText = plan.effortLabel || plan.taskLabel || '';
-  const founder = isFounderUser();
+  const hasPlanning = canUseStayAhead();
   const startDay = plan.startDayNames?.[0] || plan.days?.[0]
     ? window.StayAheadPlanning?.DAY_NAMES?.[plan.days[0].dow]
     : null;
@@ -3733,7 +3861,7 @@ function renderWeeklyRecCard(plan, { ahead = false } = {}) {
     </div>
     <div class="week-rec-actions">
       ${ahead ? '' : '<button type="button" class="primary week-rec-start-btn">Start focus</button>'}
-      ${founder && !ahead ? '<button type="button" class="secondary week-rec-how-btn">How do I start?</button>' : ''}
+      ${hasPlanning && !ahead ? '<button type="button" class="secondary week-rec-how-btn">How do I start?</button>' : ''}
     </div>
   `;
 
@@ -3901,44 +4029,36 @@ function getStayAheadPlanForAssignment(assignmentId) {
   return stayAheadPlans.find(p => p.assignmentId === assignmentId) || null;
 }
 
-function toggleFounderFeatures() {
-  const founder = isFounderUser();
-  const founderBlock = $('week-founder-block');
+function syncPlanningUI() {
+  const hasPlanning = canUseStayAhead();
+  const weekBlock = $('week-founder-block');
   const basicHeader = $('assign-basic-header');
   const allTasksPanel = $('all-tasks-panel');
   const hint = $('founder-hint');
+  const aiBtn = $('refresh-plans-btn');
 
-  if (founderBlock) founderBlock.hidden = !founder;
-  if (basicHeader) basicHeader.hidden = founder;
+  if (weekBlock) weekBlock.hidden = !hasPlanning;
+  if (basicHeader) basicHeader.hidden = hasPlanning;
+  if (aiBtn) aiBtn.hidden = !isFounderUser();
 
   if (allTasksPanel) {
-    if (founder) allTasksPanel.removeAttribute('open');
+    if (hasPlanning) allTasksPanel.removeAttribute('open');
     else allTasksPanel.setAttribute('open', '');
   }
 
   if (hint) {
-    if (founder && !window.StayAheadPlanning) {
-      hint.textContent = 'Planning failed to load. Hard refresh, or re-upload stay-ahead-planning.js.';
+    if (currentUser && !window.StayAheadPlanning) {
+      hint.textContent = 'Daily planning failed to load — hard refresh the page.';
       hint.hidden = false;
-    } else if (currentUser && !founder) {
-      const email = resolveUserEmail(currentUser) || 'unknown';
-      if (email.toLowerCase() === 'quietfocusai@gmail.com') {
-        hint.textContent =
-          'Founder email recognized, but weekly planning failed to load. Hard refresh, or re-upload config.js and stay-ahead-planning.js.';
-      } else {
-        hint.textContent =
-          'Weekly planning is founder-only preview. Sign in with quietfocusai@gmail.com to try it.';
-      }
-      hint.hidden = false;
-    } else if (!founder && !currentUser) {
-      hint.textContent = 'Weekly planning is a founder preview — sign in to try it.';
+    } else if (!currentUser && pendingAssignments().length) {
+      hint.textContent = 'Sign in to save your daily plan across devices.';
       hint.hidden = false;
     } else {
       hint.hidden = true;
     }
   }
 
-  if (founder) {
+  if (hasPlanning) {
     renderScheduleEditor();
     if (!stayAheadPlansHydrated) void refreshStayAheadPlans(false);
     else {
@@ -3949,8 +4069,12 @@ function toggleFounderFeatures() {
     stayAheadPlans = [];
     stayAheadPlansHydrated = false;
     renderAssignmentLists();
-    renderHomeSuggested();
   }
+  renderHomeTodayPlan();
+}
+
+function toggleFounderFeatures() {
+  syncPlanningUI();
 }
 
 function hideHowToStartModal() {
@@ -3962,7 +4086,7 @@ function hideHowToStartModal() {
 }
 
 async function openHowToStartModal(assignment) {
-  if (!assignment || !isFounderUser()) return;
+  if (!assignment || !window.StayAheadPlanning) return;
 
   const modal = $('how-start-modal');
   const stepsEl = $('how-start-steps');
@@ -4065,8 +4189,134 @@ function prioritizedPendingAssignments() {
 }
 
 function getSuggestedNextAssignment() {
-  if (isFounderUser() && stayAheadPlans.length) return stayAheadPlans[0].assignment;
+  if (canUseStayAhead() && stayAheadPlans.length) return stayAheadPlans[0].assignment;
   return prioritizedPendingAssignments()[0] || null;
+}
+
+function workloadPriorityClass(level) {
+  if (level === 'High') return 'high';
+  if (level === 'Low') return 'low';
+  return 'medium';
+}
+
+function workloadDot(level) {
+  if (level === 'High') return '🔴';
+  if (level === 'Low') return '🟢';
+  return '🟡';
+}
+
+function renderHomeTodayPlan() {
+  const planWrap = $('home-today-plan');
+  const emptyWrap = $('home-empty');
+  const greeting = $('home-greeting-line');
+  const streakBlock = $('home-streak-block');
+  if (!planWrap || !emptyWrap) return;
+
+  if (greeting) greeting.textContent = `${nowGreeting()} 👋`;
+
+  if (!canUseStayAhead() || !window.StayAheadPlanning) {
+    planWrap.hidden = true;
+    emptyWrap.hidden = false;
+    if (streakBlock) streakBlock.hidden = true;
+    const intro = $('quiet-intro');
+    if (intro) {
+      intro.textContent = pendingAssignments().length
+        ? 'Sign in so Quiet can build your daily plan.'
+        : 'Canvas shows what\'s due. Quiet tells you what to do today — paste your D2L link once.';
+    }
+    return;
+  }
+
+  if (!stayAheadPlansHydrated) rebuildStayAheadPlans();
+
+  const workload = window.StayAheadPlanning.buildTodayWorkload(stayAheadPlans);
+  const warning = window.StayAheadPlanning.weekendOverloadWarning(
+    stayAheadPlans,
+    getStayAheadSchedule()
+  );
+  const listEl = $('home-workload-list');
+  const totalEl = $('home-workload-total');
+  const statusEl = $('home-track-status');
+  const campusEl = $('home-campus-tip');
+  const todayBtn = $('home-today-btn');
+  const setupLink = $('home-setup-link');
+
+  if (!workload.items.length && !stayAheadPlans.length) {
+    planWrap.hidden = true;
+    emptyWrap.hidden = false;
+    if (streakBlock) streakBlock.hidden = true;
+    return;
+  }
+
+  planWrap.hidden = false;
+  emptyWrap.hidden = true;
+  if (streakBlock) streakBlock.hidden = true;
+
+  if (totalEl) totalEl.textContent = workload.totalLabel || '0 min';
+
+  if (listEl) {
+    listEl.innerHTML = '';
+    const show = workload.items.length ? workload.items : stayAheadPlans.slice(0, 3).map(p => ({
+      title: p.assignment.title,
+      course: p.assignment.course,
+      minutes: Math.min(45, Number(p.assignment.estimatedMinutes) || 45),
+      stepLabel: p.startHeadline || 'Start soon',
+      priorityLevel: p.priorityLevel || 'Medium',
+      assignment: p.assignment
+    }));
+
+    show.slice(0, 5).forEach(item => {
+      const li = document.createElement('li');
+      li.className = `home-workload-item ${workloadPriorityClass(item.priorityLevel)}`;
+      li.innerHTML = `
+        <span class="home-workload-dot" aria-hidden="true">${workloadDot(item.priorityLevel)}</span>
+        <div class="home-workload-body">
+          <p class="home-workload-title"></p>
+          <p class="home-workload-step"></p>
+        </div>
+        <span class="home-workload-mins"></span>`;
+      li.querySelector('.home-workload-title').textContent = item.title;
+      li.querySelector('.home-workload-step').textContent = item.stepLabel;
+      li.querySelector('.home-workload-mins').textContent = `${item.minutes} min`;
+      li.addEventListener('click', () => startFocusFromAssignment(item.assignment));
+      listEl.appendChild(li);
+    });
+  }
+
+  if (statusEl) {
+    statusEl.textContent = window.StayAheadPlanning.buildTrackStatus(workload, warning);
+    statusEl.classList.toggle('is-warn', !!warning);
+  }
+
+  const topAssignment = getSuggestedNextAssignment();
+  const resource = topAssignment
+    ? window.StayAheadPlanning.recommendCampusResource(topAssignment)
+    : null;
+  if (campusEl) {
+    if (resource) {
+      campusEl.hidden = false;
+      campusEl.innerHTML = `${resource.reason} <a href="${resource.url}" target="_blank" rel="noopener noreferrer">${resource.label}</a>`;
+    } else {
+      campusEl.hidden = true;
+    }
+  }
+
+  if (todayBtn) {
+    const first = workload.items[0]?.assignment || topAssignment;
+    todayBtn.onclick = () => {
+      if (first) startFocusFromAssignment(first);
+      else showPage('assignments');
+    };
+    todayBtn.textContent = first ? `Start ${workload.items[0]?.minutes || pickDurationForAssignment(first)}-min block` : 'View your plan';
+  }
+
+  if (setupLink) {
+    setupLink.onclick = (e) => {
+      e.preventDefault();
+      showPage('assignments');
+      $('schedule-panel')?.setAttribute('open', '');
+    };
+  }
 }
 
 function formatDueDayLabel(dueAt) {
@@ -4114,23 +4364,7 @@ function buildSuggestedNextCopy(assignment) {
 }
 
 function renderHomeSuggested() {
-  const wrap = $('home-suggested');
-  const next = getSuggestedNextAssignment();
-  if (!wrap) return;
-
-  if (!next) {
-    wrap.hidden = true;
-    return;
-  }
-
-  const msg = buildSuggestedNextCopy(next);
-  $('home-suggested-title').textContent = msg.title;
-  $('home-suggested-copy').textContent = msg.copy;
-  $('home-suggested-btn').textContent = `Start ${pickDurationForAssignment(next)}-min block`;
-  wrap.hidden = false;
-
-  const btn = $('home-suggested-btn');
-  btn.onclick = () => startFocusFromAssignment(next);
+  renderHomeTodayPlan();
 }
 
 function getDueStatus(assignment) {
@@ -4161,15 +4395,18 @@ function formatDueRelative(dueAt) {
 
 function primeRemindersForAssignment(assignment) {
   const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  const plan = getStayAheadPlanForAssignment(assignment.id);
+  const hasPlanToday = !!(plan && window.StayAheadPlanning?.getTodaySession?.(plan));
   if (hours < 0) {
-    assignment.remindersShown = { h24: true, h6: true, h1: true, overdue: false };
+    assignment.remindersShown = { h24: true, h6: true, h1: true, overdue: false, planToday: true };
     return;
   }
   assignment.remindersShown = {
     h24: hours > 24,
     h6: hours > 6,
     h1: hours > 1,
-    overdue: true
+    overdue: true,
+    planToday: !hasPlanToday
   };
 }
 
@@ -4180,8 +4417,16 @@ function ensureRemindersShown(assignment) {
 function getActiveReminderMilestone(assignment) {
   if (!assignment || assignment.completed) return null;
   ensureRemindersShown(assignment);
-  const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
+  const plan = getStayAheadPlanForAssignment(assignment.id);
   const shown = assignment.remindersShown;
+  if (
+    plan &&
+    window.StayAheadPlanning?.shouldShowPlanReminder?.(plan, assignment) &&
+    !shown.planToday
+  ) {
+    return 'planToday';
+  }
+  const hours = (new Date(assignment.dueAt) - Date.now()) / 3600000;
   if (hours < 0 && !shown.overdue) return 'overdue';
   if (hours <= 1 && !shown.h1) return 'h1';
   if (hours <= 6 && !shown.h6) return 'h6';
@@ -4369,7 +4614,7 @@ function startFocusFromAssignment(assignment) {
 function renderAssignmentCard(assignment, { showActions = true } = {}) {
   const status = getDueStatus(assignment);
   const plan = getStayAheadPlanForAssignment(assignment.id);
-  const founder = isFounderUser();
+  const hasPlanning = canUseStayAhead();
   const card = document.createElement('div');
   card.className = 'assign-card';
   if (assignment.completed) card.classList.add('is-done');
@@ -4390,12 +4635,12 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
       <span class="assign-badge ${badgeClass}"></span>
     </div>
     <p class="assign-meta"></p>
-    ${plan && founder && !assignment.completed ? `<p class="assign-plan-note"></p>` : ''}
+    ${plan && hasPlanning && !assignment.completed ? `<p class="assign-plan-note"></p>` : ''}
     ${showActions && !assignment.completed ? `
-      <div class="assign-actions${founder ? ' has-founder' : ''}">
+      <div class="assign-actions${hasPlanning ? ' has-founder' : ''}">
         <button type="button" class="primary assign-start">Start focus</button>
         <button type="button" class="secondary assign-done">Mark done</button>
-        ${founder ? '<button type="button" class="secondary assign-how-start">How do I start?</button>' : ''}
+        ${hasPlanning ? '<button type="button" class="secondary assign-how-start">How do I start?</button>' : ''}
       </div>` : ''}
   `;
 
@@ -4405,7 +4650,7 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
   card.querySelector('.assign-meta').textContent =
     `${formatDueDateTime(assignment.dueAt)} · Est. ${assignment.estimatedMinutes} min`;
 
-  if (plan && founder && !assignment.completed) {
+  if (plan && hasPlanning && !assignment.completed) {
     const note = card.querySelector('.assign-plan-note');
     if (note) {
       note.innerHTML = `<strong>${plan.startHeadline || 'Recommended start: Soon'}</strong>${plan.startReason || plan.reason || ''}`;
@@ -4452,12 +4697,12 @@ function renderAssignmentLists() {
 }
 
 function renderAssignments() {
-  if (isFounderUser()) {
+  if (canUseStayAhead()) {
     rebuildStayAheadPlans();
     renderWeeklyPlanner();
   }
   renderAssignmentLists();
-  renderHomeSuggested();
+  renderHomeTodayPlan();
 }
 
 function renderTasksDueBanner() {}
@@ -4484,7 +4729,11 @@ function showReminderModal(assignment) {
   setQuietMood('reminder');
 
   const modal = $('reminder-modal');
-  const msg = window.QuietReminderCopy?.build({
+  const plan = getStayAheadPlanForAssignment(assignment.id);
+  const msg = milestone === 'planToday' && plan
+    ? (window.StayAheadPlanning?.buildPlanReminderCopy?.(plan) || null)
+    : null;
+  const fallback = window.QuietReminderCopy?.build({
     title: assignment.title,
     course: assignment.course,
     dueAt: assignment.dueAt,
@@ -4495,17 +4744,18 @@ function showReminderModal(assignment) {
     body: `${formatDueRelative(assignment.dueAt)}.`,
     modalHint: 'Start a focus session?'
   };
-  $('reminder-label').textContent = msg.kicker;
-  $('reminder-title').textContent = msg.title;
-  $('reminder-copy').textContent = msg.modalHint
-    ? `${msg.body} ${msg.modalHint}`
-    : msg.body;
+  const finalMsg = msg || fallback;
+  $('reminder-label').textContent = finalMsg.kicker;
+  $('reminder-title').textContent = finalMsg.title;
+  $('reminder-copy').textContent = finalMsg.modalHint
+    ? `${finalMsg.body} ${finalMsg.modalHint}`
+    : finalMsg.body;
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('is-visible'));
 
   window.PushReminders?.showLocalReminder?.({
-    title: msg.title,
-    body: msg.body,
+    title: finalMsg.title,
+    body: finalMsg.body,
     tag: `assignment-${assignment.id}-${milestone}`,
     url: './live-demo.html?page=assignments'
   }).catch(() => {});
@@ -4724,42 +4974,7 @@ function renderHome() {
   const streakLine = $('home-streak-line');
   const intro = $('quiet-intro');
 
-  renderHomeSuggested();
-
-  if (tasksLine) {
-    if (dueSoon && next) {
-      const status = getDueStatus(next);
-      tasksLine.textContent = dueSoon === 1
-        ? `Your next task is due ${(status?.label || formatDueRelative(next.dueAt)).toLowerCase()}.`
-        : `You have ${dueSoon} tasks due soon.`;
-      tasksLine.hidden = false;
-    } else if (pendingAssignments().length) {
-      tasksLine.textContent = `${pendingAssignments().length} upcoming task${pendingAssignments().length === 1 ? '' : 's'}.`;
-      tasksLine.hidden = false;
-    } else {
-      tasksLine.hidden = true;
-    }
-  }
-  if (streakLine) streakLine.hidden = true;
-
-  const last = profile.history[0];
-  if (last) {
-    intro.textContent = last.distractions
-      ? "Welcome back. Pick up where you left off — I'll help you stay on what matters."
-      : "Welcome back. Ready to tackle your next deadline?";
-    setQuietMood(getSuggestedNextAssignment() ? 'encouraging' : 'idle');
-  } else if (getSuggestedNextAssignment()) {
-    intro.textContent = "Here's what to work on first. Start a focus block when you're ready.";
-    setQuietMood('encouraging');
-  } else {
-    intro.textContent = "Upload a syllabus or assignment and I'll find your deadlines.";
-    setQuietMood('idle');
-  }
-
-  document.querySelectorAll('.duration').forEach(b =>
-    b.classList.toggle('selected', Number(b.dataset.duration) === profile.durationMinutes)
-  );
-  $('task-input').value = profile.task;
+  renderHomeTodayPlan();
   renderHistoryLast();
 }
 
@@ -5140,7 +5355,8 @@ $('username').addEventListener('input', e => {
   if ($('home-display-name')) $('home-display-name').textContent = n;
   if ($('greeting')) $('greeting').textContent = `${nowGreeting()}, ${n}`;
 });
-$('home-start-btn').addEventListener('click', () => showPage('focus'));
+$('home-start-btn')?.addEventListener('click', () => showPage('focus'));
+$('home-add-work-btn')?.addEventListener('click', () => showPage('assignments'));
 $('task-input').addEventListener('input', e => { profile.task = e.target.value; saveProfile(); });
 
 document.querySelectorAll('.duration').forEach(b => {
@@ -5443,6 +5659,27 @@ $('scan-txt-input')?.addEventListener('change', e => {
 const LMS_CALENDAR_URL_KEY = 'qf_lms_calendar_url';
 const LMS_CALENDAR_SYNC_KEY = 'qf_lms_calendar_last_sync';
 
+function isQuietInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+}
+
+function updateLmsPwaUi() {
+  const installed = isQuietInstalled();
+  const notice = $('lms-pwa-notice');
+  const fetchBtn = $('lms-calendar-fetch');
+  const installBtn = $('lms-install-app');
+  const statusEl = $('lms-status');
+  if (notice) notice.hidden = installed;
+  if (fetchBtn) fetchBtn.hidden = !installed;
+  if (installBtn) installBtn.hidden = installed;
+  if (!statusEl) return;
+  if (localStorage.getItem(LMS_CALENDAR_SYNC_KEY)) return;
+  statusEl.textContent = installed
+    ? 'Paste Subscribe link → Connect. Re-sync anytime for professor updates.'
+    : 'Install the app for Connect — or Open feed → copy → paste text below.';
+}
+
 function updateLmsHelpSteps(url) {
   const stepsEl = $('lms-help-steps');
   if (!stepsEl || !window.LmsImport?.helpSteps) return;
@@ -5505,8 +5742,19 @@ function initLmsImport() {
     updateLmsHelpSteps(savedUrl);
   }
   updateLmsSyncUi();
+  updateLmsPwaUi();
 
   urlInput.addEventListener('input', () => updateLmsHelpSteps(urlInput.value));
+
+  $('lms-install-app')?.addEventListener('click', () => {
+    if (typeof window.showQuietInstallBanner === 'function') {
+      window.showQuietInstallBanner(
+        'Install Quiet Focus for reliable D2L calendar sync. Chrome: ⋮ → Install Quiet Focus.'
+      );
+      return;
+    }
+    toast('Chrome menu (⋮) → Install Quiet Focus — or Add to Dock on Mac');
+  });
 
   $('lms-open-feed')?.addEventListener('click', () => {
     let url = urlInput.value.trim();
@@ -5551,6 +5799,15 @@ function initLmsImport() {
     }
     if (!currentUser) {
       toast('Sign in to connect your calendar');
+      return;
+    }
+    if (!isQuietInstalled()) {
+      $('lms-status').textContent = 'Connect works in the installed app — tap Install app to sync calendar.';
+      if (typeof window.showQuietInstallBanner === 'function') {
+        window.showQuietInstallBanner('Install Quiet Focus — D2L calendar sync is reliable in the app, not the browser tab.');
+      } else {
+        toast('Install the app (Chrome ⋮ → Install Quiet Focus)');
+      }
       return;
     }
     if (/\.pdf(\?|$)/i.test(url)) {
@@ -5751,8 +6008,10 @@ try {
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredPrompt = event;
-    showBanner('Add Quiet to your home screen for deadline reminders.');
+    showBanner('Install Quiet Focus for D2L calendar sync and deadline reminders.');
   });
+
+  window.showQuietInstallBanner = showBanner;
 
   accept.addEventListener('click', async () => {
     if (deferredPrompt) {
@@ -5764,19 +6023,30 @@ try {
     }
 
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isMac = /macintosh|mac os x/i.test(navigator.userAgent);
     if (isIOS) {
       showBanner('On iPhone: tap Share, then "Add to Home Screen".');
+      accept.textContent = 'Got it';
+      return;
+    }
+    if (isMac) {
+      showBanner('Mac: Chrome address bar → Install icon, or ⋮ menu → Install Quiet Focus. Then open the app for calendar sync.');
       accept.textContent = 'Got it';
     }
   });
 
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  if (isIOS && !isStandalone && localStorage.getItem(dismissedKey) !== '1') {
+  if (!isStandalone && localStorage.getItem(dismissedKey) !== '1') {
     setTimeout(() => {
-      showBanner('On iPhone: tap Share, then "Add to Home Screen".');
-      accept.textContent = 'Got it';
-    }, 12000);
+      if (isIOS) {
+        showBanner('On iPhone: tap Share, then "Add to Home Screen".');
+        accept.textContent = 'Got it';
+      } else if (/macintosh|mac os x/i.test(navigator.userAgent)) {
+        showBanner('Install Quiet Focus for reliable D2L sync — Chrome ⋮ → Install Quiet Focus.');
+      }
+      updateLmsPwaUi?.();
+    }, 8000);
   }
 })();
 </script>
