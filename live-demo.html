@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=67"></script>
-  <script src="auth-captcha.js?v=67"></script>
+  <script src="config.js?v=68"></script>
+  <script src="auth-captcha.js?v=68"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=67"></script>
-  <script src="supabase-assignments.js?v=67"></script>
-  <script src="assignment-scan.js?v=67"></script>
-  <script src="lms-import.js?v=67"></script>
-  <script src="stay-ahead-planning.js?v=67"></script>
-  <script src="quiet-reminder-copy.js?v=67"></script>
-  <script src="push-notifications.js?v=67"></script>
-  <script src="sw-update.js?v=67"></script>
+  <script src="supabase-sessions.js?v=68"></script>
+  <script src="supabase-assignments.js?v=68"></script>
+  <script src="assignment-scan.js?v=68"></script>
+  <script src="lms-import.js?v=68"></script>
+  <script src="stay-ahead-planning.js?v=68"></script>
+  <script src="quiet-reminder-copy.js?v=68"></script>
+  <script src="push-notifications.js?v=68"></script>
+  <script src="sw-update.js?v=68"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -1054,6 +1054,59 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   text-align:left;
 }
 .home-empty .primary { width:100%; min-height:46px; margin-top:12px; }
+.home-browser-cta {
+  width:100%;
+  margin-bottom:14px;
+  padding:16px;
+  border-radius:16px;
+  background:linear-gradient(145deg, rgba(148,218,177,.14), rgba(148,218,177,.04));
+  border:1px solid rgba(148,218,177,.28);
+  text-align:left;
+}
+.home-browser-cta h3 {
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+  margin:0 0 6px;
+  line-height:1.35;
+}
+.home-browser-cta p {
+  font-size:12px;
+  line-height:1.45;
+  color:var(--muted-2);
+  margin:0 0 12px;
+}
+.home-browser-cta .primary { width:100%; min-height:44px; margin:0 0 8px; }
+.home-browser-cta .secondary-link {
+  display:block;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  background:none;
+  border:none;
+  width:100%;
+  cursor:pointer;
+  font-family:inherit;
+  padding:4px;
+}
+.assign-browser-gate {
+  margin:12px 0;
+  padding:14px;
+  border-radius:14px;
+  background:var(--panel-2);
+  border:1px solid rgba(148,218,177,.22);
+}
+.assign-browser-gate p {
+  font-size:12px;
+  line-height:1.45;
+  color:var(--muted-2);
+  margin:0 0 10px;
+}
+.assign-browser-gate .lms-import-btn { margin-top:0; }
+.assign-lms.is-browser-lite .lms-panel,
+.assign-lms.is-browser-lite .assign-scan-toolbar,
+.assign-lms.is-browser-lite .assign-scan-preview,
+.assign-lms.is-browser-lite .lms-pwa-notice { display:none !important; }
 .home-content {
   width:100%;
   flex-shrink:0;
@@ -2602,6 +2655,13 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <a class="home-setup-link" href="#" id="home-setup-link">Set work &amp; class days →</a>
                 </div>
 
+                <div class="home-browser-cta" id="home-browser-cta" hidden>
+                  <h3>Install Quiet for your daily plan</h3>
+                  <p>Paste your D2L link once in the app. Home shows what to do today — about 1 minute, then close it.</p>
+                  <button type="button" class="primary" id="home-install-btn">Install Quiet Focus</button>
+                  <button type="button" class="secondary-link" id="home-browser-continue">Continue in browser anyway</button>
+                </div>
+
                 <div class="home-empty" id="home-empty">
                   <p class="home-quiet-copy" id="quiet-intro">Canvas shows what's due. Quiet tells you what to do today.</p>
                   <button class="primary" type="button" id="home-add-work-btn">Add your coursework</button>
@@ -2799,7 +2859,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 </form>
 
                 <div class="assign-lms" id="assign-lms">
-                  <span class="lms-badge">One link · all reminders</span>
+                  <div class="assign-browser-gate" id="assign-browser-gate" hidden>
+                    <p><strong>D2L calendar import</strong> works in the installed app (Chrome ⋮ → Install). Manual add and PDF upload still work here.</p>
+                    <button type="button" class="lms-import-btn" id="assign-install-btn">Install Quiet Focus</button>
+                  </div>
+                  <span class="lms-badge">One link · daily plan</span>
                   <p class="assign-scan-title">Connect Canvas or D2L calendar</p>
                   <p class="assign-scan-sub">Paste your D2L <strong>Subscribe</strong> link once — reminders stay on automatically.</p>
                   <div class="lms-pwa-notice" id="lms-pwa-notice" hidden>
@@ -5664,13 +5728,47 @@ function isQuietInstalled() {
     window.navigator.standalone === true;
 }
 
+function promptQuietInstall(message) {
+  const copy = document.getElementById('install-copy');
+  const banner = document.getElementById('install-banner');
+  const accept = document.getElementById('install-accept');
+  if (copy) copy.textContent = message || 'Install Quiet Focus — daily plan + D2L sync.';
+  if (banner) {
+    banner.hidden = false;
+    banner.classList.add('is-visible');
+  }
+  if (accept) {
+    accept.click();
+    return;
+  }
+  toast('Chrome menu (⋮) → Install Quiet Focus');
+}
+
+function syncBrowserModeUi() {
+  const installed = isQuietInstalled();
+  const dismissed = sessionStorage.getItem('qf-browser-continue') === '1';
+
+  const homeCta = $('home-browser-cta');
+  const emptyWrap = $('home-empty');
+  if (homeCta) homeCta.hidden = installed || dismissed;
+
+  const lmsBlock = $('assign-lms');
+  const browserGate = $('assign-browser-gate');
+  if (lmsBlock) lmsBlock.classList.toggle('is-browser-lite', !installed);
+  if (browserGate) browserGate.hidden = installed;
+
+  updateLmsPwaUi();
+}
+
 function updateLmsPwaUi() {
   const installed = isQuietInstalled();
+  const lmsBlock = $('assign-lms');
+  const browserLite = lmsBlock && lmsBlock.classList.contains('is-browser-lite');
   const notice = $('lms-pwa-notice');
   const fetchBtn = $('lms-calendar-fetch');
   const installBtn = $('lms-install-app');
   const statusEl = $('lms-status');
-  if (notice) notice.hidden = installed;
+  if (notice) notice.hidden = installed || browserLite;
   if (fetchBtn) fetchBtn.hidden = !installed;
   if (installBtn) installBtn.hidden = installed;
   if (!statusEl) return;
@@ -5742,9 +5840,16 @@ function initLmsImport() {
     updateLmsHelpSteps(savedUrl);
   }
   updateLmsSyncUi();
-  updateLmsPwaUi();
+  syncBrowserModeUi();
 
   urlInput.addEventListener('input', () => updateLmsHelpSteps(urlInput.value));
+
+  $('home-install-btn')?.addEventListener('click', () => promptQuietInstall());
+  $('assign-install-btn')?.addEventListener('click', () => promptQuietInstall());
+  $('home-browser-continue')?.addEventListener('click', () => {
+    sessionStorage.setItem('qf-browser-continue', '1');
+    syncBrowserModeUi();
+  });
 
   $('lms-install-app')?.addEventListener('click', () => {
     if (typeof window.showQuietInstallBanner === 'function') {
@@ -6046,6 +6151,7 @@ try {
         showBanner('Install Quiet Focus for reliable D2L sync — Chrome ⋮ → Install Quiet Focus.');
       }
       updateLmsPwaUi?.();
+      syncBrowserModeUi?.();
     }, 8000);
   }
 })();
