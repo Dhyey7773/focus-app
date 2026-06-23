@@ -259,6 +259,8 @@
 
       if (item.dueAt && target.dueAt !== item.dueAt) {
         target.dueAt = item.dueAt;
+        target.dueDateChanged = true;
+        target.dueDateChangedAt = new Date().toISOString();
         updated++;
         changed = true;
       }
