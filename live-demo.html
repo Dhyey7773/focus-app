@@ -18,11 +18,11 @@
     gtag('js', new Date());
     gtag('config', 'G-R9S0676XRS');
   </script>
-  <title>Quiet Focus — Never miss an assignment again</title>
-  <meta name="description" content="Upload your coursework. Quiet finds deadlines, helps you prioritize, and reminds you before things are due.">
+  <title>Quiet Focus — What to do today</title>
+  <meta name="description" content="Canvas shows what's due. Quiet tells you what to do today — daily plan, D2L import, and focus timer. Free for students.">
   <link rel="canonical" href="https://www.quietfocusai.com/live-demo.html">
-  <meta property="og:title" content="Quiet Focus — Never miss an assignment again">
-  <meta property="og:description" content="Upload your syllabus. Get reminders. Know what to work on first. Free for students.">
+  <meta property="og:title" content="Quiet Focus — What to do today">
+  <meta property="og:description" content="Install once, paste your D2L link, open for a minute each day. Quiet builds your daily action plan.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.quietfocusai.com/live-demo.html">
   <meta property="og:site_name" content="Quiet Focus">
@@ -30,8 +30,8 @@
   <meta property="og:image:width" content="512">
   <meta property="og:image:height" content="512">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Quiet Focus — Never miss an assignment again">
-  <meta name="twitter:description" content="Upload your syllabus. Get reminders. Know what to work on first.">
+  <meta name="twitter:title" content="Quiet Focus — What to do today">
+  <meta name="twitter:description" content="Canvas shows what's due. Quiet tells you what to do today.">
   <meta name="twitter:image" content="https://www.quietfocusai.com/icons/icon-512.png">
   <meta name="theme-color" content="#07080a">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=68"></script>
-  <script src="auth-captcha.js?v=68"></script>
+  <script src="config.js?v=69"></script>
+  <script src="auth-captcha.js?v=69"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=68"></script>
-  <script src="supabase-assignments.js?v=68"></script>
-  <script src="assignment-scan.js?v=68"></script>
-  <script src="lms-import.js?v=68"></script>
-  <script src="stay-ahead-planning.js?v=68"></script>
-  <script src="quiet-reminder-copy.js?v=68"></script>
-  <script src="push-notifications.js?v=68"></script>
-  <script src="sw-update.js?v=68"></script>
+  <script src="supabase-sessions.js?v=69"></script>
+  <script src="supabase-assignments.js?v=69"></script>
+  <script src="assignment-scan.js?v=69"></script>
+  <script src="lms-import.js?v=69"></script>
+  <script src="stay-ahead-planning.js?v=69"></script>
+  <script src="quiet-reminder-copy.js?v=69"></script>
+  <script src="push-notifications.js?v=69"></script>
+  <script src="sw-update.js?v=69"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -1023,6 +1023,12 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   margin:0 0 12px;
 }
 .home-track-status.is-warn { color:var(--warning); }
+.home-spread-btn {
+  width:100%;
+  min-height:40px;
+  margin:0 0 12px;
+  font-size:13px;
+}
 .home-campus-tip {
   font-size:11px;
   line-height:1.45;
@@ -1916,7 +1922,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   display:none;
 }
 
-.week-founder-block[hidden] { display:none; }
+.week-plan-block[hidden] { display:none; }
 .assign-basic-header-hidden { display:none; }
 .week-header { margin:4px 0 18px; }
 .week-title {
@@ -2185,8 +2191,12 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   color:var(--success);
   margin-bottom:4px;
 }
-.assign-actions.has-founder {
+.assign-actions.has-planning {
   grid-template-columns:1fr 1fr;
+}
+.assign-badge.moved {
+  background:rgba(255,207,112,.18);
+  color:var(--warning);
 }
 .assign-how-start { grid-column:1 / -1; }
 .how-start-modal {
@@ -2646,10 +2656,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                 <h2 class="home-greeting-line" id="home-greeting-line">Good evening 👋</h2>
 
                 <div class="home-today-plan" id="home-today-plan" hidden>
-                  <p class="meta-label">Today's workload</p>
+                  <p class="meta-label">Today's plan</p>
                   <p class="home-workload-total" id="home-workload-total">0 min</p>
                   <ul class="home-workload-list" id="home-workload-list" aria-live="polite"></ul>
                   <p class="home-track-status" id="home-track-status">You're on track.</p>
+                  <button type="button" class="secondary home-spread-btn" id="home-spread-btn" hidden>Spread across the week</button>
                   <p class="home-campus-tip" id="home-campus-tip" hidden></p>
                   <button class="primary home-today-btn" type="button" id="home-today-btn">Start today's plan</button>
                   <a class="home-setup-link" href="#" id="home-setup-link">Set work &amp; class days →</a>
@@ -2778,11 +2789,11 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 
           <!-- ASSIGNMENTS -->
           <section class="page" id="page-assignments" aria-label="Assignments">
-            <div class="week-founder-block" id="week-founder-block" hidden>
+            <div class="week-plan-block" id="week-plan-block" hidden>
               <header class="week-header">
-                <p class="meta-label">Your plan</p>
-                <h2 class="week-title">What should I work on?</h2>
-                <p class="week-sub">Quiet spreads work across your week — not everything at once.</p>
+                <p class="meta-label">This week</p>
+                <h2 class="week-title">Your daily plan</h2>
+                <p class="week-sub">Quiet spreads work across your week — Home shows what matters today.</p>
               </header>
 
               <div class="week-summary" id="week-summary" hidden aria-live="polite">
@@ -2840,7 +2851,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
               </div>
             </div>
 
-            <p class="assign-hint" id="founder-hint" hidden style="margin-top:8px"></p>
+            <p class="assign-hint" id="plan-hint" hidden style="margin-top:8px"></p>
 
             <details class="week-panel-details" id="add-assign-panel">
               <summary>Add assignments</summary>
@@ -3091,7 +3102,7 @@ function enterGuestMode() {
   renderPushCard();
   initAssignmentFormDefaults();
   startReminderPoll();
-  toggleFounderFeatures();
+  syncProductUi();
   setTimeout(maybeShowDueReminder, 500);
   hideBootScreen();
 }
@@ -3253,7 +3264,7 @@ async function onUserSignedIn() {
     renderHome();
     renderPushCard();
     await window.PushReminders?.syncSubscriptionIfEnabled?.();
-    toggleFounderFeatures();
+    syncProductUi();
     setTimeout(maybeShowDueReminder, 500);
     startReminderPoll();
   } finally {
@@ -4095,10 +4106,10 @@ function getStayAheadPlanForAssignment(assignmentId) {
 
 function syncPlanningUI() {
   const hasPlanning = canUseStayAhead();
-  const weekBlock = $('week-founder-block');
+  const weekBlock = $('week-plan-block');
   const basicHeader = $('assign-basic-header');
   const allTasksPanel = $('all-tasks-panel');
-  const hint = $('founder-hint');
+  const hint = $('plan-hint');
   const aiBtn = $('refresh-plans-btn');
 
   if (weekBlock) weekBlock.hidden = !hasPlanning;
@@ -4137,7 +4148,7 @@ function syncPlanningUI() {
   renderHomeTodayPlan();
 }
 
-function toggleFounderFeatures() {
+function syncProductUi() {
   syncPlanningUI();
 }
 
@@ -4269,6 +4280,17 @@ function workloadDot(level) {
   return '🟡';
 }
 
+function handleWeekendSpread() {
+  if (!window.StayAheadPlanning?.applyWeekendSpread) return;
+  const next = window.StayAheadPlanning.applyWeekendSpread(getStayAheadSchedule());
+  window.StayAheadPlanning.saveScheduleToProfile(profile, next);
+  saveProfile();
+  rebuildStayAheadPlans();
+  renderHomeTodayPlan();
+  renderWeeklyPlanner();
+  toast('Saturday cleared — work moved to weekdays.');
+}
+
 function renderHomeTodayPlan() {
   const planWrap = $('home-today-plan');
   const emptyWrap = $('home-empty');
@@ -4304,6 +4326,7 @@ function renderHomeTodayPlan() {
   const campusEl = $('home-campus-tip');
   const todayBtn = $('home-today-btn');
   const setupLink = $('home-setup-link');
+  const spreadBtn = $('home-spread-btn');
 
   if (!workload.items.length && !stayAheadPlans.length) {
     planWrap.hidden = true;
@@ -4316,7 +4339,11 @@ function renderHomeTodayPlan() {
   emptyWrap.hidden = true;
   if (streakBlock) streakBlock.hidden = true;
 
-  if (totalEl) totalEl.textContent = workload.totalLabel || '0 min';
+  if (totalEl) {
+    totalEl.textContent = workload.totalMinutes
+      ? `Today's workload · ${workload.totalLabel}`
+      : "Today's workload · 0 min";
+  }
 
   if (listEl) {
     listEl.innerHTML = '';
@@ -4350,6 +4377,11 @@ function renderHomeTodayPlan() {
   if (statusEl) {
     statusEl.textContent = window.StayAheadPlanning.buildTrackStatus(workload, warning);
     statusEl.classList.toggle('is-warn', !!warning);
+  }
+
+  if (spreadBtn) {
+    spreadBtn.hidden = !warning?.canSpread;
+    spreadBtn.onclick = handleWeekendSpread;
   }
 
   const topAssignment = getSuggestedNextAssignment();
@@ -4631,6 +4663,7 @@ function completeAssignment(id) {
   if (!item) return;
   item.completed = true;
   item.completedAt = new Date().toISOString();
+  item.dueDateChanged = false;
   saveProfile();
   renderAssignments();
   renderHome();
@@ -4687,8 +4720,14 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
 
   const badge = assignment.completed
     ? 'Done'
-    : (status?.label || 'Pending');
-  const badgeClass = assignment.completed ? '' : (status?.level === 'urgent' ? 'urgent' : status?.level === 'soon' ? 'soon' : '');
+    : assignment.dueDateChanged
+      ? 'Deadline moved'
+      : (status?.label || 'Pending');
+  const badgeClass = assignment.completed
+    ? ''
+    : assignment.dueDateChanged
+      ? 'moved'
+      : (status?.level === 'urgent' ? 'urgent' : status?.level === 'soon' ? 'soon' : '');
 
   card.innerHTML = `
     <div class="assign-top">
@@ -4701,7 +4740,7 @@ function renderAssignmentCard(assignment, { showActions = true } = {}) {
     <p class="assign-meta"></p>
     ${plan && hasPlanning && !assignment.completed ? `<p class="assign-plan-note"></p>` : ''}
     ${showActions && !assignment.completed ? `
-      <div class="assign-actions${hasPlanning ? ' has-founder' : ''}">
+      <div class="assign-actions${hasPlanning ? ' has-planning' : ''}">
         <button type="button" class="primary assign-start">Start focus</button>
         <button type="button" class="secondary assign-done">Mark done</button>
         ${hasPlanning ? '<button type="button" class="secondary assign-how-start">How do I start?</button>' : ''}
@@ -5795,7 +5834,7 @@ function formatLmsSyncStatus(result) {
   const parts = [];
   if (added > 0) parts.push(`${added} new`);
   if (reopened > 0) parts.push(`${reopened} restored`);
-  if (updated > 0) parts.push(`${updated} updated`);
+  if (updated > 0) parts.push(`${updated} deadline${updated === 1 ? '' : 's'} moved`);
   if (deduped > 0) parts.push(`${deduped} duplicate${deduped === 1 ? '' : 's'} removed`);
   if (parts.length) {
     return `${parts.join(' · ')} · ${active} active tasks`;
