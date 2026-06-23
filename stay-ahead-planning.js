@@ -329,7 +329,8 @@
       workDays: normalizeDayList(base.workDays),
       classDays: normalizeDayList(base.classDays),
       busyDays: normalizeDayList(base.busyDays),
-      preferredStudyDays: normalizeDayList(base.preferredStudyDays)
+      preferredStudyDays: normalizeDayList(base.preferredStudyDays),
+      avoidWeekendStudy: !!base.avoidWeekendStudy
     };
   }
 
@@ -350,16 +351,19 @@
 
   function getScheduleSets(schedule) {
     const s = normalizeSchedule(schedule);
+    const work = new Set(s.workDays);
     return {
-      work: new Set(s.workDays),
+      work,
       class: new Set(s.classDays),
       busy: new Set(s.busyDays),
-      preferred: new Set(s.preferredStudyDays)
+      preferred: new Set(s.preferredStudyDays),
+      blockSaturday: !!s.avoidWeekendStudy && !work.has(6)
     };
   }
 
   /** Higher tier = better study day. Busy = 0, work/class = 1, neutral = 2, preferred = 3 */
   function dayTier(dow, sets) {
+    if (sets.blockSaturday && dow === 6) return 0;
     if (sets.busy.has(dow)) return 0;
     if (sets.work.has(dow) || sets.class.has(dow)) return 1;
     if (sets.preferred.has(dow)) return 3;
@@ -1077,10 +1081,24 @@
     return {
       minutes: saturdayMinutes,
       label,
+      canSpread: true,
       message: worksSaturday
-        ? `At this pace you'll have ${label} of work on Saturday — and you work that day. Spread some tasks earlier in My schedule.`
-        : `At this pace you'll have ${label} of work on Saturday. Spread tasks across the week in My schedule.`
+        ? `At this pace you'll have ${label} of work on Saturday — and you work that day. Tap below to spread tasks across Tue–Fri.`
+        : `At this pace you'll have ${label} of work on Saturday. Tap below to spread tasks across the week.`
     };
+  }
+
+  /** One-tap: block Saturday study and rebuild plans across weekdays. */
+  function applyWeekendSpread(schedule) {
+    const s = normalizeSchedule(schedule);
+    const work = new Set(s.workDays);
+    const busy = new Set(s.busyDays);
+    if (!work.has(6)) busy.add(6);
+    return normalizeSchedule({
+      ...s,
+      busyDays: [...busy].sort((a, b) => a - b),
+      avoidWeekendStudy: true
+    });
   }
 
   function buildTrackStatus(workload, warning) {
@@ -1123,6 +1141,7 @@
     shouldShowPlanReminder,
     recommendCampusResource,
     weekendOverloadWarning,
+    applyWeekendSpread,
     buildTrackStatus
   };
 })();
