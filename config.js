@@ -12,11 +12,11 @@ window.APP_CONFIG = {
   VAPID_PUBLIC_KEY: "BA8c2Tqt7D_6skqSCU5vlAaFgeStR63xw_Y9WtMlXZ6K_1FKfd29_7aNKxh4F4V5_AbStRD6VaEtzUkRF25z2CQ",
   // Optional 3D mascot URL (Supabase Storage public link). Leave empty = PNG only.
   QUIET_GLB_URL: "",
-  // Founder-only features (Stay Ahead Planning). Not shown on Contact page.
+  // Pro AI features (Refresh with AI). Core daily planning is free for all users.
   FOUNDER_EMAILS: ["quietfocusai@gmail.com"],
   // Optional: add your Supabase user UUID if email matching fails (Dashboard → Authentication → Users)
   FOUNDER_USER_IDS: [],
   // Bump when deploying — should match sw.js CACHE suffix (quiet-focus-v32 → "32")
-  APP_CACHE_VERSION: "68"
+  APP_CACHE_VERSION: "69"
 };
  
