@@ -944,14 +944,34 @@
     return plans.map((p) => ({ ...p, source: "local" }));
   }
 
-  function buildTodayWorkload(plans, now = new Date()) {
-    const todayMs = startOfDay(now).getTime();
-    const items = [];
+  function dateKey(date) {
+    const d = startOfDay(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
 
+  function getCatchUpChoice(profile, now = new Date()) {
+    const key = dateKey(now);
+    return profile?.catchUpByDate?.[key] || null;
+  }
+
+  function setCatchUpChoice(profile, choice, now = new Date()) {
+    if (!profile) return;
+    profile.catchUpByDate = profile.catchUpByDate || {};
+    profile.catchUpByDate[dateKey(now)] = choice;
+  }
+
+  /** User marked today busy / off in My schedule */
+  function isScheduledDayOff(schedule, now = new Date()) {
+    const sets = getScheduleSets(schedule);
+    return sets.busy.has(startOfDay(now).getDay());
+  }
+
+  function collectSessionsOnDate(plans, dateMs) {
+    const items = [];
     for (const plan of plans || []) {
       if (!plan?.assignment || plan.assignment.completed) continue;
       for (const session of plan.sessions || []) {
-        if (!session.date || startOfDay(session.date).getTime() !== todayMs) continue;
+        if (!session.date || startOfDay(session.date).getTime() !== dateMs) continue;
         const task = session.tasks?.[0];
         items.push({
           assignmentId: plan.assignmentId,
@@ -962,20 +982,84 @@
           stepLabel: task?.label || "Work session",
           priorityLevel: plan.priorityLevel || "Medium",
           risk: plan.risk,
-          plan
+          plan,
+          deferred: false
         });
       }
     }
-
     const rank = { High: 0, Medium: 1, Low: 2 };
     items.sort((a, b) => (rank[a.priorityLevel] ?? 2) - (rank[b.priorityLevel] ?? 2));
+    return items;
+  }
+
+  function buildTodayWorkload(plans, now = new Date(), opts = {}) {
+    const profile = opts.profile || null;
+    const schedule = opts.schedule || null;
+    const todayMs = startOfDay(now).getTime();
+    const todayItems = collectSessionsOnDate(plans, todayMs);
+
+    let deferredItems = [];
+    if (profile) {
+      const yesterday = new Date(startOfDay(now));
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (getCatchUpChoice(profile, yesterday) === "defer") {
+        deferredItems = collectSessionsOnDate(plans, startOfDay(yesterday).getTime()).map((item) => ({
+          ...item,
+          deferred: true,
+          stepLabel: `${item.stepLabel} (from yesterday)`
+        }));
+      }
+    }
+
+    const dayOff = schedule ? isScheduledDayOff(schedule, now) : false;
+    const choice = profile ? getCatchUpChoice(profile, now) : null;
+
+    if (dayOff && choice !== "now") {
+      const pendingMinutes = todayItems.reduce((sum, item) => sum + item.minutes, 0);
+      return {
+        items: [],
+        totalMinutes: 0,
+        totalLabel: "0 min",
+        dayOff: true,
+        pendingItems: todayItems,
+        pendingMinutes,
+        pendingLabel: formatEffort(pendingMinutes)
+      };
+    }
+
+    const seen = new Set();
+    const items = [];
+    for (const item of [...deferredItems, ...todayItems]) {
+      const key = `${item.assignmentId}-${item.stepLabel}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push(item);
+    }
 
     const totalMinutes = items.reduce((sum, item) => sum + item.minutes, 0);
     return {
       items,
       totalMinutes,
-      totalLabel: formatEffort(totalMinutes)
+      totalLabel: formatEffort(totalMinutes),
+      dayOff: false,
+      hasDeferred: deferredItems.length > 0
     };
+  }
+
+  function buildDayOffCatchUpCopy(workload) {
+    if (!workload?.dayOff || !workload.pendingMinutes) return null;
+    const label = workload.pendingLabel || formatEffort(workload.pendingMinutes);
+    return {
+      kicker: "Day off",
+      title: "Quiet",
+      body: `You had ${label} on today's plan. It's your scheduled day off — catch up now, or that's ok and we'll move it to tomorrow.`
+    };
+  }
+
+  function shouldPromptDayOffCatchUp(workload, profile, now = new Date()) {
+    if (!workload?.dayOff || !workload.pendingMinutes) return false;
+    if (getCatchUpChoice(profile, now)) return false;
+    return true;
   }
 
   function getTodaySession(plan, now = new Date()) {
@@ -997,7 +1081,7 @@
       kicker: "Today's plan",
       title: "Quiet",
       body: `Spend ${mins} minutes on ${name} — ${step}.`,
-      modalHint: "Start a focus block?"
+      simple: true
     };
   }
 
@@ -1136,6 +1220,11 @@
     isDueThisWeek,
     priorityLevel,
     buildTodayWorkload,
+    getCatchUpChoice,
+    setCatchUpChoice,
+    isScheduledDayOff,
+    buildDayOffCatchUpCopy,
+    shouldPromptDayOffCatchUp,
     getTodaySession,
     buildPlanReminderCopy,
     shouldShowPlanReminder,
