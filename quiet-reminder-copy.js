@@ -51,7 +51,7 @@
           `Just a heads-up — ${name} is due in ${when}.`,
           `Hey, don't forget — ${name} is due in ${when}.`,
         ]),
-        modalHint: "Start a short focus block?",
+        modalHint: "",
       };
     }
 
