@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=69"></script>
-  <script src="auth-captcha.js?v=69"></script>
+  <script src="config.js?v=70"></script>
+  <script src="auth-captcha.js?v=70"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=69"></script>
-  <script src="supabase-assignments.js?v=69"></script>
-  <script src="assignment-scan.js?v=69"></script>
-  <script src="lms-import.js?v=69"></script>
-  <script src="stay-ahead-planning.js?v=69"></script>
-  <script src="quiet-reminder-copy.js?v=69"></script>
-  <script src="push-notifications.js?v=69"></script>
-  <script src="sw-update.js?v=69"></script>
+  <script src="supabase-sessions.js?v=70"></script>
+  <script src="supabase-assignments.js?v=70"></script>
+  <script src="assignment-scan.js?v=70"></script>
+  <script src="lms-import.js?v=70"></script>
+  <script src="stay-ahead-planning.js?v=70"></script>
+  <script src="quiet-reminder-copy.js?v=70"></script>
+  <script src="push-notifications.js?v=70"></script>
+  <script src="sw-update.js?v=70"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -2333,6 +2333,33 @@ button:disabled { cursor:not-allowed; opacity:.42; }
 .reminder-actions .ghost {
   background:transparent; border:0; color:var(--muted); padding:10px;
 }
+.dayoff-modal {
+  position:fixed; inset:0; z-index:410;
+  display:flex; align-items:flex-end; justify-content:center;
+  padding:16px; background:rgba(0,0,0,.55);
+  opacity:0; visibility:hidden;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+.dayoff-modal.is-visible { opacity:1; visibility:visible; }
+.dayoff-modal[hidden] { display:none; }
+.dayoff-sheet {
+  width:100%; max-width:420px; background:var(--panel);
+  border-radius:20px 20px 0 0; padding:20px 18px 24px;
+  transform:translateY(12px); transition:transform .25s ease;
+}
+.dayoff-modal.is-visible .dayoff-sheet { transform:translateY(0); }
+.dayoff-sheet h2 { font-size:20px; font-weight:520; margin-bottom:8px; }
+.dayoff-sheet p { color:var(--muted-2); font-size:14px; line-height:1.5; margin-bottom:16px; }
+.dayoff-actions { display:grid; gap:8px; }
+.home-dayoff-note {
+  font-size:12px; line-height:1.45; color:var(--muted-2);
+  margin:0 0 12px; padding:10px 12px; border-radius:10px;
+  background:rgba(255,255,255,.03); border:1px solid var(--line);
+}
+.home-dayoff-note button {
+  display:inline; background:none; border:none; padding:0;
+  color:var(--mint); font:inherit; font-weight:600; cursor:pointer;
+}
 
 /* ═══════════════════════════════════════
    TAB BAR (your exact style)
@@ -2661,6 +2688,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <ul class="home-workload-list" id="home-workload-list" aria-live="polite"></ul>
                   <p class="home-track-status" id="home-track-status">You're on track.</p>
                   <button type="button" class="secondary home-spread-btn" id="home-spread-btn" hidden>Spread across the week</button>
+                  <p class="home-dayoff-note" id="home-dayoff-note" hidden></p>
                   <p class="home-campus-tip" id="home-campus-tip" hidden></p>
                   <button class="primary home-today-btn" type="button" id="home-today-btn">Start today's plan</button>
                   <a class="home-setup-link" href="#" id="home-setup-link">Set work &amp; class days →</a>
@@ -2843,7 +2871,7 @@ button:disabled { cursor:not-allowed; opacity:.42; }
             <div class="push-card" id="push-card">
               <div class="push-card-copy">
                 <strong>Gentle nudges</strong>
-                <p id="push-status">Quiet tells you when to start — not just when things are due.</p>
+                <p id="push-status">Simple messages when it's time to start — no nagging. Day off? We'll ask if you want to catch up.</p>
               </div>
               <div class="push-card-actions">
                 <button type="button" class="secondary" id="push-enable-btn">Enable</button>
@@ -3015,9 +3043,22 @@ button:disabled { cursor:not-allowed; opacity:.42; }
     <h2 id="reminder-title">Assignment due soon</h2>
     <p id="reminder-copy"></p>
     <div class="reminder-actions">
-      <button class="primary" type="button" id="reminder-start">Start focus session</button>
-      <button class="secondary" type="button" id="reminder-done">Mark completed</button>
-      <button class="ghost" type="button" id="reminder-snooze">Remind me in 1 hour</button>
+      <button class="primary" type="button" id="reminder-dismiss">Got it</button>
+      <button class="secondary" type="button" id="reminder-start">Start now</button>
+      <button class="ghost" type="button" id="reminder-done" hidden>Mark completed</button>
+      <button class="ghost" type="button" id="reminder-snooze" hidden>Remind me in 1 hour</button>
+    </div>
+  </div>
+</div>
+
+<div class="dayoff-modal" id="dayoff-modal" hidden aria-modal="true" role="dialog" aria-labelledby="dayoff-title">
+  <div class="dayoff-sheet">
+    <p class="meta-label" id="dayoff-label">Day off</p>
+    <h2 id="dayoff-title">Quiet</h2>
+    <p id="dayoff-copy"></p>
+    <div class="dayoff-actions">
+      <button class="primary" type="button" id="dayoff-catchup">Catch up now</button>
+      <button class="secondary" type="button" id="dayoff-tomorrow">That's ok — move to tomorrow</button>
     </div>
   </div>
 </div>
@@ -4315,7 +4356,10 @@ function renderHomeTodayPlan() {
 
   if (!stayAheadPlansHydrated) rebuildStayAheadPlans();
 
-  const workload = window.StayAheadPlanning.buildTodayWorkload(stayAheadPlans);
+  const workload = window.StayAheadPlanning.buildTodayWorkload(stayAheadPlans, new Date(), {
+    profile,
+    schedule: getStayAheadSchedule()
+  });
   const warning = window.StayAheadPlanning.weekendOverloadWarning(
     stayAheadPlans,
     getStayAheadSchedule()
@@ -4327,8 +4371,17 @@ function renderHomeTodayPlan() {
   const todayBtn = $('home-today-btn');
   const setupLink = $('home-setup-link');
   const spreadBtn = $('home-spread-btn');
+  const dayOffNote = $('home-dayoff-note');
+  const catchUpChoice = window.StayAheadPlanning.getCatchUpChoice?.(profile);
 
-  if (!workload.items.length && !stayAheadPlans.length) {
+  if (!workload.items.length && !workload.dayOff && !stayAheadPlans.length) {
+    planWrap.hidden = true;
+    emptyWrap.hidden = false;
+    if (streakBlock) streakBlock.hidden = true;
+    return;
+  }
+
+  if (workload.dayOff && !workload.pendingMinutes && !stayAheadPlans.length) {
     planWrap.hidden = true;
     emptyWrap.hidden = false;
     if (streakBlock) streakBlock.hidden = true;
@@ -4340,14 +4393,23 @@ function renderHomeTodayPlan() {
   if (streakBlock) streakBlock.hidden = true;
 
   if (totalEl) {
-    totalEl.textContent = workload.totalMinutes
-      ? `Today's workload · ${workload.totalLabel}`
-      : "Today's workload · 0 min";
+    if (workload.dayOff && catchUpChoice === 'defer') {
+      totalEl.textContent = `Today's workload · moved to tomorrow`;
+    } else if (workload.dayOff && catchUpChoice !== 'now') {
+      totalEl.textContent = `Today's workload · day off`;
+    } else {
+      totalEl.textContent = workload.totalMinutes
+        ? `Today's workload · ${workload.totalLabel}`
+        : "Today's workload · 0 min";
+    }
   }
 
   if (listEl) {
     listEl.innerHTML = '';
-    const show = workload.items.length ? workload.items : stayAheadPlans.slice(0, 3).map(p => ({
+    const show = workload.items.length ? workload.items : (
+      workload.dayOff && catchUpChoice !== 'now'
+        ? []
+        : stayAheadPlans.slice(0, 3).map(p => ({
       title: p.assignment.title,
       course: p.assignment.course,
       minutes: Math.min(45, Number(p.assignment.estimatedMinutes) || 45),
@@ -4375,8 +4437,31 @@ function renderHomeTodayPlan() {
   }
 
   if (statusEl) {
-    statusEl.textContent = window.StayAheadPlanning.buildTrackStatus(workload, warning);
-    statusEl.classList.toggle('is-warn', !!warning);
+    if (workload.dayOff && catchUpChoice === 'defer') {
+      statusEl.textContent = `Enjoy your day off — ${workload.pendingLabel || 'your plan'} picks up tomorrow.`;
+      statusEl.classList.remove('is-warn');
+    } else if (workload.dayOff && catchUpChoice !== 'now') {
+      statusEl.textContent = 'Scheduled day off. Rest is part of the plan.';
+      statusEl.classList.remove('is-warn');
+    } else {
+      statusEl.textContent = window.StayAheadPlanning.buildTrackStatus(workload, warning);
+      statusEl.classList.toggle('is-warn', !!warning);
+    }
+  }
+
+  if (dayOffNote) {
+    if (workload.dayOff && catchUpChoice === 'defer') {
+      dayOffNote.hidden = false;
+      dayOffNote.innerHTML = 'Changed your mind? <button type="button" id="home-dayoff-catchup-link">Catch up today</button>';
+      $('home-dayoff-catchup-link')?.addEventListener('click', () => applyDayOffChoice('now'));
+    } else if (workload.dayOff && catchUpChoice === 'now') {
+      dayOffNote.hidden = true;
+    } else if (workload.dayOff && workload.pendingMinutes) {
+      dayOffNote.hidden = false;
+      dayOffNote.textContent = `${workload.pendingLabel} was on today's plan.`;
+    } else {
+      dayOffNote.hidden = true;
+    }
   }
 
   if (spreadBtn) {
@@ -4399,6 +4484,7 @@ function renderHomeTodayPlan() {
 
   if (todayBtn) {
     const first = workload.items[0]?.assignment || topAssignment;
+    todayBtn.hidden = !!(workload.dayOff && catchUpChoice !== 'now' && !workload.items.length);
     todayBtn.onclick = () => {
       if (first) startFocusFromAssignment(first);
       else showPage('assignments');
@@ -4412,6 +4498,11 @@ function renderHomeTodayPlan() {
       showPage('assignments');
       $('schedule-panel')?.setAttribute('open', '');
     };
+  }
+
+  if (!$('dayoff-modal')?.classList.contains('is-visible') &&
+      !$('reminder-modal')?.classList.contains('is-visible')) {
+    maybeShowDayOffCatchUp(workload);
   }
 }
 
@@ -4512,6 +4603,7 @@ function ensureRemindersShown(assignment) {
 
 function getActiveReminderMilestone(assignment) {
   if (!assignment || assignment.completed) return null;
+  if (window.StayAheadPlanning?.isScheduledDayOff?.(getStayAheadSchedule())) return null;
   ensureRemindersShown(assignment);
   const plan = getStayAheadPlanForAssignment(assignment.id);
   const shown = assignment.remindersShown;
@@ -4819,6 +4911,23 @@ function findReminderAssignment() {
   });
 }
 
+function configureReminderModal(milestone, finalMsg) {
+  const simple = milestone === 'planToday' || finalMsg?.simple;
+  const dismissBtn = $('reminder-dismiss');
+  const startBtn = $('reminder-start');
+  const doneBtn = $('reminder-done');
+  const snoozeBtn = $('reminder-snooze');
+  if (dismissBtn) dismissBtn.hidden = false;
+  if (startBtn) {
+    startBtn.hidden = false;
+    startBtn.textContent = simple ? 'Start now' : 'Start focus session';
+  }
+  if (dismissBtn) dismissBtn.className = simple ? 'primary' : 'secondary';
+  if (startBtn) startBtn.className = simple ? 'secondary' : 'primary';
+  if (doneBtn) doneBtn.hidden = simple;
+  if (snoozeBtn) snoozeBtn.hidden = simple;
+}
+
 function showReminderModal(assignment) {
   if (!assignment) return;
   const milestone = getActiveReminderMilestone(assignment);
@@ -4844,15 +4953,13 @@ function showReminderModal(assignment) {
   }) || {
     kicker: 'Reminder',
     title: assignment.title,
-    body: `${formatDueRelative(assignment.dueAt)}.`,
-    modalHint: 'Start a focus session?'
+    body: `${formatDueRelative(assignment.dueAt)}.`
   };
   const finalMsg = msg || fallback;
+  configureReminderModal(milestone, finalMsg);
   $('reminder-label').textContent = finalMsg.kicker;
   $('reminder-title').textContent = finalMsg.title;
-  $('reminder-copy').textContent = finalMsg.modalHint
-    ? `${finalMsg.body} ${finalMsg.modalHint}`
-    : finalMsg.body;
+  $('reminder-copy').textContent = finalMsg.body;
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('is-visible'));
 
@@ -4860,8 +4967,44 @@ function showReminderModal(assignment) {
     title: finalMsg.title,
     body: finalMsg.body,
     tag: `assignment-${assignment.id}-${milestone}`,
-    url: './live-demo.html?page=assignments'
+    url: './live-demo.html'
   }).catch(() => {});
+}
+
+function hideDayOffModal() {
+  const modal = $('dayoff-modal');
+  if (!modal) return;
+  modal.classList.remove('is-visible');
+  modal.hidden = true;
+}
+
+function showDayOffModal(workload) {
+  const copy = window.StayAheadPlanning?.buildDayOffCatchUpCopy?.(workload);
+  if (!copy) return;
+  const modal = $('dayoff-modal');
+  if (!modal) return;
+  $('dayoff-label').textContent = copy.kicker;
+  $('dayoff-title').textContent = copy.title;
+  $('dayoff-copy').textContent = copy.body;
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add('is-visible'));
+}
+
+function maybeShowDayOffCatchUp(workload) {
+  if (!workload || !window.StayAheadPlanning?.shouldPromptDayOffCatchUp?.(workload, profile)) return;
+  showDayOffModal(workload);
+}
+
+function applyDayOffChoice(choice) {
+  window.StayAheadPlanning?.setCatchUpChoice?.(profile, choice);
+  saveProfile();
+  hideDayOffModal();
+  renderHomeTodayPlan();
+  if (choice === 'now') {
+    toast('Catch up when you\'re ready — no pressure.');
+  } else {
+    toast('Moved to tomorrow. Enjoy your day off.');
+  }
 }
 
 function hideReminderModal() {
@@ -5489,8 +5632,10 @@ $('assign-form').addEventListener('submit', e => {
   $('assign-estimate').value = '60';
   initAssignmentFormDefaults();
 });
+$('reminder-dismiss')?.addEventListener('click', hideReminderModal);
 $('reminder-start').addEventListener('click', () => {
   const item = getAssignmentById(activeReminderAssignmentId);
+  hideReminderModal();
   if (item) startFocusFromAssignment(item);
 });
 $('reminder-done').addEventListener('click', () => {
@@ -5498,6 +5643,11 @@ $('reminder-done').addEventListener('click', () => {
 });
 $('reminder-snooze').addEventListener('click', () => {
   if (activeReminderAssignmentId) snoozeAssignment(activeReminderAssignmentId, 1);
+});
+$('dayoff-catchup')?.addEventListener('click', () => applyDayOffChoice('now'));
+$('dayoff-tomorrow')?.addEventListener('click', () => applyDayOffChoice('defer'));
+$('dayoff-modal')?.addEventListener('click', e => {
+  if (e.target === $('dayoff-modal')) hideDayOffModal();
 });
 $('reminder-modal').addEventListener('click', e => {
   if (e.target === $('reminder-modal')) hideReminderModal();
