@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=70"></script>
-  <script src="auth-captcha.js?v=70"></script>
+  <script src="config.js?v=71"></script>
+  <script src="auth-captcha.js?v=71"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=70"></script>
-  <script src="supabase-assignments.js?v=70"></script>
-  <script src="assignment-scan.js?v=70"></script>
-  <script src="lms-import.js?v=70"></script>
-  <script src="stay-ahead-planning.js?v=70"></script>
-  <script src="quiet-reminder-copy.js?v=70"></script>
-  <script src="push-notifications.js?v=70"></script>
-  <script src="sw-update.js?v=70"></script>
+  <script src="supabase-sessions.js?v=71"></script>
+  <script src="supabase-assignments.js?v=71"></script>
+  <script src="assignment-scan.js?v=71"></script>
+  <script src="lms-import.js?v=71"></script>
+  <script src="stay-ahead-planning.js?v=71"></script>
+  <script src="quiet-reminder-copy.js?v=71"></script>
+  <script src="push-notifications.js?v=71"></script>
+  <script src="sw-update.js?v=71"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -4410,13 +4410,14 @@ function renderHomeTodayPlan() {
       workload.dayOff && catchUpChoice !== 'now'
         ? []
         : stayAheadPlans.slice(0, 3).map(p => ({
-      title: p.assignment.title,
-      course: p.assignment.course,
-      minutes: Math.min(45, Number(p.assignment.estimatedMinutes) || 45),
-      stepLabel: p.startHeadline || 'Start soon',
-      priorityLevel: p.priorityLevel || 'Medium',
-      assignment: p.assignment
-    }));
+          title: p.assignment.title,
+          course: p.assignment.course,
+          minutes: Math.min(45, Number(p.assignment.estimatedMinutes) || 45),
+          stepLabel: p.startHeadline || 'Start soon',
+          priorityLevel: p.priorityLevel || 'Medium',
+          assignment: p.assignment
+        }))
+    );
 
     show.slice(0, 5).forEach(item => {
       const li = document.createElement('li');
