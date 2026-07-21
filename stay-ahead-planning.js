@@ -1,3 +1,8 @@
+/**
+ * Quiet Stay Ahead Planning — daily plan engine + Ask Quiet (schedule-aware).
+ * Ask Quiet answers from your planner (not a free chatbot).
+ * Day offs use oneOffBusyDates (specific dates), not every Friday forever.
+ */
 (function () {
   "use strict";
 
@@ -323,6 +328,22 @@
     return [...new Set(list.map(Number).filter((n) => n >= 0 && n <= 6))].sort((a, b) => a - b);
   }
 
+  function startOfDay(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function dateKey(date) {
+    const d = startOfDay(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function normalizeDateKeyList(list) {
+    if (!Array.isArray(list)) return [];
+    return [...new Set(list.map((v) => String(v).trim()).filter(Boolean))].sort();
+  }
+
   function normalizeSchedule(schedule) {
     const base = { ...DEFAULT_SCHEDULE, ...(schedule || {}) };
     return {
@@ -330,7 +351,9 @@
       classDays: normalizeDayList(base.classDays),
       busyDays: normalizeDayList(base.busyDays),
       preferredStudyDays: normalizeDayList(base.preferredStudyDays),
-      avoidWeekendStudy: !!base.avoidWeekendStudy
+      avoidWeekendStudy: !!base.avoidWeekendStudy,
+      // Specific dates kept free (Ask Quiet — not every Friday forever)
+      oneOffBusyDates: normalizeDateKeyList(base.oneOffBusyDates)
     };
   }
 
@@ -343,12 +366,6 @@
     return profile.stayAheadSchedule;
   }
 
-  function startOfDay(date) {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-
   function getScheduleSets(schedule) {
     const s = normalizeSchedule(schedule);
     const work = new Set(s.workDays);
@@ -357,12 +374,14 @@
       class: new Set(s.classDays),
       busy: new Set(s.busyDays),
       preferred: new Set(s.preferredStudyDays),
+      oneOffBusy: new Set(s.oneOffBusyDates || []),
       blockSaturday: !!s.avoidWeekendStudy && !work.has(6)
     };
   }
 
   /** Higher tier = better study day. Busy = 0, work/class = 1, neutral = 2, preferred = 3 */
-  function dayTier(dow, sets) {
+  function dayTier(dow, sets, date) {
+    if (date && sets.oneOffBusy && sets.oneOffBusy.has(dateKey(date))) return 0;
     if (sets.blockSaturday && dow === 6) return 0;
     if (sets.busy.has(dow)) return 0;
     if (sets.work.has(dow) || sets.class.has(dow)) return 1;
@@ -424,13 +443,14 @@
     for (let cursor = new Date(startOfDay(today)); cursor < dueDay; cursor.setDate(cursor.getDate() + 1)) {
       const date = startOfDay(cursor);
       const dow = date.getDay();
-      let tier = dayTier(dow, sets);
+      const oneOff = !!(sets.oneOffBusy && sets.oneOffBusy.has(dateKey(date)));
+      let tier = dayTier(dow, sets, date);
       if (used.has(date.getTime())) tier = Math.max(0, tier - 2);
       days.push({
         date,
         dow,
         tier,
-        isBusy: sets.busy.has(dow),
+        isBusy: oneOff || sets.busy.has(dow) || (sets.blockSaturday && dow === 6),
         isWork: sets.work.has(dow),
         isClass: sets.class.has(dow),
         isPreferred: sets.preferred.has(dow),
@@ -592,7 +612,7 @@
         {
           date: new Date(today),
           dow: today.getDay(),
-          tier: dayTier(today.getDay(), sets),
+          tier: dayTier(today.getDay(), sets, today),
           isBusy: sets.busy.has(today.getDay()),
           isWork: sets.work.has(today.getDay()),
           isClass: sets.class.has(today.getDay()),
@@ -944,11 +964,6 @@
     return plans.map((p) => ({ ...p, source: "local" }));
   }
 
-  function dateKey(date) {
-    const d = startOfDay(date);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
-
   function getCatchUpChoice(profile, now = new Date()) {
     const key = dateKey(now);
     return profile?.catchUpByDate?.[key] || null;
@@ -960,10 +975,12 @@
     profile.catchUpByDate[dateKey(now)] = choice;
   }
 
-  /** User marked today busy / off in My schedule */
+  /** User marked today busy / off (weekly busy day OR one-off date) */
   function isScheduledDayOff(schedule, now = new Date()) {
     const sets = getScheduleSets(schedule);
-    return sets.busy.has(startOfDay(now).getDay());
+    const today = startOfDay(now);
+    if (sets.oneOffBusy && sets.oneOffBusy.has(dateKey(today))) return true;
+    return sets.busy.has(today.getDay());
   }
 
   function collectSessionsOnDate(plans, dateMs) {
@@ -1194,6 +1211,405 @@
     return "Heavy day — do the first block, then reassess.";
   }
 
+  function minutesOnDate(plans, date) {
+    const dayMs = startOfDay(date).getTime();
+    let total = 0;
+    const items = [];
+    for (const plan of plans || []) {
+      if (!plan?.assignment || plan.assignment.completed) continue;
+      for (const session of plan.sessions || []) {
+        if (!session.date || startOfDay(session.date).getTime() !== dayMs) continue;
+        const mins = session.tasks?.[0]?.minutes || 0;
+        total += mins;
+        items.push({
+          title: plan.assignment.title,
+          minutes: mins,
+          stepLabel: session.tasks?.[0]?.label || "Work session",
+          dueAt: plan.assignment.dueAt
+        });
+      }
+    }
+    return { totalMinutes: total, items, label: formatEffort(total) };
+  }
+
+  function highRiskCount(plans) {
+    return (plans || []).filter((p) => p.risk === "High" && !p.assignment?.completed).length;
+  }
+
+  /** Preview marking a day busy — numbers from the planner, not a chatbot guess. */
+  function simulateDayOff(assignments, schedule, targetDate, now = new Date()) {
+    const target = startOfDay(targetDate);
+    const today = startOfDay(now);
+    const dayName = DAY_NAMES[target.getDay()];
+    const base = normalizeSchedule(schedule);
+    const currentPlans = buildStayAheadPlans(assignments, base, now);
+    const before = minutesOnDate(currentPlans, target);
+
+    if (target.getTime() < today.getTime()) {
+      return {
+        ok: false,
+        intent: "day_off",
+        dayName,
+        targetDate: target.toISOString(),
+        title: "Quiet",
+        body: `${dayName} already passed. Pick today or a day ahead.`,
+        canApply: false
+      };
+    }
+
+    const targetKey = dateKey(target);
+    if ((base.oneOffBusyDates || []).includes(targetKey) ||
+        (base.busyDays.includes(target.getDay()) && before.totalMinutes === 0)) {
+      return {
+        ok: true,
+        intent: "day_off",
+        dayName,
+        targetDate: target.toISOString(),
+        targetKey,
+        title: "Quiet",
+        body: `${dayName} is already free on your plan. Enjoy it.`,
+        canApply: false,
+        alreadyOff: true
+      };
+    }
+
+    const oneOff = new Set(base.oneOffBusyDates || []);
+    oneOff.add(targetKey);
+    const nextSchedule = normalizeSchedule({
+      ...base,
+      oneOffBusyDates: [...oneOff].sort()
+    });
+    const nextPlans = buildStayAheadPlans(assignments, nextSchedule, now);
+    const riskBefore = highRiskCount(currentPlans);
+    const riskAfter = highRiskCount(nextPlans);
+
+    const tradeoffs = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if (startOfDay(d).getTime() === target.getTime()) continue;
+      const a = minutesOnDate(currentPlans, d);
+      const b = minutesOnDate(nextPlans, d);
+      if (b.totalMinutes > a.totalMinutes + 10) {
+        tradeoffs.push({
+          dayName: DAY_NAMES[d.getDay()],
+          date: d,
+          beforeMinutes: a.totalMinutes,
+          afterMinutes: b.totalMinutes,
+          delta: b.totalMinutes - a.totalMinutes
+        });
+      }
+    }
+    tradeoffs.sort((a, b) => b.delta - a.delta);
+
+    const topMoves = tradeoffs.slice(0, 2);
+    let ok = riskAfter <= riskBefore + 1;
+    if (topMoves.some((t) => t.afterMinutes > 180)) ok = false;
+
+    let body;
+    if (!before.totalMinutes && !topMoves.length) {
+      body = `Absolutely — ${dayName} can be free. Nothing was scheduled that day, and your plan still fits.`;
+      ok = true;
+    } else if (ok && topMoves.length) {
+      const bits = topMoves.map(
+        (t) => `${formatEffort(t.afterMinutes)} on ${t.dayName}`
+      );
+      body = `Yes — take ${dayName} off. If you do ${bits.join(" and ")}, you stay ahead of every deadline.`;
+    } else if (ok) {
+      body = `Yes — ${dayName} can be free. Your other days still cover everything.`;
+    } else if (topMoves.length) {
+      const t = topMoves[0];
+      body = `${dayName} off is tight. You'd need about ${formatEffort(t.afterMinutes)} on ${t.dayName}. Still want it?`;
+    } else {
+      body = `Taking ${dayName} off would squeeze your deadlines. I'd keep a short block that day, or move work earlier.`;
+    }
+
+    return {
+      ok,
+      intent: "day_off",
+      dayName,
+      targetDate: target.toISOString(),
+      targetKey: dateKey(target),
+      targetDow: target.getDay(),
+      title: "Quiet",
+      body,
+      canApply: true,
+      beforeMinutes: before.totalMinutes,
+      tradeoffs: topMoves,
+      riskBefore,
+      riskAfter,
+      nextSchedule
+    };
+  }
+
+  function answerWhatNow(plans, schedule, now = new Date()) {
+    const workload = buildTodayWorkload(plans, now, { schedule });
+    if (workload.dayOff && workload.pendingMinutes && !workload.items.length) {
+      return {
+        ok: true,
+        intent: "what_now",
+        title: "Quiet",
+        body: `Today is marked off. You had ${workload.pendingLabel} planned — catch up if you want, or enjoy the break and pick it up tomorrow.`,
+        canApply: false
+      };
+    }
+    if (!workload.items.length) {
+      const next = (plans || []).find((p) => !p.assignment?.completed);
+      if (!next) {
+        return {
+          ok: true,
+          intent: "what_now",
+          title: "Quiet",
+          body: "Nothing on today's plan. You're clear — or add coursework if Canvas has more.",
+          canApply: false
+        };
+      }
+      return {
+        ok: true,
+        intent: "what_now",
+        title: "Quiet",
+        body: `Nothing scheduled for today. Next up is ${next.assignment.title} — recommended start ${next.startHeadline?.replace("Recommended start: ", "") || "soon"}.`,
+        canApply: false,
+        assignment: next.assignment
+      };
+    }
+    const first = workload.items[0];
+    const rest = workload.items.length - 1;
+    const restBit = rest > 0
+      ? ` Then ${rest} more thing${rest === 1 ? "" : "s"} (${workload.totalLabel} total).`
+      : ` That's your whole day (${workload.totalLabel}).`;
+    return {
+      ok: true,
+      intent: "what_now",
+      title: "Quiet",
+      body: `After class (or whenever you're free): ${first.minutes} min on ${first.title} — ${first.stepLabel}.${restBit}`,
+      canApply: false,
+      assignment: first.assignment
+    };
+  }
+
+  function answerSkipToday(plans, schedule, now = new Date()) {
+    const today = startOfDay(now);
+    const sim = simulateDayOff(
+      (plans || []).map((p) => p.assignment).filter(Boolean),
+      schedule,
+      today,
+      now
+    );
+    const workload = buildTodayWorkload(plans, now, { schedule });
+    if (!workload.totalMinutes && !workload.pendingMinutes) {
+      return {
+        ok: true,
+        intent: "skip_today",
+        title: "Quiet",
+        body: "You're fine skipping today — nothing was on the plan. Enjoy the break.",
+        canApply: false
+      };
+    }
+    const loadLabel = workload.totalLabel || formatEffort(workload.pendingMinutes || 0);
+    let body;
+    if (sim.ok && sim.tradeoffs?.length) {
+      const bits = sim.tradeoffs.map((t) => `${formatEffort(t.afterMinutes)} on ${t.dayName}`);
+      body = `If you skip today, move ${loadLabel} — do ${bits.join(" and ")} and you stay ahead.`;
+    } else if (sim.ok) {
+      body = `You're fine skipping today. ${loadLabel} still fits later this week.`;
+    } else {
+      body = `Skipping today is tight. ${sim.body}`;
+    }
+    return {
+      ...sim,
+      intent: "skip_today",
+      body
+    };
+  }
+
+  function answerWeekendFree(plans, schedule, now = new Date()) {
+    const warning = weekendOverloadWarning(plans, schedule, now);
+    const sat = new Date(startOfDay(now));
+    while (sat.getDay() !== 6) sat.setDate(sat.getDate() + 1);
+    const sun = new Date(sat);
+    sun.setDate(sat.getDate() + 1);
+    const satLoad = minutesOnDate(plans, sat);
+    const sunLoad = minutesOnDate(plans, sun);
+    const weekendMins = satLoad.totalMinutes + sunLoad.totalMinutes;
+
+    if (weekendMins <= 60 && !warning) {
+      return {
+        ok: true,
+        intent: "weekend_free",
+        title: "Quiet",
+        body: weekendMins === 0
+          ? "You're on track. Enjoy your weekend — nothing major is parked on Sat/Sun."
+          : `Light weekend: only ${formatEffort(weekendMins)}. You're okay to go out — just knock out that small block when you can.`,
+        canApply: false
+      };
+    }
+
+    if (warning) {
+      return {
+        ok: false,
+        intent: "weekend_free",
+        title: "Quiet",
+        body: `Not quite free yet. ${warning.message} Spread midweek and the weekend opens up.`,
+        canApply: false,
+        canSpread: true
+      };
+    }
+
+    return {
+      ok: weekendMins <= 120,
+      intent: "weekend_free",
+      title: "Quiet",
+      body: `Weekend has about ${formatEffort(weekendMins)} planned (${formatEffort(satLoad.totalMinutes)} Sat, ${formatEffort(sunLoad.totalMinutes)} Sun). Finish a block tonight or tomorrow and you'll feel free to go out.`,
+      canApply: false
+    };
+  }
+
+  function answerAmIOkay(plans, schedule, now = new Date()) {
+    const workload = buildTodayWorkload(plans, now, { schedule });
+    const high = highRiskCount(plans);
+    const warning = weekendOverloadWarning(plans, schedule, now);
+    if (high === 0 && !warning && workload.totalMinutes <= 90) {
+      return {
+        ok: true,
+        intent: "am_i_okay",
+        title: "Quiet",
+        body: workload.totalMinutes
+          ? `You're okay. Do today's ${workload.totalLabel} and you're ahead — no panic later.`
+          : "You're okay. Nothing urgent on today's plan.",
+        canApply: false
+      };
+    }
+    if (high > 0) {
+      const urgent = (plans || []).find((p) => p.risk === "High");
+      return {
+        ok: false,
+        intent: "am_i_okay",
+        title: "Quiet",
+        body: urgent
+          ? `${urgent.assignment.title} needs attention first — it's high risk. A ${urgent.sessions?.[0]?.tasks?.[0]?.minutes || 25}-minute start keeps you from falling behind.`
+          : "A few things are high risk. Start the first block on Home today.",
+        canApply: false,
+        assignment: urgent?.assignment
+      };
+    }
+    return {
+      ok: true,
+      intent: "am_i_okay",
+      title: "Quiet",
+      body: warning
+        ? `Mostly okay — but ${warning.message}`
+        : `Full day (${workload.totalLabel}). Start the first task and you'll still be fine.`,
+      canApply: false,
+      canSpread: !!warning?.canSpread
+    };
+  }
+
+  /** Map free text / chip ids to intents. Numbers from planner only. */
+  function parseAskQuietIntent(raw) {
+    const text = String(raw || "").toLowerCase().trim();
+    if (!text) return { intent: "am_i_okay" };
+
+    if (text === "what_now" || /what (should i|do i) (work on|do)|after class|what now|start with/.test(text)) {
+      return { intent: "what_now" };
+    }
+    if (text === "weekend_free" || /weekend|go out|hang out|saturday|sunday/.test(text)) {
+      return { intent: "weekend_free" };
+    }
+    if (text === "skip_today" || /skip today|skip studying|don't study today|not today/.test(text)) {
+      return { intent: "skip_today" };
+    }
+    if (text === "am_i_okay" || /am i (ok|okay|fine)|on track|will i be|behind/.test(text)) {
+      return { intent: "am_i_okay" };
+    }
+
+    const dayMap = {
+      sunday: 0, sun: 0,
+      monday: 1, mon: 1,
+      tuesday: 2, tue: 2, tues: 2,
+      wednesday: 3, wed: 3,
+      thursday: 4, thu: 4, thur: 4, thurs: 4,
+      friday: 5, fri: 5,
+      saturday: 6, sat: 6
+    };
+
+    let targetDow = null;
+    if (text === "day_off_tomorrow" || /\btomorrow\b/.test(text)) {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      targetDow = t.getDay();
+    } else if (text === "day_off_today" || (/\btoday\b/.test(text) && /off|free|break|relax/.test(text))) {
+      targetDow = new Date().getDay();
+    } else if (text === "day_off_friday") {
+      targetDow = 5;
+    } else if (text === "day_off_saturday") {
+      targetDow = 6;
+    } else {
+      for (const [name, dow] of Object.entries(dayMap)) {
+        if (new RegExp(`\\b${name}\\b`).test(text)) {
+          targetDow = dow;
+          break;
+        }
+      }
+    }
+
+    if (
+      targetDow != null ||
+      text.startsWith("day_off") ||
+      /take .+ off|day off|can i (take|have)|free (day|friday|saturday)|relax|break/.test(text)
+    ) {
+      return {
+        intent: "day_off",
+        targetDow: targetDow != null ? targetDow : 5
+      };
+    }
+
+    return { intent: "am_i_okay" };
+  }
+
+  function nextDateForDow(dow, now = new Date()) {
+    const today = startOfDay(now);
+    const d = new Date(today);
+    let add = (dow - today.getDay() + 7) % 7;
+    if (add === 0 && arguments.length >= 1) {
+      /* today matching dow is allowed for skip/today */
+    }
+    d.setDate(today.getDate() + add);
+    return d;
+  }
+
+  function askQuiet(question, { assignments, schedule, plans, now = new Date() } = {}) {
+    const parsed = typeof question === "string"
+      ? parseAskQuietIntent(question)
+      : (question || { intent: "am_i_okay" });
+    const sched = normalizeSchedule(schedule);
+    const list = assignments || (plans || []).map((p) => p.assignment).filter(Boolean);
+    const built = plans?.length ? plans : buildStayAheadPlans(list, sched, now);
+
+    if (parsed.intent === "what_now") return answerWhatNow(built, sched, now);
+    if (parsed.intent === "weekend_free") return answerWeekendFree(built, sched, now);
+    if (parsed.intent === "skip_today") return answerSkipToday(built, sched, now);
+    if (parsed.intent === "am_i_okay") return answerAmIOkay(built, sched, now);
+
+    if (parsed.intent === "day_off") {
+      const dow = parsed.targetDow != null ? parsed.targetDow : 5;
+      const target = nextDateForDow(dow, now);
+      return simulateDayOff(list, sched, target, now);
+    }
+
+    return answerAmIOkay(built, sched, now);
+  }
+
+  function applyDayOffFromAnswer(schedule, answer) {
+    if (answer?.nextSchedule) return normalizeSchedule(answer.nextSchedule);
+    const s = normalizeSchedule(schedule);
+    const key = answer?.targetKey || (answer?.targetDate ? dateKey(answer.targetDate) : null);
+    if (!key) return s;
+    const oneOff = new Set(s.oneOffBusyDates || []);
+    oneOff.add(key);
+    return normalizeSchedule({ ...s, oneOffBusyDates: [...oneOff].sort() });
+  }
+
   window.StayAheadPlanning = {
     DAY_LABELS,
     DAY_NAMES,
@@ -1231,6 +1647,11 @@
     recommendCampusResource,
     weekendOverloadWarning,
     applyWeekendSpread,
-    buildTrackStatus
+    buildTrackStatus,
+    simulateDayOff,
+    askQuiet,
+    parseAskQuietIntent,
+    applyDayOffFromAnswer,
+    minutesOnDate
   };
 })();
