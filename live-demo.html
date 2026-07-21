@@ -45,17 +45,17 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="mascot-hybrid.css">
-  <script src="config.js?v=71"></script>
-  <script src="auth-captcha.js?v=71"></script>
+  <script src="config.js?v=72"></script>
+  <script src="auth-captcha.js?v=72"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-sessions.js?v=71"></script>
-  <script src="supabase-assignments.js?v=71"></script>
-  <script src="assignment-scan.js?v=71"></script>
-  <script src="lms-import.js?v=71"></script>
-  <script src="stay-ahead-planning.js?v=71"></script>
-  <script src="quiet-reminder-copy.js?v=71"></script>
-  <script src="push-notifications.js?v=71"></script>
-  <script src="sw-update.js?v=71"></script>
+  <script src="supabase-sessions.js?v=72"></script>
+  <script src="supabase-assignments.js?v=72"></script>
+  <script src="assignment-scan.js?v=72"></script>
+  <script src="lms-import.js?v=72"></script>
+  <script src="stay-ahead-planning.js?v=72"></script>
+  <script src="quiet-reminder-copy.js?v=72"></script>
+  <script src="push-notifications.js?v=72"></script>
+  <script src="sw-update.js?v=72"></script>
   <style>
 /* ═══════════════════════════════════════
    TOKENS — exact from your app
@@ -2360,6 +2360,111 @@ button:disabled { cursor:not-allowed; opacity:.42; }
   display:inline; background:none; border:none; padding:0;
   color:var(--mint); font:inherit; font-weight:600; cursor:pointer;
 }
+.ask-quiet {
+  width:100%;
+  margin:14px 0 8px;
+  padding:14px;
+  border-radius:16px;
+  background:rgba(148,218,177,.06);
+  border:1px solid rgba(148,218,177,.2);
+  text-align:left;
+}
+.ask-quiet-label {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--mint);
+  margin:0 0 8px;
+}
+.ask-quiet-chips {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.ask-quiet-chip {
+  font-family:inherit;
+  font-size:12px;
+  font-weight:500;
+  padding:8px 11px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+}
+.ask-quiet-chip:hover,
+.ask-quiet-chip.is-active {
+  border-color:rgba(148,218,177,.45);
+  background:rgba(148,218,177,.12);
+  color:var(--mint);
+}
+.ask-quiet-row {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+.ask-quiet-input {
+  flex:1;
+  min-height:40px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(0,0,0,.25);
+  color:var(--text);
+  padding:8px 12px;
+  font-family:inherit;
+  font-size:13px;
+}
+.ask-quiet-go {
+  flex-shrink:0;
+  min-height:40px;
+  padding:0 14px;
+  border-radius:10px;
+  border:0;
+  background:var(--mint);
+  color:#0a0c0e;
+  font-family:inherit;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+}
+.ask-quiet-answer {
+  margin-top:4px;
+  padding-top:10px;
+  border-top:1px solid rgba(148,218,177,.15);
+}
+.ask-quiet-answer[hidden] { display:none; }
+.ask-quiet-answer p {
+  font-size:13px;
+  line-height:1.5;
+  color:var(--muted-2);
+  margin:0 0 10px;
+}
+.ask-quiet-answer .ask-quiet-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.ask-quiet-answer .ask-quiet-actions button {
+  min-height:36px;
+  font-size:12px;
+  padding:8px 12px;
+  border-radius:10px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.ask-quiet-apply {
+  background:var(--mint);
+  color:#0a0c0e;
+  border:0;
+  font-weight:600;
+}
+.ask-quiet-secondary {
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--muted-2);
+}
 
 /* ═══════════════════════════════════════
    TAB BAR (your exact style)
@@ -2691,6 +2796,24 @@ button:disabled { cursor:not-allowed; opacity:.42; }
                   <p class="home-dayoff-note" id="home-dayoff-note" hidden></p>
                   <p class="home-campus-tip" id="home-campus-tip" hidden></p>
                   <button class="primary home-today-btn" type="button" id="home-today-btn">Start today's plan</button>
+                  <div class="ask-quiet" id="ask-quiet" hidden>
+                    <p class="ask-quiet-label">Ask Quiet</p>
+                    <div class="ask-quiet-chips" id="ask-quiet-chips">
+                      <button type="button" class="ask-quiet-chip" data-ask="day_off_tomorrow">Take tomorrow off?</button>
+                      <button type="button" class="ask-quiet-chip" data-ask="day_off_friday">Friday free?</button>
+                      <button type="button" class="ask-quiet-chip" data-ask="weekend_free">Weekend free?</button>
+                      <button type="button" class="ask-quiet-chip" data-ask="what_now">What now?</button>
+                      <button type="button" class="ask-quiet-chip" data-ask="skip_today">Skip today okay?</button>
+                    </div>
+                    <div class="ask-quiet-row">
+                      <input class="ask-quiet-input" id="ask-quiet-input" type="text" maxlength="120" placeholder="e.g. Can I take Friday off?" autocomplete="off">
+                      <button type="button" class="ask-quiet-go" id="ask-quiet-go">Ask</button>
+                    </div>
+                    <div class="ask-quiet-answer" id="ask-quiet-answer" hidden>
+                      <p id="ask-quiet-body"></p>
+                      <div class="ask-quiet-actions" id="ask-quiet-actions"></div>
+                    </div>
+                  </div>
                   <a class="home-setup-link" href="#" id="home-setup-link">Set work &amp; class days →</a>
                 </div>
 
@@ -4332,6 +4455,90 @@ function handleWeekendSpread() {
   toast('Saturday cleared — work moved to weekdays.');
 }
 
+let lastAskQuietAnswer = null;
+
+function showAskQuietAnswer(answer) {
+  lastAskQuietAnswer = answer;
+  const wrap = $('ask-quiet-answer');
+  const body = $('ask-quiet-body');
+  const actions = $('ask-quiet-actions');
+  if (!wrap || !body || !actions || !answer) return;
+
+  body.textContent = answer.body || '';
+  actions.innerHTML = '';
+
+  if (answer.canApply && (answer.intent === 'day_off' || answer.intent === 'skip_today')) {
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'ask-quiet-apply';
+    applyBtn.textContent = answer.ok
+      ? `Lock in — free ${answer.dayName || 'that day'}`
+      : `Still take ${answer.dayName || 'the day'} off`;
+    applyBtn.addEventListener('click', () => applyAskQuietDayOff(answer));
+    actions.appendChild(applyBtn);
+  }
+
+  if (answer.canSpread) {
+    const spread = document.createElement('button');
+    spread.type = 'button';
+    spread.className = 'ask-quiet-secondary';
+    spread.textContent = 'Spread weekend work';
+    spread.addEventListener('click', handleWeekendSpread);
+    actions.appendChild(spread);
+  }
+
+  if (answer.assignment) {
+    const start = document.createElement('button');
+    start.type = 'button';
+    start.className = 'ask-quiet-apply';
+    start.textContent = 'Start that block';
+    start.addEventListener('click', () => startFocusFromAssignment(answer.assignment));
+    actions.appendChild(start);
+  }
+
+  wrap.hidden = false;
+}
+
+function runAskQuiet(question) {
+  if (!window.StayAheadPlanning?.askQuiet) {
+    toast('Ask Quiet needs a refresh — hard reload the page.');
+    return;
+  }
+  if (!canUseStayAhead()) {
+    toast('Add coursework first so Quiet knows your schedule.');
+    showPage('assignments');
+    return;
+  }
+  if (!stayAheadPlansHydrated) rebuildStayAheadPlans();
+
+  const answer = window.StayAheadPlanning.askQuiet(question, {
+    assignments: pendingAssignments(),
+    schedule: getStayAheadSchedule(),
+    plans: stayAheadPlans
+  });
+  showAskQuietAnswer(answer);
+}
+
+function applyAskQuietDayOff(answer) {
+  if (!window.StayAheadPlanning?.applyDayOffFromAnswer) return;
+  const next = window.StayAheadPlanning.applyDayOffFromAnswer(getStayAheadSchedule(), answer);
+  window.StayAheadPlanning.saveScheduleToProfile(profile, next);
+  if (answer.intent === 'skip_today' || answer.targetDow === new Date().getDay()) {
+    window.StayAheadPlanning.setCatchUpChoice?.(profile, 'defer');
+  }
+  saveProfile();
+  rebuildStayAheadPlans();
+  renderHomeTodayPlan();
+  renderWeeklyPlanner();
+  toast(`${answer.dayName || 'Day'} marked free — plan updated.`);
+  const wrap = $('ask-quiet-answer');
+  if (wrap) {
+    $('ask-quiet-body').textContent =
+      `Done. ${answer.dayName || 'That day'} is free. Your plan shifted around it.`;
+    $('ask-quiet-actions').innerHTML = '';
+  }
+}
+
 function renderHomeTodayPlan() {
   const planWrap = $('home-today-plan');
   const emptyWrap = $('home-empty');
@@ -4345,6 +4552,8 @@ function renderHomeTodayPlan() {
     planWrap.hidden = true;
     emptyWrap.hidden = false;
     if (streakBlock) streakBlock.hidden = true;
+    const askQuiet = $('ask-quiet');
+    if (askQuiet) askQuiet.hidden = true;
     const intro = $('quiet-intro');
     if (intro) {
       intro.textContent = pendingAssignments().length
@@ -4378,6 +4587,8 @@ function renderHomeTodayPlan() {
     planWrap.hidden = true;
     emptyWrap.hidden = false;
     if (streakBlock) streakBlock.hidden = true;
+    const askQuiet = $('ask-quiet');
+    if (askQuiet) askQuiet.hidden = true;
     return;
   }
 
@@ -4385,12 +4596,16 @@ function renderHomeTodayPlan() {
     planWrap.hidden = true;
     emptyWrap.hidden = false;
     if (streakBlock) streakBlock.hidden = true;
+    const askQuiet = $('ask-quiet');
+    if (askQuiet) askQuiet.hidden = true;
     return;
   }
 
   planWrap.hidden = false;
   emptyWrap.hidden = true;
   if (streakBlock) streakBlock.hidden = true;
+  const askQuietEl = $('ask-quiet');
+  if (askQuietEl) askQuietEl.hidden = false;
 
   if (totalEl) {
     if (workload.dayOff && catchUpChoice === 'defer') {
@@ -5604,6 +5819,28 @@ $('username').addEventListener('input', e => {
 });
 $('home-start-btn')?.addEventListener('click', () => showPage('focus'));
 $('home-add-work-btn')?.addEventListener('click', () => showPage('assignments'));
+$('ask-quiet-chips')?.addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-ask]');
+  if (!chip) return;
+  $('ask-quiet-chips')?.querySelectorAll('.ask-quiet-chip').forEach((c) => {
+    c.classList.toggle('is-active', c === chip);
+  });
+  runAskQuiet(chip.getAttribute('data-ask'));
+});
+$('ask-quiet-go')?.addEventListener('click', () => {
+  const q = $('ask-quiet-input')?.value?.trim();
+  if (!q) {
+    toast('Type a question or tap a chip');
+    return;
+  }
+  runAskQuiet(q);
+});
+$('ask-quiet-input')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('ask-quiet-go')?.click();
+  }
+});
 $('task-input').addEventListener('input', e => { profile.task = e.target.value; saveProfile(); });
 
 document.querySelectorAll('.duration').forEach(b => {
